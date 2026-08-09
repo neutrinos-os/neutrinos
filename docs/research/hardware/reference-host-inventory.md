@@ -104,6 +104,17 @@ and out-of-band-recovery options. It does not prove remote-console access,
 automated rollback, or encrypted unattended boot. In particular, a TPM-bound
 unlock design cannot be assumed for this hardware as currently configured.
 
+Supermicro's documentation provides a discrete TPM path but no evidence found
+for a firmware TPM on this exact board. The board manual identifies `JTPM1` as
+a 10-pin SPI TPM/Port 80 header. Supermicro's exact-board FAQ recommends the
+TCG 2.0 `AOM-TPM-9670V-S` or `AOM-TPM-9670H-S`, whose orientation must be
+selected for the available chassis clearance. The [module product
+page](https://www.supermicro.com/en/products/accessories/addon/AOM-TPM-9670V-S_H-S.php),
+[board FAQ](https://www.supermicro.com/en/support/faqs/faq.php?faq=30605), and
+[board manual](https://www.supermicro.com/manuals/motherboard/d/MNL-2007.pdf)
+are manufacturer evidence of compatibility, not evidence that a module is
+installed, provisioned, or usable by the current firmware and Linux stack.
+
 ## `misc`: observed server baseline
 
 The same read-only collection and repository revision establish:
@@ -129,6 +140,16 @@ selection still requires a more direct check. `misc` is useful evidence for a
 later server role but does not change the initial workstation/router
 qualification order.
 
+Intel's official specifications for both the [D54250WYK
+kit](https://www.intel.com/content/www/us/en/products/sku/76977/intel-nuc-kit-d54250wyk/specifications.html)
+and its [D54250WYB
+board](https://www.intel.com/content/www/us/en/products/sku/76975/intel-nuc-board-d54250wyb/specifications.html)
+state that Intel Platform Trust Technology is supported and a discrete TPM is
+not. This establishes a firmware trust capability, not its TPM interface
+version or its current activation. Because the live system exposes no TPM,
+firmware settings and behavior must be inspected before PTT can influence the
+design.
+
 ## Trust-capability matrix
 
 `Observed` means direct sanitized inspection. `Configured` means present in
@@ -141,7 +162,7 @@ version-controlled NixOS intent but not confirmed on the running machine.
 | systemd-boot | Unknown current bootloader | Files observed; active selection unverified | Files observed; active selection unverified |
 | Secure Boot enabled | Observed no | Observed no | Observed no |
 | Owner-controlled platform keys | Not currently enrolled; capability untested | Not currently enrolled; capability untested | Not currently enrolled; capability untested |
-| TPM 2.0 | Advertised; operation untested | Not exposed to Linux | Not exposed to Linux |
+| TPM capability | TPM 2.0 advertised; operation untested | No firmware TPM evidence; compatible discrete TPM 2.0 modules documented but not observed | Intel PTT documented; not exposed to Linux and version/operation unverified |
 | Authenticated immutable root | Not present or demonstrated | Not configured or demonstrated | Not configured or demonstrated |
 | Storage encryption | Not visible; confirmation needed | No LUKS/dm-crypt layer observed | No LUKS/dm-crypt layer observed |
 | Unattended reboot | Not yet a stated workstation requirement | Required in principle; mechanism unverified | Unknown |
@@ -154,15 +175,17 @@ version-controlled NixOS intent but not confirmed on the running machine.
    path until physical tests succeed.
 2. Workstation storage encryption is a migration requirement, not an existing
    property that can be assumed.
-3. The router's initial unattended design must not depend on a TPM. It must
-   either avoid secrets needed before networking, accept a different physical
-   trust mechanism, or make adding supported TPM hardware an explicit
-   prerequisite.
+3. The router's initial unattended design must not depend on a TPM while no
+   module is installed and proven. Adding a documented Supermicro TPM 2.0
+   module remains an explicit hardware option, not an assumed baseline.
 4. The NixOS files are valuable configuration and role evidence but are not a
    hardware inventory or attestation source.
 5. `misc` should later exercise the server role, but bringing it into the
    initial gate would expand scope before workstation and router validate the
    lifecycle.
+6. `misc` should first test its documented PTT capability in firmware; a
+   discrete TPM purchase is neither supported by the official specification
+   nor presently justified.
 
 ## Required follow-up evidence
 
@@ -178,8 +201,9 @@ version-controlled NixOS intent but not confirmed on the running machine.
 ### `router`
 
 - state acceptable outage and whether every normal reboot must be unattended;
-- verify whether the board has a usable but disabled or unprovisioned TPM
-  option, or record TPM absence as a hardware constraint;
+- decide whether to acquire a compatible discrete TPM 2.0 module, after
+  checking orientation and chassis clearance, or retain TPM absence as an
+  explicit initial hardware constraint;
 - verify the active firmware boot entry and systemd-boot update behavior;
 - exercise IPMI power control and remote console without depending on the
   router's data-plane network;
@@ -191,6 +215,8 @@ version-controlled NixOS intent but not confirmed on the running machine.
 
 - defer detailed collection until the server role enters active design unless
   its hardware can cheaply provide evidence relevant to the common trust path;
+- inspect firmware security settings for Intel PTT and, if enabled, verify the
+  interface, TPM version, PCR banks, event log, and clear/recovery behavior;
 - verify the active firmware boot entry and systemd-boot update behavior; and
 - inventory its physical recovery path before it becomes a qualification host.
 
@@ -208,3 +234,6 @@ version-controlled NixOS intent but not confirmed on the running machine.
 - Runtime observations establish the state exposed to Linux at the evidence
   cutoff; they do not prove firmware capabilities that are disabled, absent
   from ACPI, or otherwise hidden from the operating system.
+- Manufacturer documentation was checked on 2026-08-09. It establishes stated
+  product capability and compatibility, not the installed state of these
+  individual machines.

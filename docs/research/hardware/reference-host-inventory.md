@@ -153,6 +153,8 @@ version-controlled NixOS intent but not confirmed on the running machine.
 
 - collect sanitized CPU, memory, board, firmware, TPM, Secure Boot, bootloader,
   storage, encryption, console, and management-controller facts;
+- resolve live inventory access: an authorized SSH attempt on 2026-08-09
+  resolved `router.local` but found TCP port 22 refusing connections;
 - state acceptable outage and whether every normal reboot must be unattended;
 - identify recovery paths that work without WAN, DNS, routing, or normal SSH;
   and
@@ -161,7 +163,9 @@ version-controlled NixOS intent but not confirmed on the running machine.
 ### `misc`
 
 - defer detailed collection until the server role enters active design unless
-  its hardware can cheaply provide evidence relevant to the common trust path.
+  its hardware can cheaply provide evidence relevant to the common trust path;
+  an authorized SSH attempt on 2026-08-09 resolved `misc.local` but timed out
+  connecting to TCP port 22.
 
 ## Evidence limitations
 
@@ -172,4 +176,5 @@ version-controlled NixOS intent but not confirmed on the running machine.
   tracked revision `198f797` and selected checked-in configuration were used.
 - Generated NixOS hardware files date from 2023 and establish configuration
   history rather than present runtime state.
-- No remote connection to `router` or `misc` was made.
+- Authorized read-only SSH inventory was attempted for both NixOS hosts, but no
+  remote session was established and no commands ran there.

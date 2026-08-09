@@ -82,9 +82,10 @@ mistake compromises every copy.
   separation, verification interval, and a non-destructive backup-use exercise.
 - Author response: EX-0001 requires a locally usable primary and a secondary copy
   or succession path independent of the primary machine, local disaster, routine
-  signer, normal online accounts, and primary unlock factor.
-- Disposition: mitigated at the policy level; owner feasibility and a retrieval
-  exercise remain open.
+  signer, normal online accounts, and primary unlock factor. The owner confirmed
+  on 2026-08-09 that this is a required and feasible initial-fleet constraint.
+- Disposition: mitigated at the policy level; a concrete construction and
+  retrieval exercise remain open.
 - Residual risk: geographic and account independence may be disproportionate for
   a personal fleet.
 
@@ -99,9 +100,11 @@ mistake compromises every copy.
 - Required response or experiment: perform a timed tabletop promotion and urgent
   signer-rotation exercise; automate evidence assembly without giving CI signing
   authority.
-- Author response: manual promotion is proposed for the initial personal fleet,
-  not declared permanently sufficient.
-- Disposition: open.
+- Author response: the owner accepted manual promotion, including urgent
+  releases, for the initial personal fleet on 2026-08-09. It is not declared
+  permanently sufficient.
+- Disposition: owner-choice objection resolved; timed normal and urgent
+  promotion exercises remain implementation evidence.
 - Residual risk: a best-effort maintenance policy still creates pressure during
   active exploitation.
 
@@ -148,11 +151,14 @@ mistake compromises every copy.
 
 ## Required changes before acceptance
 
-1. Confirm whether manual promotion is acceptable for the initial fleet.
-2. Define custody and recovery objectives for the offline set without recording
-   secret values or precise sensitive locations in public documentation.
-3. Perform tabletop loss and compromise exercises for every custody class.
-4. Resolve or explicitly defer the offline freshness questions before ratifying
-   SYS-037.
-5. Obtain independent human review and dispose of the remaining critical
-   challenges.
+1. **Complete:** the owner confirmed manual promotion for the initial fleet,
+   including urgent releases, on 2026-08-09.
+2. **Complete at policy level:** the design defines offline custody and recovery
+   objectives without recording secret values or sensitive locations. A private
+   custody worksheet and retrieval exercise remain implementation evidence.
+3. **Complete on paper:** EX-0001 exercises loss and compromise of every custody
+   class. Disposable-key and physical exercises remain implementation evidence.
+4. **Complete for this design:** offline freshness is explicitly deferred to
+   SYS-037 and must be resolved before that requirement is accepted.
+5. **Open:** obtain independent human review and dispose of C-002 and C-003, the
+   remaining critical design challenges.

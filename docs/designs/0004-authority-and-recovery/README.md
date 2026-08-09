@@ -257,9 +257,15 @@ The model is internally recoverable on paper with two conditions:
 - at least one offline recovery copy or succession path survives the primary
   local disaster and normal-account failure domains.
 
-The exercise also found that routine signing keys should be replaceable rather
-than backed up. Physical implementation, timed ceremony, firmware behavior, and
-offline freshness remain unproven.
+On 2026-08-09, the owner confirmed both conditions for the initial personal-fleet
+phase. Manual promotion, including an urgent release, is an accepted operating
+cost. An independent secondary offline copy or succession path is a required
+part of the eventual custody implementation, not an optional hardening measure.
+
+These are design decisions, not proof that the procedures work. The exercise
+also found that routine signing keys should be replaceable rather than backed
+up. Physical implementation, timed ceremony, firmware behavior, and offline
+freshness remain unproven.
 
 ## Alternatives considered
 
@@ -307,10 +313,11 @@ The design is viable when:
 
 ## Risks and unresolved questions
 
-- Where will the primary and independent offline copies be stored so that local
-  disaster and account loss do not share a failure domain?
-- Is a manual promotion ceremony acceptable for every initial release,
-  including urgent security updates?
+- What custody construction and retrieval procedure will provide an independent
+  secondary offline copy or succession path without recording sensitive
+  locations in the repository?
+- What time and operator-effort budget should the accepted manual promotion
+  ceremony meet in normal and urgent-release exercises?
 - Can firmware enroll separate normal and recovery leaves and provide usable
   owner-controlled revocation on every physical target?
 - Can router out-of-band recovery require sufficient deliberate authorization
@@ -321,7 +328,9 @@ The design is viable when:
 
 ## Review disposition
 
-The initial [adversarial review](review.md) and
-[EX-0001 tabletop](../../research/exercises/0001-authority-loss-tabletop.md)
-are open evidence for owner review. No physical keys, storage locations,
-cryptographic formats, or firmware enrollments have been selected or created.
+The owner accepted the two operating conditions exposed by
+[EX-0001](../../research/exercises/0001-authority-loss-tabletop.md). The
+[adversarial review](review.md) remains open on promotion-environment compromise,
+recovery capability, physical custody, and offline freshness. No physical keys,
+storage locations, cryptographic formats, or firmware enrollments have been
+selected or created.

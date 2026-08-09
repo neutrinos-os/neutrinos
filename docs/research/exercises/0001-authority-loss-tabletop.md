@@ -302,16 +302,17 @@ offline root during a normal emergency release.
    reset.** It cannot promise continuity without a surviving root or successor.
 6. **SYS-037 remains the largest policy gap.** Offline revocation, expiry, clock
    failure, and anti-downgrade must be resolved together.
-7. **Manual promotion is viable on paper but needs owner acceptance and a timed
-   exercise.** Automation should assemble and verify evidence without holding
+7. **Manual promotion is viable on paper and accepted for the initial fleet but
+   needs a timed exercise.** The owner accepted it, including urgent releases,
+   on 2026-08-09. Automation should assemble and verify evidence without holding
    promotion keys.
 
 ## Follow-up gates
 
-- Owner confirmation that manual promotion is acceptable for the personal-fleet
-  phase.
-- Owner confirmation that an offline backup outside the primary local and
-  normal-account failure domains is feasible.
+- **Confirmed 2026-08-09:** manual promotion is acceptable for the
+  personal-fleet phase, including urgent releases.
+- **Confirmed 2026-08-09:** an offline backup or succession path outside the
+  primary local and normal-account failure domains is feasible and required.
 - A private custody worksheet naming actual copies, access factors, and
   retrieval procedure without committing sensitive details publicly.
 - A timed disposable-key promotion and replacement exercise once implementation
@@ -322,7 +323,7 @@ offline root during a normal emergency release.
 
 ## Conclusion
 
-DES-0004 is internally recoverable on paper and reduces the initial custody
-problem to two maintainer decisions: accepting manual promotion and providing
-one genuinely independent offline recovery domain. It is not yet operational
-and does not justify creating production keys.
+DES-0004 is internally recoverable on paper. The owner accepted manual promotion
+and the obligation to provide one genuinely independent offline recovery domain
+on 2026-08-09. The model is not yet operational and does not justify creating
+production keys.

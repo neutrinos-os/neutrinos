@@ -127,9 +127,11 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
 - Required response or experiment: state the physical attacker and PCR/policy
   conditions precisely per role, then test hardware replacement, firmware
   update, TPM clear, and headless recovery.
-- Author response: the design requires role-specific claims and does not mandate
-  one unlock method.
-- Disposition: open.
+- Author response: PR-0005 defines the workstation and router confidentiality,
+  unattended-boot, hardware-bound-unlock, and recovery objectives without
+  mandating one unlock mechanism.
+- Disposition: resolved at the requirement level by accepted PR-0005 and
+  SYS-034; implementation evidence remains open.
 - Residual risk: convenience pressure can silently weaken the declared claim.
 
 ### C-008: Remote attestation is correctly deferred but may return by inertia
@@ -171,3 +173,9 @@ ratified SYS-030 on 2026-08-09 through
 [PR-0004](../../project/reviews/0004-boot-to-root-integrity.md). This resolves
 whether the project wants the claim; it does not establish that either substrate
 implements it through a production-supported path.
+
+Jason Tarasovic accepted the role security and availability objectives and
+ratified SYS-027 and SYS-034 on 2026-08-09 through
+[PR-0005](../../project/reviews/0005-role-security-and-availability-objectives.md).
+This resolves challenge C-007 at the requirement level; physical implementation
+and recovery exercises remain open.

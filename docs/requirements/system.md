@@ -38,14 +38,14 @@ satisfied it.
 | SYS-024 | Accepted | Reinstall, reprovision, and recovery must preserve only state selected by an ownership-aware preservation manifest rather than an undifferentiated mutable filesystem. | Recovery tests with mixed machine, user, workload, cache, secret, and diagnostic state. |
 | SYS-025 | Accepted | Machine identity, enrollment records, and secrets must have lifecycles independent of OS rollback, including rotation, revocation, regeneration or restore, and destruction. | Re-enrollment, revocation, rollback, and factory-reset tests. |
 | SYS-026 | Accepted | Failed-update diagnostics must remain available through rollback or recovery subject to explicit sensitivity, retention, and storage limits. | Failure evidence retrieval, redaction, rotation, and full-storage tests on each role. |
-| SYS-027 | Candidate | Every security claim must identify its protected assets, attacker capabilities, trust assumptions, guarantees, non-guarantees, and compromise-recovery behavior for each applicable role. | Threat-to-control trace reviewed against workstation and router scenarios. |
+| SYS-027 | Accepted | Every security claim must identify its protected assets, attacker capabilities, trust assumptions, guarantees, non-guarantees, and compromise-recovery behavior for each applicable role. | Threat-to-control trace reviewed against workstation and router scenarios. |
 | SYS-028 | Candidate | A deployable release authorization must bind the immutable artifact set, applicable role or channel, configuration identity or compatibility, and freshness policy independently of its transport location or mutable discovery name. | Registry and metadata substitution tests against a signed release manifest. |
 | SYS-029 | Candidate | A target must verify release authorization and content identity before a candidate can replace or outrank the current deployment; failed or interrupted verification must leave the current selection intact. | Corruption, substitution, interruption, and partial-staging tests. |
 | SYS-030 | Accepted | Normal boot on a production physical role must authenticate, from the configured platform trust anchor, every release-owned boot artifact and the release-owned root content before treating it as trusted. | Tamper tests for bootloader, kernel, initrd, command line or equivalent policy, and immutable root. |
 | SYS-031 | Candidate | Machine status must report release identity, authorization, boot integrity verification, provenance, qualification, freshness, currentness, support, and local modification as distinct properties. | Status-schema tests covering every independent combination relevant to operations and recovery. |
 | SYS-032 | Candidate | Every signing, enrollment, platform, machine, recovery, and data-encryption authority must define scope, storage, delegation, rotation, revocation, audit, loss, compromise, backup or regeneration, and destruction behavior. | Exercised authority inventory and loss/rotation/revocation runbook. |
 | SYS-033 | Candidate | Recovery authorization must remain independently usable after loss or compromise of the normal release signer and must not silently authorize a normal fleet release. | Offline recovery after signer loss and compromise. |
-| SYS-034 | Candidate | Each role must declare the data protected against powered-off device loss and an unlock/recovery model consistent with its unattended availability requirements. | Workstation theft-confidentiality test and router unattended reboot/recovery test. |
+| SYS-034 | Accepted | Each role must declare the data protected against powered-off device loss and an unlock/recovery model consistent with its unattended availability requirements. | Workstation theft-confidentiality test and router unattended reboot/recovery test. |
 | SYS-035 | Candidate | Compromise recovery must treat mutable executable state, machine identity, administrator overrides, user state, and workload state as potentially hostile and support owner-aware quarantine, selective restore, re-enrollment, or destruction. | Compromise-recovery exercise distinct from ordinary OS rollback. |
 | SYS-036 | Candidate | Cryptographic authorization must not substitute for provenance or qualification; promotion must verify that the authorized artifact identities are the literal qualified outputs. | Negative test signing an attributable but unqualified rebuild. |
 | SYS-037 | Candidate | Freshness, revocation, and downgrade policy must distinguish normal, recovery-only, and withdrawn artifacts without making declared offline recovery impossible. | Offline rollback/recovery tests after expiry, withdrawal, clock failure, and authority unavailability. |
@@ -78,5 +78,7 @@ the [state ownership requirements review](../project/reviews/0003-state-ownershi
 SYS-027 through SYS-037 are derived from
 [DES-0003](../designs/0003-threat-and-trust-model/README.md). SYS-030 was
 accepted through the
-[boot-to-root integrity review](../project/reviews/0004-boot-to-root-integrity.md);
-the others remain candidate requirements pending review.
+[boot-to-root integrity review](../project/reviews/0004-boot-to-root-integrity.md).
+SYS-027 and SYS-034 were accepted through the
+[role security and availability review](../project/reviews/0005-role-security-and-availability-objectives.md).
+The others remain candidate requirements pending review.

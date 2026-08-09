@@ -3,7 +3,7 @@ id: PR-0005
 subject: Role security and availability objectives
 reviewer: Codex adversarial pass
 date: 2026-08-09
-status: proposed
+status: accepted
 ---
 
 # Role security and availability objectives review
@@ -197,13 +197,14 @@ scope. It must not inherit workstation or router claims by accident.
 - Residual risk: role-specific unlock methods increase the qualification
   matrix.
 
-## Proposed decision
+## Decision
 
-Accept the common, workstation, router, and future-server objectives above and
-ratify SYS-027 and SYS-034. Acceptance would establish the claims and test
-boundaries while leaving physical key layout, recovery authorization, concrete
-storage design, and TPM acquisition as later decisions.
+Accepted by Jason Tarasovic on 2026-08-09. The common, workstation, router, and
+future-server objectives above are normative project policy, and SYS-027 and
+SYS-034 are ratified. Acceptance establishes the claims and test boundaries
+while leaving physical key layout, recovery authorization, concrete storage
+design, and TPM acquisition as later decisions.
 
-Acceptance would also resolve DES-0003 review challenge C-007 at the requirement
-level. It would not resolve implementation evidence for unattended boot,
+This resolves DES-0003 review challenge C-007 at the requirement level. It does
+not resolve implementation evidence for unattended boot,
 hardware loss, offline recovery, or credential revocation.

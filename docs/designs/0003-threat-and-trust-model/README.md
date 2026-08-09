@@ -360,6 +360,7 @@ Before accepting the eventual architecture, tests must demonstrate:
 
 The boot-to-root integrity target and SYS-030 were
 [accepted in PR-0004](../../project/reviews/0004-boot-to-root-integrity.md).
+The role-specific security and availability objectives and SYS-027 and SYS-034
+were [accepted in PR-0005](../../project/reviews/0005-role-security-and-availability-objectives.md).
 The remaining [adversarial review](review.md) is open, including physical key
-layout, role-specific confidentiality, mutable executable inputs, and
-compromise recovery.
+layout, mutable executable inputs, and compromise recovery.

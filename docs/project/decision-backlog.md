@@ -31,7 +31,7 @@ ADR.
 | S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | [Ownership boundary accepted; implementation design remains in review](reviews/0003-state-ownership-requirements.md) | S-001 |
 | S-003 | How are common and role-specific artifacts composed? | Open | P-004, S-001 |
 | S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
-| S-005 | What threats and trust assertions govern boot and runtime? | [Boot-to-root target accepted; role security and availability objectives proposed](reviews/0005-role-security-and-availability-objectives.md) | S-001 |
+| S-005 | What threats and trust assertions govern boot and runtime? | [Boot-to-root and role objectives accepted; remaining threat model in review](reviews/0005-role-security-and-availability-objectives.md) | S-001 |
 | S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | [In review: logical authority model; physical key layout remains open](../designs/0003-threat-and-trust-model/README.md#authority-model) | S-005 |
 
 ## Wave 2: build and lifecycle

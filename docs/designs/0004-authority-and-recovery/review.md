@@ -30,8 +30,10 @@ mistake compromises every copy.
   unlock factors, use environment, and succession path; exercise loss of the
   primary copy without exposing the backup during routine use.
 - Author response: co-location is accepted only to isolate all exceptional
-  authorities from routine signing; distinct keys and scopes remain mandatory.
-- Disposition: open.
+  authorities from routine signing; EX-0001 additionally requires an offline
+  recovery copy outside the primary local and normal-account failure domains.
+- Disposition: mitigated at the policy level; concrete custody and retrieval
+  remain open.
 - Residual risk: one maintainer remains a shared human failure domain.
 
 ### C-002: The promotion signer may still be a fleet-wide compromise
@@ -78,9 +80,11 @@ mistake compromises every copy.
   that both copies were compromised together.
 - Required response or experiment: name acceptable recovery time, storage
   separation, verification interval, and a non-destructive backup-use exercise.
-- Author response: the design requires independent copies but intentionally does
-  not invent locations or products before owner review.
-- Disposition: open.
+- Author response: EX-0001 requires a locally usable primary and a secondary copy
+  or succession path independent of the primary machine, local disaster, routine
+  signer, normal online accounts, and primary unlock factor.
+- Disposition: mitigated at the policy level; owner feasibility and a retrieval
+  exercise remain open.
 - Residual risk: geographic and account independence may be disproportionate for
   a personal fleet.
 

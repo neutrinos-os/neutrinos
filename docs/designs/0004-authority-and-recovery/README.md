@@ -243,6 +243,24 @@ Promotion and recovery emit append-only evidence suitable for repository or
 release retention. A failed signing or recovery operation identifies the
 authority and artifact identities involved without logging secret material.
 
+## Initial tabletop evidence
+
+The [authority loss and compromise tabletop](../../research/exercises/0001-authority-loss-tabletop.md)
+walked through routine-signer loss and compromise, primary and total offline-set
+loss, recovery compromise, TPM or mainboard replacement, machine-identity
+compromise, total data-recovery loss, infrastructure outage, and an urgent
+release.
+
+The model is internally recoverable on paper with two conditions:
+
+- manual promotion remains acceptable for the initial personal fleet; and
+- at least one offline recovery copy or succession path survives the primary
+  local disaster and normal-account failure domains.
+
+The exercise also found that routine signing keys should be replaceable rather
+than backed up. Physical implementation, timed ceremony, firmware behavior, and
+offline freshness remain unproven.
+
 ## Alternatives considered
 
 ### One master key
@@ -303,6 +321,7 @@ The design is viable when:
 
 ## Review disposition
 
-The initial [adversarial review](review.md) is open. No physical keys, storage
-locations, cryptographic formats, or firmware enrollments have been selected or
-created.
+The initial [adversarial review](review.md) and
+[EX-0001 tabletop](../../research/exercises/0001-authority-loss-tabletop.md)
+are open evidence for owner review. No physical keys, storage locations,
+cryptographic formats, or firmware enrollments have been selected or created.

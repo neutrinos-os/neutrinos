@@ -10,6 +10,19 @@ headless operation, networking responsibilities, availability needs, and
 recovery constraints provide a strong challenge to abstractions first developed
 for the workstation.
 
+The managed host is named `router`. Its checked-in configuration evidence and
+current hardware unknowns are recorded in the
+[reference-host inventory](../../research/hardware/reference-host-inventory.md#router-configuration-derived-baseline).
+
+## Known configuration baseline
+
+- x86-64 Intel system according to checked-in NixOS hardware configuration
+- systemd-boot and EFI-variable access configured through the common archetype
+- IPMI watchdog and a 180-second runtime watchdog policy
+- ext4 mutable filesystems and vfat `/boot` in the checked-in layout
+- no checked-in TPM, Secure Boot enrollment, authenticated-root, or storage-
+  encryption policy
+
 ## Candidate capability areas
 
 - deterministic network configuration under version control
@@ -32,13 +45,12 @@ for the workstation.
 - Current NixOS configuration is evidence and migration input, not necessarily
   the target configuration language.
 
-## Information needed
+## Remaining information needed
 
-- hardware and firmware inventory
+- live hardware, firmware, TPM, Secure Boot, storage, and encryption inventory
 - interface topology and naming requirements
 - current NixOS configuration and external dependencies
 - required protocols and services
 - acceptable outage and unattended-recovery behavior
 - remote and physical access assumptions
 - state that must survive replacement, reset, or hardware failure
-

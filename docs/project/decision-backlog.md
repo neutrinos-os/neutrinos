@@ -18,7 +18,7 @@ ADR.
 | P-001 | What problem and invariant justify NeutrinOS rather than adopting an existing system? | [In review: direct systemd/UAPI composition is the default candidate under SYS-030; bootc remains the lifecycle challenger](../research/comparisons/existing-systems.md) | — |
 | P-002 | Is the initial product a personal fleet, reusable framework, or public distribution? | [Accepted: personal fleet and reusable framework](scope.md#initial-operating-scope) | P-001 |
 | P-003 | What are the accepted principles and non-goals? | [Accepted after adversarial review](reviews/0001-charter-principles-and-scope.md) | P-001 |
-| P-004 | Which role and hardware are the first reference target? | [Accepted: VM qualification, workstation first, router second](scope.md#initial-target-strategy) | P-001, P-002 |
+| P-004 | Which role and hardware are the first reference target? | [Accepted: VM qualification, `desktop-jason` first, `router` second](scope.md#initial-target-strategy) | P-001, P-002 |
 | P-005 | Is systemd-native composition a project constraint? | [Accepted: systemd-first](../adrs/0001-systemd-first.md) | P-001 |
 | P-006 | What is the canonical project name and technical identifier? | [Accepted: NeutrinOS and `neutrinos`](naming.md#decision) | P-002 |
 

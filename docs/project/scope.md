@@ -23,7 +23,8 @@ last_updated: 2026-08-09
 - vTPM is available on the qualification platform for tests that exercise the
   measured-boot or machine-enrollment path; it is not yet a universal runtime
   requirement.
-- The current workstation is the first physical deployment target.
+- The current workstation, `desktop-jason`, is the first physical deployment
+  target.
 - The initial workstation uses a reasonably generic kernel. Kernel reduction
   or specialization requires later evidence and must preserve a recovery path.
 - The router is the second physical role. Its intentionally different

@@ -69,11 +69,18 @@ mistake compromises every copy.
 - Required response or experiment: minimize recovery capabilities, avoid routine
   automatic selection, require deliberate activation, separate data unlock,
   preserve durable evidence, and test recovery-signer replacement.
-- Author response: accepted as inherent; restricted status semantics prevent
-  silent normal promotion but cannot make privileged recovery harmless.
-- Disposition: open pending recovery design and exercise.
-- Residual risk: router out-of-band recovery may weaken physical-presence
-  expectations.
+- Author response: EX-0003 separates recovery boot, public inspection, scoped
+  data unlock, mutable-state restore, enrollment, platform repair, and return to
+  normal service. It prohibits automatic recovery selection and binding normal
+  hardware-assisted automatic unlock to generic recovery policy. Router
+  recovery requires physical service or an independently secured, session-
+  bounded out-of-band action rather than the normal data plane.
+- Disposition: resolved at the design-policy level; physical unlock, identity-
+  verification, evidence-retention, signer-replacement, and router out-of-band
+  exercises remain open.
+- Residual risk: malicious recovery code can steal plaintext deliberately
+  exposed to it, and the router out-of-band controller may itself be a
+  privileged attack surface.
 
 ### C-004: Offline backups may be either unavailable or not offline
 
@@ -149,8 +156,8 @@ mistake compromises every copy.
 - A timed end-to-end promotion and single-compartment compromise exercise using
   disposable keys and literal qualification.
 - A concrete offline-copy storage and succession proposal.
-- Recovery capability minimization for workstation-local and router out-of-band
-  paths.
+- Physical evidence that workstation-local and router out-of-band recovery
+  enforce the capability and activation boundaries in EX-0003.
 - Evidence that two routine signing compartments in one replacement class are
   operable for normal and urgent releases.
 - A freshness and policy-epoch design for offline machines.
@@ -169,5 +176,9 @@ mistake compromises every copy.
 5. **Complete at policy level:** EX-0002 disposes of C-002 by requiring separate
    routine signing compromise compartments. Mechanism and attack exercises
    remain implementation evidence.
-6. **Open:** obtain independent human review and dispose of C-003, the remaining
-   critical design challenge.
+6. **Complete at policy level:** EX-0003 disposes of C-003 by separating
+   recovery activation, data unlock, enrollment, platform repair, and normal
+   status. Physical mechanism and abuse exercises remain implementation
+   evidence.
+7. **Open:** obtain independent human review of the revised design and its three
+   tabletops before acceptance.

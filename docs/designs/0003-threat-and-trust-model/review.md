@@ -113,12 +113,17 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
 - Required response or experiment: minimize recovery capabilities, require
   explicit physical presence where appropriate, audit actions, protect keys
   independently, and test recovery compromise and replacement.
-- Author response: DES-0004 requires deliberate activation, distinct recovery
-  status, separate data unlock, durable evidence, and post-recovery quarantine
-  or re-enrollment; concrete capability minimization remains open.
-- Disposition: open.
-- Residual risk: physical-presence requirements conflict with remote router
-  recovery.
+- Author response: DES-0004 and EX-0003 require deliberate local or independent
+  out-of-band activation, prohibit automatic recovery selection and normal
+  automatic unlock in recovery, stage plaintext and state operations behind
+  separate authorities, preserve independent evidence, and require normal gates
+  after recovery. Router recovery may be remote only through a separately
+  secured, session-bounded out-of-band path.
+- Disposition: resolved at the design-policy level; physical mechanism and abuse
+  exercises remain open.
+- Residual risk: malicious recovery code can steal deliberately exposed
+  plaintext, and remote router recovery introduces a privileged out-of-band
+  attack surface.
 
 ### C-007: Encryption policy can conflict with unattended availability
 
@@ -182,3 +187,8 @@ ratified SYS-027 and SYS-034 on 2026-08-09 through
 [PR-0005](../../project/reviews/0005-role-security-and-availability-objectives.md).
 This resolves challenge C-007 at the requirement level; physical implementation
 and recovery exercises remain open.
+
+[EX-0003](../../research/exercises/0003-recovery-capability-tabletop.md)
+resolves C-006 at the design-policy level by separating recovery activation,
+data access, identity and platform repair, and return to normal service.
+Physical enforcement and abuse testing remain open.

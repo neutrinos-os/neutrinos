@@ -12,6 +12,7 @@ Initial research tracks:
 - [initial workstation, router, and server hardware/trust inventory](hardware/reference-host-inventory.md)
 - [authority loss and compromise tabletop](exercises/0001-authority-loss-tabletop.md)
 - [promotion substitution and signer-compromise tabletop](exercises/0002-promotion-substitution-tabletop.md)
+- [recovery capability and abuse tabletop](exercises/0003-recovery-capability-tabletop.md)
 - package-source release and security-maintenance models
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration

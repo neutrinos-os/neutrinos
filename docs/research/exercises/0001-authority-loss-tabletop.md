@@ -195,9 +195,9 @@ found to contain exploitable or malicious code.
 5. Keep recovery boots visibly distinct; never reclassify the affected artifact
    as normal solely because it still boots.
 
-**Result:** Conditional. Logical replacement works, but the proposal still needs
-a minimal recovery capability design and proof that normal boot cannot select a
-recovery artifact automatically.
+**Result:** Conditional. EX-0003 now defines the minimum recovery capability and
+prohibits automatic normal-to-recovery selection at the policy level. Physical
+proof of that selection boundary and signer replacement remains open.
 
 ### T-006: TPM is cleared or a mainboard is replaced
 

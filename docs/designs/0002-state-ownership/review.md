@@ -107,9 +107,13 @@ cannot maintain.
 - Required response or experiment: the threat model must distinguish
   availability recovery from compromise recovery and define when identity,
   overrides, secrets, or all mutable state must be destroyed.
-- Author response: factory reset and re-enrollment scopes are separated, but a
-  full compromise-recovery design depends on S-005 and S-006.
-- Disposition: open.
+- Author response: factory reset and re-enrollment scopes are separated. EX-0003
+  now makes no automatic mount, execution, or restoration the compromise-
+  recovery default and requires owner-aware quarantine, selective restore,
+  regeneration, re-enrollment, or destruction. The concrete state-contract
+  inventory and hostile-state procedure remain open under S-005 and S-006.
+- Disposition: mitigated at the policy level; state mechanisms and exercises
+  remain open.
 - Residual risk: operators may choose preservation before knowing whether state
   is trustworthy.
 

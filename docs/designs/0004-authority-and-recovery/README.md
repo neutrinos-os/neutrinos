@@ -170,22 +170,52 @@ At least one recovery environment must be built, qualified for its narrower
 purpose, signed by the offline recovery authorities, and retained independently
 of the normal publication path before physical production enrollment.
 
-Recovery activation requires deliberate owner action or an independently
-secured out-of-band action. It must:
+Recovery authorization is not data, enrollment, platform-owner, or normal-
+release authorization. Possession of a recovery artifact or recovery-signing
+key alone must not provide automatic boot, plaintext access, identity
+enrollment, firmware-policy changes, or normal-release status.
 
-- identify itself as recovery rather than normal production;
-- boot without trusting the normal release signer or normal mutable state;
-- record the recovery identity, authorization, reason, and operations performed;
-- avoid automatically restoring withdrawn credentials or mutable executable
-  state;
-- require a separate data-recovery credential for decryption where applicable;
-  and
-- leave the machine locally modified, quarantined, or re-enrolled until the
-  applicable normal-production gates pass again.
+Recovery activation requires deliberate local owner action or an independently
+secured out-of-band action tied to the machine, recovery identity, and one
+session. Failed-boot automation may select another qualified normal deployment
+or stop and request recovery, but it must not automatically cross into a
+recovery-only authorization class. Offline unattended normal router boot does
+not imply unattended privileged recovery.
+
+Recovery proceeds through separately authorized capability transitions:
+
+1. Before data unlock, it may identify itself, inspect public boot, policy,
+   storage-layout, and encrypted-container metadata, verify retained immutable
+   artifacts, export ciphertext or redacted diagnostics, and replace release-
+   owned content.
+2. Plaintext inspection, preservation, or restore requires a separately
+   presented data-recovery credential scoped to the selected state owner. A
+   hardware-bound normal automatic-unlock policy must not release its secret to
+   the generic recovery boot policy.
+3. Mutable executable state, administrator overrides, identities, and
+   credentials are not mounted, executed, or restored by default. An ownership-
+   aware preservation decision selects quarantine, restore, regeneration, re-
+   enrollment, or destruction.
+4. Machine enrollment and firmware trust repair invoke their independent
+   authorities; the recovery artifact does not carry those private authorities.
+5. Recovery cannot bless its own output. The machine remains recovery-only,
+   locally modified, quarantined, reset, or re-enrollment-required until it
+   leaves recovery and passes the applicable normal platform, release,
+   qualification, compatibility, and effective-state gates.
+
+Before requesting sensitive input, recovery must expose its literal identity,
+authorization, and recovery-only status through evidence that ordinary mutable
+state cannot rewrite. A recovery session records its identity, activation path,
+reason, operations, state scopes, installed artifacts, identity changes,
+result, and unresolved quarantine or enrollment obligations without secrets.
+When the target disk is unavailable or untrusted, an operator-controlled medium
+or independent out-of-band sink retains the record; the target disk cannot be
+the only evidence store.
 
 The recovery signer is necessarily powerful: it can authorize software capable
-of inspecting or replacing a machine. Its restricted semantics prevent silent
-normal promotion, not malicious behavior after deliberate recovery activation.
+of inspecting or replacing a machine. These boundaries contain signer-only and
+artifact-only compromise but cannot make malicious recovery code harmless after
+the owner deliberately activates it and supplies a plaintext credential.
 
 ## Data recovery and machine identity
 
@@ -279,6 +309,12 @@ class but requires separate signing compartments, an untrusted coordinator, an
 independently validated promotion bundle, and an inventory of platform-signed
 but unreleased candidates.
 
+The [recovery capability and abuse tabletop](../../research/exercises/0003-recovery-capability-tabletop.md)
+separates recovery boot, public inspection, data unlock, mutable-state restore,
+machine enrollment, platform repair, and return to normal service. It rejects
+automatic failed-boot selection of recovery and any automatic-unlock policy
+that releases plaintext merely because a recovery signer is platform-trusted.
+
 The model is internally recoverable on paper with two conditions:
 
 - manual promotion remains acceptable for the initial personal fleet; and
@@ -290,10 +326,11 @@ phase. Manual promotion, including an urgent release, is an accepted operating
 cost. An independent secondary offline copy or succession path is a required
 part of the eventual custody implementation, not an optional hardening measure.
 
-These are design decisions, not proof that the procedures work. The exercise
+These are design decisions, not proof that the procedures work. The exercises
 also found that routine signing keys should be replaceable rather than backed
-up. Physical implementation, timed ceremony, firmware behavior, and offline
-freshness remain unproven.
+up. Physical implementation, timed ceremony, firmware and unlock behavior,
+recovery identity UX, independent evidence retention, and offline freshness
+remain unproven.
 
 ## Alternatives considered
 
@@ -344,7 +381,13 @@ The design is viable when:
    cannot create both a new platform-accepted artifact and its normal-release
    authorization; and
 8. substitution among candidate, signed artifact, qualification record, and
-   release authorization fails closed.
+   release authorization fails closed;
+9. recovery authorization alone cannot trigger normal automatic data unlock,
+   enroll an identity, alter owner platform trust, or create normal status;
+10. failed-boot automation cannot select a recovery-only artifact without a
+    deliberate local or independently secured out-of-band action; and
+11. a compromise-recovery exercise restores only explicitly selected owner
+    state and preserves its evidence without relying on the target disk.
 
 ## Risks and unresolved questions
 
@@ -362,8 +405,10 @@ The design is viable when:
 - Can router out-of-band recovery require sufficient deliberate authorization
   without depending on the failed router data plane?
 - What offline exposure window and policy-epoch mechanism satisfy SYS-037?
-- Which recovery operations are safe enough to expose before data decryption?
-- What audit record is useful without leaking authority or recovery metadata?
+- What pre-boot mechanism lets the operator verify literal recovery identity
+  before supplying a data-recovery credential?
+- What recovery-session record and independent sink remain useful without
+  leaking sensitive authority, incident, or state-inventory metadata?
 
 ## Review disposition
 
@@ -371,7 +416,12 @@ The owner accepted the two operating conditions exposed by
 [EX-0001](../../research/exercises/0001-authority-loss-tabletop.md).
 [EX-0002](../../research/exercises/0002-promotion-substitution-tabletop.md)
 resolves promotion-environment compromise at the design-policy level by
-requiring separate routine signing compartments. The [adversarial review](review.md)
-remains open on recovery capability, physical custody, qualification-evidence
-trust, and offline freshness. No physical keys, storage locations,
-cryptographic formats, or firmware enrollments have been selected or created.
+requiring separate routine signing compartments.
+[EX-0003](../../research/exercises/0003-recovery-capability-tabletop.md)
+resolves recovery capability at the design-policy level by requiring staged,
+independently authorized capabilities and preventing automatic recovery
+selection or data unlock. The [adversarial review](review.md) remains open for
+independent human review; physical custody, qualification-evidence trust,
+mechanism selection, and offline freshness remain implementation or follow-on
+design work. No physical keys, storage locations, cryptographic formats, or
+firmware enrollments have been selected or created.

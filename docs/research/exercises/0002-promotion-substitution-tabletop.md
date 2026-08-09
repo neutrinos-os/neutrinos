@@ -357,4 +357,5 @@ required before production use.
   and mismatched promotion objects with disposable keys.
 - Resolve qualification-evidence trust under L-002 and promotion behavior under
   L-006.
-- Resolve C-003 by minimizing and exercising recovery capability.
+- Apply EX-0003's recovery-capability boundary and complete its physical abuse
+  exercises before production enrollment.

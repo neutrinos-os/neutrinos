@@ -145,3 +145,12 @@ cannot maintain.
 3. Reconcile forward-only migrations with emergency release policy.
 4. Add compromise-recovery requirements after the threat model begins.
 5. Obtain independent human review and dispose of every critical challenge.
+
+## Owner direction
+
+Jason Tarasovic accepted the policy direction and SYS-019 through SYS-026 on
+2026-08-09 through
+[PR-0003](../../project/reviews/0003-state-ownership-requirements.md). This
+review remains open because accepting the requirements does not establish that
+the proposed `/etc`, inventory, migration, and recovery mechanisms are yet
+operable.

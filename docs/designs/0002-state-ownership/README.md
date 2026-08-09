@@ -51,10 +51,12 @@ rollback, and reset semantics under CH-005 and Principles 3 and 4. SYS-014
 through SYS-018 constrain how declared configuration is authored, composed,
 deployed, and diagnosed.
 
-SYS-004, SYS-009, and the additional state requirements derived below remain
-candidate requirements until this design is ratified. The design must not
-assume that a snapshot is a backup, that an OS rollback is a state rollback, or
-that a path determines its owner.
+SYS-004 and SYS-009 remain candidate requirements. SYS-019 through SYS-026 were
+accepted as normative project policy through
+[PR-0003](../../project/reviews/0003-state-ownership-requirements.md), while
+this implementation design remains in review. The design must not assume that
+a snapshot is a backup, that an OS rollback is a state rollback, or that a path
+determines its owner.
 
 ## Decision drivers
 
@@ -350,10 +352,12 @@ The design is not acceptable until tests can demonstrate:
 
 ## Review disposition
 
-The initial adversarial review is [open](review.md). Its critical challenges
-are compatibility with software that writes `/etc`, honest handling of
-forward-only migrations, and avoiding an inventory whose maintenance cost
-exceeds its value.
+The policy direction and derived requirements were
+[accepted in PR-0003](../../project/reviews/0003-state-ownership-requirements.md).
+The implementation-level adversarial review remains [open](review.md). Its
+critical challenges are compatibility with software that writes `/etc`, honest
+handling of forward-only migrations, and avoiding an inventory whose
+maintenance cost exceeds its value.
 
 No ADR should be written until those challenges are reviewed by the project
 owner and the derived requirements are accepted or revised.

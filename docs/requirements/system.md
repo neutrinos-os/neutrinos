@@ -30,14 +30,14 @@ satisfied it.
 | SYS-016 | Accepted | Configuration composition must have deterministic precedence and expose the fully resolved inputs and generated native configuration used for an artifact. | Composition inspection and conflicting-override tests. |
 | SYS-017 | Accepted | Deployment must select a previously built and qualified artifact rather than evaluate arbitrary machine configuration or reconstruct an equivalent OS on the target. | Deployment trace joined to the qualified artifact identity. |
 | SYS-018 | Accepted | A configuration or deployment failure must identify the responsible input, role or machine layer, generated output, and lifecycle stage. | Negative tests for schema, composition, generation, staging, activation, and health failures. |
-| SYS-019 | Candidate | Every persistent state item or namespace must identify its lifecycle owner, authority, schema or format, compatibility, migration, backup, recovery, and reset behavior. | State-contract inventory traced to workstation and router acceptance tests. |
-| SYS-020 | Candidate | The normal effective `/etc` must be reconstructible from identified inputs; every persistent exception and administrator override must be explicit, attributable, inspectable, and reflected in machine support status. | Clean reconstruction, persistent-exception inventory, and locally-modified status tests. |
-| SYS-021 | Candidate | Before activation, a release must declare and verify read/write compatibility with the current state schema and every deployment offered as an automatic rollback target. | Compatibility matrix and candidate/rollback tests against post-update state. |
-| SYS-022 | Candidate | A state migration must be idempotent or detect completion and must define its interruption, retry, reversal, checkpoint, and recovery behavior. | Failure injection at each migration boundary. |
-| SYS-023 | Candidate | A release with a forward-only destructive migration must expose an explicit commit barrier and must not advertise normal automatic rollback after crossing it. | Maintenance-release exercise with backup verification and recovery evidence. |
-| SYS-024 | Candidate | Reinstall, reprovision, and recovery must preserve only state selected by an ownership-aware preservation manifest rather than an undifferentiated mutable filesystem. | Recovery tests with mixed machine, user, workload, cache, secret, and diagnostic state. |
-| SYS-025 | Candidate | Machine identity, enrollment records, and secrets must have lifecycles independent of OS rollback, including rotation, revocation, regeneration or restore, and destruction. | Re-enrollment, revocation, rollback, and factory-reset tests. |
-| SYS-026 | Candidate | Failed-update diagnostics must remain available through rollback or recovery subject to explicit sensitivity, retention, and storage limits. | Failure evidence retrieval, redaction, rotation, and full-storage tests on each role. |
+| SYS-019 | Accepted | Every persistent state item or namespace must identify its lifecycle owner, authority, schema or format, compatibility, migration, backup, recovery, and reset behavior. | State-contract inventory traced to workstation and router acceptance tests. |
+| SYS-020 | Accepted | The normal effective `/etc` must be reconstructible from identified inputs; every persistent exception and administrator override must be explicit, attributable, inspectable, and reflected in machine support status. | Clean reconstruction, persistent-exception inventory, and locally-modified status tests. |
+| SYS-021 | Accepted | Before activation, a release must declare and verify read/write compatibility with the current state schema and every deployment offered as an automatic rollback target. | Compatibility matrix and candidate/rollback tests against post-update state. |
+| SYS-022 | Accepted | A state migration must be idempotent or detect completion and must define its interruption, retry, reversal, checkpoint, and recovery behavior. | Failure injection at each migration boundary. |
+| SYS-023 | Accepted | A release with a forward-only destructive migration must expose an explicit commit barrier and must not advertise normal automatic rollback after crossing it. | Maintenance-release exercise with backup verification and recovery evidence. |
+| SYS-024 | Accepted | Reinstall, reprovision, and recovery must preserve only state selected by an ownership-aware preservation manifest rather than an undifferentiated mutable filesystem. | Recovery tests with mixed machine, user, workload, cache, secret, and diagnostic state. |
+| SYS-025 | Accepted | Machine identity, enrollment records, and secrets must have lifecycles independent of OS rollback, including rotation, revocation, regeneration or restore, and destruction. | Re-enrollment, revocation, rollback, and factory-reset tests. |
+| SYS-026 | Accepted | Failed-update diagnostics must remain available through rollback or recovery subject to explicit sensitivity, retention, and storage limits. | Failure evidence retrieval, redaction, rotation, and full-storage tests on each role. |
 
 ## Interpretation of SYS-014 through SYS-018
 
@@ -61,5 +61,5 @@ and were accepted through the
 [configuration authoring boundary review](../project/reviews/0002-configuration-authoring-boundary.md).
 
 SYS-019 through SYS-026 are derived from
-[DES-0002](../designs/0002-state-ownership/README.md) and remain candidate
-requirements pending its review.
+[DES-0002](../designs/0002-state-ownership/README.md) and were accepted through
+the [state ownership requirements review](../project/reviews/0003-state-ownership-requirements.md).

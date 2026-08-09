@@ -362,5 +362,7 @@ The boot-to-root integrity target and SYS-030 were
 [accepted in PR-0004](../../project/reviews/0004-boot-to-root-integrity.md).
 The role-specific security and availability objectives and SYS-027 and SYS-034
 were [accepted in PR-0005](../../project/reviews/0005-role-security-and-availability-objectives.md).
-The remaining [adversarial review](review.md) is open, including physical key
-layout, mutable executable inputs, and compromise recovery.
+The physical key layout and recovery authority have moved into
+[DES-0004](../0004-authority-and-recovery/README.md). The remaining
+[adversarial review](review.md) is open, including that proposal, mutable
+executable inputs, and compromise recovery.

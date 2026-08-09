@@ -80,9 +80,10 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
 - Required response or experiment: define logical scopes first, then minimize
   physical keys and ceremonies using a recoverability budget; exercise loss of
   each remaining authority.
-- Author response: co-location is permitted after blast-radius analysis; the
-  model explicitly rejects untested complexity.
-- Disposition: open.
+- Author response: DES-0004 proposes distinct logical keys in two maintainer
+  custody domains, isolating routine promotion from offline governance and
+  recovery while avoiding one device per authority.
+- Disposition: open pending review and loss exercises for DES-0004.
 - Residual risk: co-location can collapse the intended separation in practice.
 
 ### C-005: Revocation and anti-downgrade can destroy recovery
@@ -97,7 +98,7 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
   revocation and define recovery-only authorization separate from automatic
   normal boot.
 - Author response: the design introduces normal, recovery-only, and withdrawn
-  states and requires an independent recovery authority.
+  states; DES-0004 gives recovery its own offline signing and platform leaves.
 - Disposition: open pending implementation evidence.
 - Residual risk: retained recovery artifacts may contain exploitable code.
 
@@ -112,7 +113,9 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
 - Required response or experiment: minimize recovery capabilities, require
   explicit physical presence where appropriate, audit actions, protect keys
   independently, and test recovery compromise and replacement.
-- Author response: retained as a required recovery-design constraint.
+- Author response: DES-0004 requires deliberate activation, distinct recovery
+  status, separate data unlock, durable evidence, and post-recovery quarantine
+  or re-enrollment; concrete capability minimization remains open.
 - Disposition: open.
 - Residual risk: physical-presence requirements conflict with remote router
   recovery.

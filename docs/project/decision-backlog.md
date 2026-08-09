@@ -1,0 +1,69 @@
+---
+status: active
+last_updated: 2026-08-09
+---
+
+# Decision backlog
+
+This is the intake queue for project and architectural questions. `Stated
+direction` means the design session expressed a strong preference; it does not
+mean an ADR has been accepted. Accepted project-scope decisions may be recorded
+in the charter or scope document; accepted architectural decisions require an
+ADR.
+
+## Wave 0: project identity
+
+| ID | Question | State | Depends on |
+| --- | --- | --- | --- |
+| P-001 | What problem and invariant justify NeutrinOS rather than adopting an existing system? | [In review: greenfield and NixOS rejected; bootc is the default substrate candidate pending requirements and spikes](../research/comparisons/existing-systems.md) | — |
+| P-002 | Is the initial product a personal fleet, reusable framework, or public distribution? | [Accepted: personal fleet and reusable framework](scope.md#initial-operating-scope) | P-001 |
+| P-003 | What are the accepted principles and non-goals? | [Accepted after adversarial review](reviews/0001-charter-principles-and-scope.md) | P-001 |
+| P-004 | Which role and hardware are the first reference target? | [Accepted: VM qualification, workstation first, router second](scope.md#initial-target-strategy) | P-001, P-002 |
+| P-005 | Is systemd-native composition a project constraint? | [Accepted: systemd-first](../adrs/0001-systemd-first.md) | P-001 |
+| P-006 | What is the canonical project name and technical identifier? | [Accepted: NeutrinOS and `neutrinos`](naming.md#decision) | P-002 |
+
+
+## Wave 1: system and trust model
+
+| ID | Question | State | Depends on |
+| --- | --- | --- | --- |
+| S-001 | What is the independently replaceable unit of deployment? | In design | P-003 |
+| S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | In design | S-001 |
+| S-003 | How are common and role-specific artifacts composed? | Open | P-004, S-001 |
+| S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
+| S-005 | What threats and trust assertions govern boot and runtime? | Open | S-001 |
+| S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | Open | S-005 |
+
+## Wave 2: build and lifecycle
+
+| ID | Question | State | Depends on |
+| --- | --- | --- | --- |
+| L-001 | Which package ecosystem and snapshot policy supply OS inputs? | Open | P-002, S-001 |
+| L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | Open | L-001, S-005 |
+| L-003 | How is a machine installed and enrolled? | Open | S-001, S-004, S-006 |
+| L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [In research: bootc is the default candidate; symmetric lifecycle spikes required](../research/comparisons/bootc-vs-systemd-sysupdate.md) | S-001, S-004 |
+| L-005 | How does mutable state remain safe across upgrade and rollback? | Open | S-002, L-004 |
+| L-006 | How are releases promoted, phased, paused, and withdrawn across a fleet? | Open | L-002, L-004 |
+| L-007 | What are the release cadence and security-response commitments? | [Accepted: single current line and best-effort response](maintenance-policy.md) | P-002, L-001, L-002 |
+
+
+## Wave 3: configuration and workloads
+
+| ID | Question | State | Depends on |
+| --- | --- | --- | --- |
+| C-001 | What is the source of truth and representation for machine and role configuration? | [Boundary accepted: data-first inputs with native configuration; concrete representation remains open](reviews/0002-configuration-authoring-boundary.md) | S-002, S-003 |
+| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | Open | C-001, S-005 |
+| W-001 | What are the supported identity, UID, sub-ID, and rootless-container semantics? | Open | S-002, C-001 |
+| W-002 | What is the microVM artifact, networking, storage, and lifecycle model? | Open | S-003, S-004, C-001 |
+| W-003 | Which software belongs in the OS, user environment, project, GUI sandbox, container, or VM? | Stated direction | S-002 |
+| W-004 | When are role-specific kernels or no-initrd variants justified? | Open | P-004, S-004, L-002 |
+
+## Wave 4: role designs
+
+| ID | Question | State | Depends on |
+| --- | --- | --- | --- |
+| R-001 | What capabilities and tests define the workstation role? | Open | P-004, C-001, W-003 |
+| R-002 | What capabilities and tests define the laptop role? | Open | P-004, C-001 |
+| R-003 | What capabilities and tests define the router role? | Open | P-004, C-001 |
+| R-004 | What capabilities and tests define server and storage roles? | Open | P-004, C-001, W-002 |
+| R-005 | What capabilities and tests define a microVM guest? | Open | P-004, W-002 |

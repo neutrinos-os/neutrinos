@@ -80,11 +80,14 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
 - Required response or experiment: define logical scopes first, then minimize
   physical keys and ceremonies using a recoverability budget; exercise loss of
   each remaining authority.
-- Author response: DES-0004 proposes distinct logical keys in two maintainer
-  custody domains, isolating routine promotion from offline governance and
-  recovery while avoiding one device per authority.
-- Disposition: open pending review and loss exercises for DES-0004.
-- Residual risk: co-location can collapse the intended separation in practice.
+- Author response: accepted DES-0004 defines four custody classes, distinct
+  logical authorities, separate routine signing compromise compartments,
+  replaceable routine keys, and an independent offline recovery copy or
+  succession path. EX-0001 exercises each loss and compromise state on paper.
+- Disposition: resolved at the design-policy level through PR-0006 and
+  ADR-0002; physical custody and disposable-key exercises remain open.
+- Residual risk: one maintainer and co-located custody can still correlate loss,
+  compromise, or unsafe emergency action in practice.
 
 ### C-005: Revocation and anti-downgrade can destroy recovery
 
@@ -192,3 +195,9 @@ and recovery exercises remain open.
 resolves C-006 at the design-policy level by separating recovery activation,
 data access, identity and platform repair, and return to normal service.
 Physical enforcement and abuse testing remain open.
+
+Jason Tarasovic accepted DES-0004 and ratified SYS-032 and SYS-033 on
+2026-08-09 through
+[PR-0006](../../project/reviews/0006-authority-and-recovery-policy.md). This
+resolves C-004 at the design-policy level; physical custody and mechanism
+evidence remain open.

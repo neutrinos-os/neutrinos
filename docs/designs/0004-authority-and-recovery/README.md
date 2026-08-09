@@ -1,14 +1,14 @@
 ---
 id: DES-0004
 title: Minimum viable authority and recovery model
-status: in-review
-owners: []
-reviewers: []
+status: accepted
+owners: [Jason Tarasovic]
+reviewers: [Codex, Jason Tarasovic]
 created: 2026-08-09
 last_updated: 2026-08-09
 depends_on: [DES-0002, DES-0003]
 decision_backlog: [S-006]
-related_adrs: []
+related_adrs: [ADR-0002]
 ---
 
 # Minimum viable authority and recovery model
@@ -50,11 +50,11 @@ and an authenticated release-owned boot-to-root path. Accepted SYS-034 requires
 workstation and router unlock and recovery to match their declared availability
 objectives.
 
-SYS-032 and SYS-033 are candidate requirements directly addressed here.
-SYS-037 constrains revocation and recovery but remains broader than this key
-layout. The initial fleet has one maintainer, no external availability promise,
-and physical access to the workstation; router recovery may require a separately
-secured out-of-band path.
+Accepted SYS-032 and SYS-033 are directly addressed here. SYS-037 constrains
+revocation and recovery but remains broader than this key layout. The initial
+fleet has one maintainer, no external availability promise, and physical access
+to the workstation; router recovery may require a separately secured out-of-
+band path.
 
 ## Design principles
 
@@ -420,8 +420,12 @@ requiring separate routine signing compartments.
 [EX-0003](../../research/exercises/0003-recovery-capability-tabletop.md)
 resolves recovery capability at the design-policy level by requiring staged,
 independently authorized capabilities and preventing automatic recovery
-selection or data unlock. The [adversarial review](review.md) remains open for
-independent human review; physical custody, qualification-evidence trust,
-mechanism selection, and offline freshness remain implementation or follow-on
-design work. No physical keys, storage locations, cryptographic formats, or
-firmware enrollments have been selected or created.
+selection or data unlock. Jason Tarasovic accepted the revised design on
+2026-08-09 through
+[PR-0006](../../project/reviews/0006-authority-and-recovery-policy.md), and the
+decision is recorded by
+[ADR-0002](../../adrs/0002-separate-authority-and-recovery.md). Physical
+custody, qualification-evidence trust, mechanism selection, and offline
+freshness remain implementation or follow-on design work. No physical keys,
+storage locations, cryptographic formats, or firmware enrollments have been
+selected or created.

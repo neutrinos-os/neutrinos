@@ -14,7 +14,7 @@ annotated, but changing a decision requires a new ADR with explicit
 | ADR | Status | Decision |
 | --- | --- | --- |
 | [ADR-0001](0001-systemd-first.md) | Accepted | Prefer systemd ecosystem mechanisms; require strong justification for overlapping alternatives. |
+| [ADR-0002](0002-separate-authority-and-recovery.md) | Accepted | Separate routine, exceptional, machine, and data authorities while keeping recovery independently usable. |
 
 Strong preferences from the design-session transcript remain stated directions
 in the decision backlog until they are deliberately ratified.
-

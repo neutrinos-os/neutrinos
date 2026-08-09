@@ -3,7 +3,7 @@ design: DES-0004
 reviewer: Codex adversarial pass
 perspective: security, operations, failure, maintainability, alternatives
 date: 2026-08-09
-status: open
+status: accepted
 ---
 
 # Minimum viable authority and recovery model review
@@ -12,10 +12,10 @@ status: open
 
 The proposal preserves the highest-value boundary—routine promotion cannot
 replace governance or recovery—without demanding one device per logical key.
-The strongest reason to reject it is that two maintainer custody domains still
-hide a substantial manual ceremony and untested offline backup scheme; paper
-separation provides no protection if the same workstation, location, or operator
-mistake compromises every copy.
+The strongest reason to reject it is that a single-maintainer custody model
+still hides a substantial manual ceremony and untested offline backup scheme;
+paper separation provides no protection if the same workstation, location, or
+operator mistake compromises every copy.
 
 ## Challenges
 
@@ -180,5 +180,14 @@ mistake compromises every copy.
    recovery activation, data unlock, enrollment, platform repair, and normal
    status. Physical mechanism and abuse exercises remain implementation
    evidence.
-7. **Open:** obtain independent human review of the revised design and its three
-   tabletops before acceptance.
+7. **Complete:** Jason Tarasovic reviewed and accepted the revised design and
+   its three tabletops on 2026-08-09 through PR-0006.
+
+## Owner decision
+
+Accepted by Jason Tarasovic on 2026-08-09 through
+[PR-0006](../../project/reviews/0006-authority-and-recovery-policy.md). The
+accepted policy is recorded in
+[ADR-0002](../../adrs/0002-separate-authority-and-recovery.md), and SYS-032 and
+SYS-033 are ratified. Mechanism selection and the listed physical exercises
+remain required before production authority creation or enrollment.

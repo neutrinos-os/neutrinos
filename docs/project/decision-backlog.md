@@ -32,7 +32,7 @@ ADR.
 | S-003 | How are common and role-specific artifacts composed? | Open | P-004, S-001 |
 | S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
 | S-005 | What threats and trust assertions govern boot and runtime? | [Boot-to-root and role objectives accepted; remaining threat model in review](reviews/0005-role-security-and-availability-objectives.md) | S-001 |
-| S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | [In review: minimum viable authority and recovery model](../designs/0004-authority-and-recovery/README.md) | S-005 |
+| S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | [Accepted policy: separate routine, exceptional, machine, and data authorities; mechanism exercises remain](../adrs/0002-separate-authority-and-recovery.md) | S-005 |
 
 ## Wave 2: build and lifecycle
 

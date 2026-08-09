@@ -43,8 +43,8 @@ satisfied it.
 | SYS-029 | Candidate | A target must verify release authorization and content identity before a candidate can replace or outrank the current deployment; failed or interrupted verification must leave the current selection intact. | Corruption, substitution, interruption, and partial-staging tests. |
 | SYS-030 | Accepted | Normal boot on a production physical role must authenticate, from the configured platform trust anchor, every release-owned boot artifact and the release-owned root content before treating it as trusted. | Tamper tests for bootloader, kernel, initrd, command line or equivalent policy, and immutable root. |
 | SYS-031 | Candidate | Machine status must report release identity, authorization, boot integrity verification, provenance, qualification, freshness, currentness, support, and local modification as distinct properties. | Status-schema tests covering every independent combination relevant to operations and recovery. |
-| SYS-032 | Candidate | Every signing, enrollment, platform, machine, recovery, and data-encryption authority must define scope, storage, delegation, rotation, revocation, audit, loss, compromise, backup or regeneration, and destruction behavior. | Exercised authority inventory and loss/rotation/revocation runbook. |
-| SYS-033 | Candidate | Recovery authorization must remain independently usable after loss or compromise of the normal release signer and must not silently authorize a normal fleet release. | Offline recovery after signer loss and compromise. |
+| SYS-032 | Accepted | Every signing, enrollment, platform, machine, recovery, and data-encryption authority must define scope, storage, delegation, rotation, revocation, audit, loss, compromise, backup or regeneration, and destruction behavior. | Exercised authority inventory and loss/rotation/revocation runbook. |
+| SYS-033 | Accepted | Recovery authorization must remain independently usable after loss or compromise of the normal release signer and must not silently authorize a normal fleet release. | Offline recovery after signer loss and compromise. |
 | SYS-034 | Accepted | Each role must declare the data protected against powered-off device loss and an unlock/recovery model consistent with its unattended availability requirements. | Workstation theft-confidentiality test and router unattended reboot/recovery test. |
 | SYS-035 | Candidate | Compromise recovery must treat mutable executable state, machine identity, administrator overrides, user state, and workload state as potentially hostile and support owner-aware quarantine, selective restore, re-enrollment, or destruction. | Compromise-recovery exercise distinct from ordinary OS rollback. |
 | SYS-036 | Candidate | Cryptographic authorization must not substitute for provenance or qualification; promotion must verify that the authorized artifact identities are the literal qualified outputs. | Negative test signing an attributable but unqualified rebuild. |
@@ -81,4 +81,6 @@ accepted through the
 [boot-to-root integrity review](../project/reviews/0004-boot-to-root-integrity.md).
 SYS-027 and SYS-034 were accepted through the
 [role security and availability review](../project/reviews/0005-role-security-and-availability-objectives.md).
+SYS-032 and SYS-033 were accepted through the
+[authority and recovery policy review](../project/reviews/0006-authority-and-recovery-policy.md).
 The others remain candidate requirements pending review.

@@ -126,6 +126,9 @@ schema, migration, compatibility, backup, and recovery rules
 
 ### Trust
 
+- The initial attacker, authority, boot-integrity, confidentiality, and
+  compromise-recovery boundaries are proposed in
+  [DES-0003](../0003-threat-and-trust-model/README.md).
 - Which identities are signed, measured, encrypted, or verified?
 - Which authority may publish a release, enroll a machine, or authorize a
   downgrade?

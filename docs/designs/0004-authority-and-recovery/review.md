@@ -48,12 +48,16 @@ mistake compromises every copy.
   qualification between platform signing and release authorization, narrow
   role/channel scope, auditable human confirmation, and an exercised emergency
   root revocation.
-- Author response: the layout accepts the shared custody risk because release
-  authorization already carries fleet-wide power, while preventing escalation
-  to recovery, enrollment, and governance.
-- Disposition: open pending ceremony and revocation exercise.
-- Residual risk: human confirmation on a compromised workstation can approve a
-  substituted digest.
+- Author response: EX-0002 rejects a shared ordinary promotion environment. The
+  keys may share loss and replacement policy but must occupy separate routine
+  signing compartments. The release compartment independently validates the
+  promotion bundle after literal qualification; a coordinator-controlled prompt
+  is not sufficient evidence.
+- Disposition: resolved at the design-policy level; mechanism selection and
+  disposable-key substitution and compromise exercises remain open.
+- Residual risk: one maintainer remains the shared decision-maker, and
+  compromised qualification evidence may still deceive a correct release
+  compartment.
 
 ### C-003: Recovery authorization is an intentional backdoor
 
@@ -142,11 +146,13 @@ mistake compromises every copy.
 ## Missing alternatives or evidence
 
 - Actual Secure Boot owner-key enrollment and recovery behavior on all targets.
-- A timed end-to-end promotion using disposable keys and literal qualification.
+- A timed end-to-end promotion and single-compartment compromise exercise using
+  disposable keys and literal qualification.
 - A concrete offline-copy storage and succession proposal.
 - Recovery capability minimization for workstation-local and router out-of-band
   paths.
-- Evidence that two custody domains are materially more operable than three.
+- Evidence that two routine signing compartments in one replacement class are
+  operable for normal and urgent releases.
 - A freshness and policy-epoch design for offline machines.
 
 ## Required changes before acceptance
@@ -160,5 +166,8 @@ mistake compromises every copy.
    class. Disposable-key and physical exercises remain implementation evidence.
 4. **Complete for this design:** offline freshness is explicitly deferred to
    SYS-037 and must be resolved before that requirement is accepted.
-5. **Open:** obtain independent human review and dispose of C-002 and C-003, the
-   remaining critical design challenges.
+5. **Complete at policy level:** EX-0002 disposes of C-002 by requiring separate
+   routine signing compromise compartments. Mechanism and attack exercises
+   remain implementation evidence.
+6. **Open:** obtain independent human review and dispose of C-003, the remaining
+   critical design challenge.

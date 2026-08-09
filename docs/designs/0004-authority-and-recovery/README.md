@@ -69,16 +69,22 @@ secured out-of-band path.
    not stored in the repository.
 5. **Loss has a declared terminal state.** The design does not call data or a
    machine recoverable when every recovery copy is gone.
+6. **Separate loss from use compromise.** Replaceable routine keys may share a
+   correlated loss event, but one routine execution environment must not be able
+   to exercise every authority needed to create a normal release.
 
 ## Proposed custody layout
 
-The proposal uses four custody classes. A custody class is a shared operational
-failure domain, not necessarily one physical device.
+The proposal uses four recovery and availability custody classes. A custody
+class describes authorities that may share an owner, storage or loss event, and
+replacement procedure; it is not necessarily one physical device. A signing
+compartment separately describes which authorities one compromised execution
+environment can exercise.
 
 | Custody class | Distinct logical authorities | Normal availability | Primary compromise boundary |
 | --- | --- | --- | --- |
 | Offline authority and recovery set | Project root; recovery authorization; recovery boot signer; enrollment authority; UEFI owner authorities such as PK/KEK | Attached only for delegation, revocation, enrollment, recovery-artifact signing, or platform repair | Isolated from builders, CI, publication services, and routine promotion |
-| Routine promotion signer | Release authorization; normal platform/UKI signing leaf | Available only during candidate signing and promotion | Cannot replace project root, recovery, enrollment, or data-recovery authority |
+| Routine promotion custody | Release authorization; normal platform/UKI signing leaf in separate signing compartments | Available only during candidate signing and promotion | Neither compartment can create both a platform-accepted artifact and its normal-release authorization |
 | Per-machine authority | Machine identity and any hardware-bound storage-unlock credential | Available to its one enrolled machine | Compromise does not authorize another machine or a release |
 | Data-recovery vault | Per-machine or per-state-owner recovery secrets | Offline except during backup verification or recovery | Independent of all signing and enrollment keys |
 
@@ -92,6 +98,12 @@ Keys that share a custody class remain distinct. For example, the project-root
 key may delegate a new release signer, while the recovery signer can authorize
 only recovery artifacts. Sharing offline storage does not allow software to
 treat those signatures as interchangeable.
+
+The routine keys may share correlated physical loss because both can be
+replaced from offline authority and neither requires a private-key backup. They
+must not share a routine use-compromise boundary. One ordinary host, even with
+two key files, commands, or blindly invoked tokens, must not be able to obtain
+both authorizations for substituted bytes.
 
 ## Logical authority inventory
 
@@ -128,20 +140,29 @@ destroying data-recovery authority.
 
 1. An unprivileged builder produces candidate artifacts, an immutable artifact
    manifest, provenance, and configuration identity.
-2. The normal platform signer signs the exact candidate boot artifact. Signing
-   changes its identity, so it occurs before literal-artifact qualification.
+2. The normal-platform signing compartment signs the exact candidate boot
+   artifact. Signing changes its identity, so it occurs before literal-artifact
+   qualification.
 3. Qualification tests the complete signed candidate and records its literal
    identities and results.
-4. The maintainer verifies the join among source, inputs, candidate identities,
-   provenance, and required test evidence.
-5. The release signer authorizes only that qualified identity and its declared
+4. An immutable promotion bundle joins source, inputs, candidate identities,
+   provenance, and attributable test evidence.
+5. The release-authorization compartment independently validates that bundle;
+   the maintainer authorizes only the exact qualified identity and its declared
    role, channel, compatibility, and policy metadata.
 6. Publication copies immutable artifacts and signed metadata. Publication
    infrastructure cannot mint a different authorized release.
 
-The routine keys may share one promotion device, but they are invoked as
-distinct operations with distinct audit records. CI and the builder do not hold
-either private key and cannot promote their own output.
+The routine keys share a replacement and availability policy, but not a signing
+compartment. CI, the builder, the qualification worker, publication services,
+and an ordinary coordinating promotion host do not hold or invoke both private
+keys and cannot promote their own output. Independent validation cannot consist
+only of confirming a digest rendered by that coordinating host.
+
+Platform-signed but unreleased candidates are hazardous intermediates: a
+compromised release signer could authorize one even though it failed or never
+completed qualification. Their identities, qualification disposition,
+retention, and destruction must therefore be inventoried.
 
 ## Recovery authorization and artifacts
 
@@ -251,6 +272,13 @@ loss, recovery compromise, TPM or mainboard replacement, machine-identity
 compromise, total data-recovery loss, infrastructure outage, and an urgent
 release.
 
+The [promotion substitution tabletop](../../research/exercises/0002-promotion-substitution-tabletop.md)
+found that the original permission for both routine keys to share one ordinary
+promotion device fails under compromise. It preserves their shared replacement
+class but requires separate signing compartments, an untrusted coordinator, an
+independently validated promotion bundle, and an inventory of platform-signed
+but unreleased candidates.
+
 The model is internally recoverable on paper with two conditions:
 
 - manual promotion remains acceptable for the initial personal fleet; and
@@ -274,11 +302,13 @@ freshness remain unproven.
 Rejected. Routine compromise would authorize normal boot, recovery, enrollment,
 and governance, while loss could strand the whole fleet.
 
-### One physical device per logical authority
+### One separately administered physical device per logical authority
 
-Rejected for the initial personal fleet. The ceremonies, backups, and expiry
-work would likely go untested. Distinct logical keys in two maintainer custody
-domains preserve the most important routine-versus-exceptional boundary.
+Rejected as a general rule for the initial personal fleet. The ceremonies,
+backups, and expiry work would likely go untested. The two routine authorities
+do require separate compromise compartments, which may lead to separate devices
+depending on the selected mechanism; this does not require a device for every
+logical authority sharing the offline custody class.
 
 ### Online CI-held release and platform keys
 
@@ -309,7 +339,12 @@ The design is viable when:
 5. each failure exercise reaches its declared outcome without an undeclared
    network, signer, clock, or mutable-state dependency; and
 6. restoring an OS deployment cannot restore a revoked authority or machine
-   identity.
+   identity;
+7. compromising the coordinator or either one routine signing compartment
+   cannot create both a new platform-accepted artifact and its normal-release
+   authorization; and
+8. substitution among candidate, signed artifact, qualification record, and
+   release authorization fails closed.
 
 ## Risks and unresolved questions
 
@@ -318,6 +353,10 @@ The design is viable when:
   locations in the repository?
 - What time and operator-effort budget should the accepted manual promotion
   ceremony meet in normal and urgent-release exercises?
+- What pair of signing mechanisms provides independently enforced routine
+  compartments without making the single-maintainer flow inoperable?
+- How will qualification evidence be authenticated and independently validated
+  by the release-authorization compartment?
 - Can firmware enroll separate normal and recovery leaves and provide usable
   owner-controlled revocation on every physical target?
 - Can router out-of-band recovery require sufficient deliberate authorization
@@ -329,8 +368,10 @@ The design is viable when:
 ## Review disposition
 
 The owner accepted the two operating conditions exposed by
-[EX-0001](../../research/exercises/0001-authority-loss-tabletop.md). The
-[adversarial review](review.md) remains open on promotion-environment compromise,
-recovery capability, physical custody, and offline freshness. No physical keys,
-storage locations, cryptographic formats, or firmware enrollments have been
-selected or created.
+[EX-0001](../../research/exercises/0001-authority-loss-tabletop.md).
+[EX-0002](../../research/exercises/0002-promotion-substitution-tabletop.md)
+resolves promotion-environment compromise at the design-policy level by
+requiring separate routine signing compartments. The [adversarial review](review.md)
+remains open on recovery capability, physical custody, qualification-evidence
+trust, and offline freshness. No physical keys, storage locations,
+cryptographic formats, or firmware enrollments have been selected or created.

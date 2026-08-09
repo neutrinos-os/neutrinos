@@ -34,8 +34,9 @@ The exercise assumes:
 - firmware trusts distinct normal and recovery boot leaves under owner control;
 - project-root, recovery, enrollment, and firmware-owner keys are distinct but
   held in the offline custody class;
-- release-authorization and normal-platform keys are distinct but held by the
-  routine promotion custody class;
+- release-authorization and normal-platform keys are distinct, share a routine
+  replacement and availability class, and occupy separate signing compromise
+  compartments as refined by EX-0002;
 - machine identities are scoped per machine;
 - protected state has an independent per-machine or per-owner recovery secret;
   and
@@ -64,15 +65,17 @@ existing qualified machines can continue running. No fixed recovery time is
 claimed during the personal-fleet phase; retrieval must nevertheless be part of
 the emergency runbook rather than an improvised search.
 
-### Routine promotion signer
+### Routine promotion custody
 
 The routine promotion private keys do not require backup. If lost, the offline
 project root delegates new release-authorization keys and the owner-controlled
 platform authority enrolls or authorizes a new normal boot leaf. Avoiding backup
 copies reduces ordinary exposure.
 
-The promotion environment may cache public metadata and unsigned candidates,
-but reconstruction of those inputs must not reconstruct the private keys.
+The signing compartments may share a correlated physical loss event, but no one
+ordinary promotion environment may invoke both. A coordinator may cache public
+metadata and unsigned candidates, but reconstruction of those inputs must not
+reconstruct either private key.
 
 ### Data-recovery vault
 
@@ -95,10 +98,10 @@ Possession of the artifact alone does not provide a data-unlock secret.
 
 ## Scenario results
 
-### T-001: Routine promotion device is lost
+### T-001: Both routine signing compartments are lost
 
-**Event:** The device holding both distinct routine keys is destroyed. There is
-no evidence of compromise.
+**Event:** The two replaceable routine signing compartments are destroyed in one
+correlated physical event. There is no evidence of compromise.
 
 **Expected response:**
 
@@ -114,10 +117,11 @@ no evidence of compromise.
 **Result:** Pass on paper. No routine-key backup is required. Firmware enrollment
 and delegation formats remain implementation dependencies.
 
-### T-002: Routine promotion device is compromised
+### T-002: Both routine signing compartments are compromised
 
 **Event:** An attacker may have used both routine keys during an uncertain
-interval.
+interval. This exceeds the single-compartment prevention boundary established
+by EX-0002 and tests compromise recovery instead.
 
 **Expected response:**
 

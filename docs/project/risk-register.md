@@ -9,7 +9,7 @@ last_updated: 2026-08-09
 | --- | --- | --- | --- |
 | R-001 | The project recreates an existing atomic distribution with less maintenance capacity. | Critical | Establish a differentiating invariant and perform adopt/build/borrow comparisons first. |
 | R-002 | Rolling back the OS leaves incompatible mutable state. | Critical | Define state ownership, schemas, and migration compatibility before update implementation. |
-| R-003 | Signing-key loss or compromise makes machines unrecoverable or untrustworthy. | Critical | Review DES-0004 and exercise routine, offline, recovery, machine, and data-authority loss through EX-0001 before creating production keys. |
+| R-003 | Signing-key loss or compromise makes machines unrecoverable or untrustworthy. | Critical | Review DES-0004; exercise authority loss through EX-0001 and promotion substitution through EX-0002 before creating production keys. |
 | R-004 | Package-input churn exceeds available security-maintenance capacity. | High | Compare release models and define patch/rebuild service objectives. |
 | R-005 | Hardware breadth prevents reliable qualification. | High | Publish a narrow initial hardware matrix and expand only with tests. |
 | R-006 | Role abstraction becomes either duplication or an overly clever configuration language. | High | Model two substantially different roles before fixing the abstraction. |

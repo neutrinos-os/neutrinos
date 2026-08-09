@@ -15,6 +15,7 @@ the discovery and architecture phase; documents marked `draft`, `sketch`, or
 7. [Existing-system adopt/build/borrow comparison](research/comparisons/existing-systems.md)
 8. [System requirements](requirements/system.md)
 9. [First system-model design](designs/0001-system-model/README.md)
+10. [State ownership and rollback design](designs/0002-state-ownership/README.md)
 
 The original conversation is preserved as [background material](background/2026-08-09-design-session-transcript.md).
 

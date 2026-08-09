@@ -28,7 +28,7 @@ ADR.
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
 | S-001 | What is the independently replaceable unit of deployment? | In design | P-003 |
-| S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | In design | S-001 |
+| S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | [In review: state ownership and rollback contract](../designs/0002-state-ownership/README.md) | S-001 |
 | S-003 | How are common and role-specific artifacts composed? | Open | P-004, S-001 |
 | S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
 | S-005 | What threats and trust assertions govern boot and runtime? | Open | S-001 |
@@ -42,7 +42,7 @@ ADR.
 | L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | Open | L-001, S-005 |
 | L-003 | How is a machine installed and enrolled? | Open | S-001, S-004, S-006 |
 | L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [In research: bootc is the default candidate; symmetric lifecycle spikes required](../research/comparisons/bootc-vs-systemd-sysupdate.md) | S-001, S-004 |
-| L-005 | How does mutable state remain safe across upgrade and rollback? | Open | S-002, L-004 |
+| L-005 | How does mutable state remain safe across upgrade and rollback? | [In review: compatibility, migration, and commit-barrier model](../designs/0002-state-ownership/README.md#update-and-migration-protocol) | S-002, L-004 |
 | L-006 | How are releases promoted, phased, paused, and withdrawn across a fleet? | Open | L-002, L-004 |
 | L-007 | What are the release cadence and security-response commitments? | [Accepted: single current line and best-effort response](maintenance-policy.md) | P-002, L-001, L-002 |
 
@@ -52,7 +52,7 @@ ADR.
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
 | C-001 | What is the source of truth and representation for machine and role configuration? | [Boundary accepted: data-first inputs with native configuration; concrete representation remains open](reviews/0002-configuration-authoring-boundary.md) | S-002, S-003 |
-| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | Open | C-001, S-005 |
+| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [In review: reconstructed `/etc`, explicit persistent exceptions, and attributable overrides](../designs/0002-state-ownership/README.md#etc-and-effective-configuration) | C-001, S-005 |
 | W-001 | What are the supported identity, UID, sub-ID, and rootless-container semantics? | Open | S-002, C-001 |
 | W-002 | What is the microVM artifact, networking, storage, and lifecycle model? | Open | S-003, S-004, C-001 |
 | W-003 | Which software belongs in the OS, user environment, project, GUI sandbox, container, or VM? | Stated direction | S-002 |

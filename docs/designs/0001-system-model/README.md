@@ -115,6 +115,8 @@ schema, migration, compatibility, backup, and recovery rules
 
 ### State
 
+- Detailed ownership, compatibility, migration, and recovery semantics are
+  proposed in [DES-0002](../0002-state-ownership/README.md).
 - What survives OS replacement, and who owns it?
 - How is `/etc` classified relative to generated defaults and local overrides?
 - How are `/var`, `/home`, container data, VM images, credentials, and logs

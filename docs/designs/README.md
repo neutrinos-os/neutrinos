@@ -21,3 +21,7 @@ Acceptance requires:
 - durable disposition of adversarial review challenges
 - one or more ADRs recording the resulting decisions
 
+Current designs:
+
+- [DES-0001: system model and release lifecycle](0001-system-model/README.md)
+- [DES-0002: state ownership and rollback contract](0002-state-ownership/README.md)

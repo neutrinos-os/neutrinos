@@ -31,9 +31,10 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
   lifecycle cost on production-supported substrate paths.
 - Author response: the claim is proposed, not accepted, and is called out as a
   substrate discriminator.
-- Disposition: open.
+- Disposition: resolved as a requirement question. The owner accepted
+  powered-off substitution as in scope and ratified SYS-030 through PR-0004.
 - Residual risk: architectural taste can still dominate the likelihood and
-  impact assessment.
+  impact assessment when selecting the concrete mechanism.
 
 ### C-002: Authenticated immutable root leaves mutable persistence paths
 
@@ -157,9 +158,16 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
 
 ## Required changes before acceptance
 
-1. Obtain explicit owner acceptance or rejection of powered-off physical
-   substitution as an in-scope threat and the boot-to-root claim it motivates.
-2. Define a minimum viable physical key layout and recovery exercise.
-3. Record role-specific confidentiality and unattended-recovery objectives.
-4. Trace accepted trust requirements into the substrate comparison.
-5. Obtain independent human review and dispose of all critical challenges.
+1. Define a minimum viable physical key layout and recovery exercise.
+2. Record role-specific confidentiality and unattended-recovery objectives.
+3. Trace accepted trust requirements into the substrate comparison.
+4. Obtain independent human review and dispose of all remaining critical
+   challenges.
+
+## Owner direction
+
+Jason Tarasovic accepted powered-off substitution as an in-scope threat and
+ratified SYS-030 on 2026-08-09 through
+[PR-0004](../../project/reviews/0004-boot-to-root-integrity.md). This resolves
+whether the project wants the claim; it does not establish that either substrate
+implements it through a production-supported path.

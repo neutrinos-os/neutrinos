@@ -16,12 +16,11 @@ maintenance judgments remain hypotheses.
 
 ## Summary judgment
 
-Making bootc the default candidate is justified by current accepted
-requirements, but only as a reversal of burden of proof—not as substrate
-selection. The largest risk is optimizing for today's production maturity and
-then discovering that the desired trust chain requires bootc's experimental
-backend. The opposite risk is allowing aspirational security mechanisms to
-justify a systemd-native integration project before a threat model needs them.
+SYS-030 resolves the paper-stage burden of proof in favor of the direct
+systemd/UAPI composition. bootc remains operationally stronger as an integrated
+lifecycle product, but its documented production path does not currently
+demonstrate the accepted boot-to-root claim. This is not substrate selection:
+the systemd path can still fail on reliability, recovery, or owner effort.
 
 ## Challenges
 
@@ -45,7 +44,9 @@ justify a systemd-native integration project before a threat model needs them.
   adopts experimental storage, or plans a disruptive backend migration.
 - Required response: accept the threat and trust requirements before substrate
   selection, then evaluate only production-supported paths against them.
-- Disposition: Open; this can reverse the proposed preference.
+- Disposition: Resolved at the current documentation boundary. SYS-030 is
+  accepted, so the proposed preference is reversed; a production-supported
+  bootc path may reopen the finding.
 
 ### C-003: OCI convenience can violate the data-first authoring boundary
 
@@ -96,7 +97,7 @@ justify a systemd-native integration project before a threat model needs them.
 
 ## Required changes before acceptance
 
-1. Ratify the trust-chain and state-ownership requirements relevant to the
+1. Complete the remaining trust and concrete state requirements relevant to the
    substrate.
 2. Specify exact, symmetric spike procedures and pass/fail thresholds.
 3. Obtain independent human review of the candidate weighting.

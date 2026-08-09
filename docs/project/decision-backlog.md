@@ -15,7 +15,7 @@ ADR.
 
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
-| P-001 | What problem and invariant justify NeutrinOS rather than adopting an existing system? | [In review: greenfield and NixOS rejected; bootc is the default substrate candidate pending requirements and spikes](../research/comparisons/existing-systems.md) | — |
+| P-001 | What problem and invariant justify NeutrinOS rather than adopting an existing system? | [In review: direct systemd/UAPI composition is the default candidate under SYS-030; bootc remains the lifecycle challenger](../research/comparisons/existing-systems.md) | — |
 | P-002 | Is the initial product a personal fleet, reusable framework, or public distribution? | [Accepted: personal fleet and reusable framework](scope.md#initial-operating-scope) | P-001 |
 | P-003 | What are the accepted principles and non-goals? | [Accepted after adversarial review](reviews/0001-charter-principles-and-scope.md) | P-001 |
 | P-004 | Which role and hardware are the first reference target? | [Accepted: VM qualification, workstation first, router second](scope.md#initial-target-strategy) | P-001, P-002 |
@@ -31,7 +31,7 @@ ADR.
 | S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | [Ownership boundary accepted; implementation design remains in review](reviews/0003-state-ownership-requirements.md) | S-001 |
 | S-003 | How are common and role-specific artifacts composed? | Open | P-004, S-001 |
 | S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
-| S-005 | What threats and trust assertions govern boot and runtime? | [In review: initial threat and trust model](../designs/0003-threat-and-trust-model/README.md) | S-001 |
+| S-005 | What threats and trust assertions govern boot and runtime? | [Boot-to-root target accepted; remaining threat model in review](reviews/0004-boot-to-root-integrity.md) | S-001 |
 | S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | [In review: logical authority model; physical key layout remains open](../designs/0003-threat-and-trust-model/README.md#authority-model) | S-005 |
 
 ## Wave 2: build and lifecycle
@@ -41,7 +41,7 @@ ADR.
 | L-001 | Which package ecosystem and snapshot policy supply OS inputs? | Open | P-002, S-001 |
 | L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | Open | L-001, S-005 |
 | L-003 | How is a machine installed and enrolled? | Open | S-001, S-004, S-006 |
-| L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [In research: bootc is the default candidate; symmetric lifecycle spikes required](../research/comparisons/bootc-vs-systemd-sysupdate.md) | S-001, S-004 |
+| L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [In research: direct systemd/UAPI composition leads under SYS-030; bootc remains the lifecycle challenger](../research/comparisons/bootc-vs-systemd-sysupdate.md) | S-001, S-004 |
 | L-005 | How does mutable state remain safe across upgrade and rollback? | [Requirements accepted; migration and recovery mechanisms remain in review](../designs/0002-state-ownership/README.md#update-and-migration-protocol) | S-002, L-004 |
 | L-006 | How are releases promoted, phased, paused, and withdrawn across a fleet? | Open | L-002, L-004 |
 | L-007 | What are the release cadence and security-response commitments? | [Accepted: single current line and best-effort response](maintenance-policy.md) | P-002, L-001, L-002 |

@@ -358,7 +358,8 @@ Before accepting the eventual architecture, tests must demonstrate:
 
 ## Review disposition
 
-The initial [adversarial review](review.md) is open. The proposed boot-to-root
-integrity claim is intentionally strong enough to influence substrate
-selection, but it must be ratified as a requirement rather than assumed from
-the project's preferred mechanisms.
+The boot-to-root integrity target and SYS-030 were
+[accepted in PR-0004](../../project/reviews/0004-boot-to-root-integrity.md).
+The remaining [adversarial review](review.md) is open, including physical key
+layout, role-specific confidentiality, mutable executable inputs, and
+compromise recovery.

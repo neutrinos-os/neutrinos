@@ -39,11 +39,12 @@ conflict.
   merely to preserve an ecosystem preference.
 - Required response: identify a material accepted requirement that bootc
   cannot reasonably meet, or select bootc.
-- Author response: RES-0003 makes bootc the default substrate candidate under
-  current accepted requirements and requires symmetric lifecycle spikes before
-  an ADR. No systemd-native selection is proposed.
-- Disposition: Mitigated at the documentation stage; final selection remains
-  open pending trust and state requirements and operating evidence.
+- Author response: accepted SYS-030 now makes the direct systemd/UAPI
+  composition the default candidate. RES-0003 still requires symmetric
+  production-path lifecycle spikes before an ADR.
+- Disposition: Resolved at the documentation stage without relying only on
+  ADR-0001; final selection remains open pending requirements and operating
+  evidence.
 - Residual risk: later requirements could be written to rationalize the
   preferred substrate.
 

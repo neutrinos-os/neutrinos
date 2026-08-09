@@ -23,35 +23,41 @@ publisher, and fleet policy.
 
 ## Summary judgment
 
-No currently accepted requirement gives `systemd-sysupdate` a decisive
-advantage over bootc. The desired DDI, UKI, verity, and user-owned Secure Boot
-chain may eventually do so, but the project has not yet accepted the threat
-model or trust requirements that would make those mechanisms mandatory.
+Accepted SYS-030 now gives a direct systemd/UAPI composition a decisive current
+advantage: normal physical boot must authenticate the complete release-owned
+boot and immutable-root chain. The documented bootc production path does not
+currently demonstrate that claim; its systemd-boot and sealed UKI/composefs
+path remains experimental.
 
-bootc therefore becomes the **default substrate candidate**, not an accepted
-architecture. Its strong justification under ADR-0001 is the lifecycle product
-it supplies beyond an update primitive: a stable CLI and API, OCI distribution,
-installation, staged updates, machine-readable status, image switching, and
-rollback over a production OSTree backend.
+A direct systemd/UAPI and mkosi composition therefore becomes the **default
+substrate candidate**, not an accepted architecture. bootc remains the strongest
+challenger because its stable CLI and API, OCI distribution, installation,
+staged updates, machine-readable status, switching, and rollback would
+materially reduce NeutrinOS-owned lifecycle integration if a production-
+supported path can satisfy SYS-030.
 
-The selection cannot be finalized from documentation. bootc's production and
-desired trust paths currently diverge: its default OSTree backend does not
-support systemd-boot, bootloader updates are separate, and the sealed
-composefs/UKI backend remains experimental with incomplete boot-failure
-integration. A bounded lifecycle spike and accepted trust requirements are
-gates for the substrate ADR.
+The selection cannot be finalized from documentation. The systemd composition
+must prove that its stronger trust fit does not create an unreliable,
+project-owned lifecycle product. NeutrinOS will not adopt bootc's experimental
+backend merely to satisfy the requirement. Production-supported, symmetric
+lifecycle spikes remain gates for the substrate ADR.
 
-## Accepted requirements applied
+## Requirements applied
 
-| Requirement | Consequence for this comparison |
-| --- | --- |
-| SYS-002 | The release process must pin and qualify the literal OCI digest or systemd resource set eventually offered to a machine. |
-| SYS-003, SYS-009 | A rollback command is insufficient; interrupted staging, failed boot, mutable-state interaction, and offline recovery must be exercised. |
-| SYS-005 | Workstation and router must share lifecycle semantics even if their image contents or storage layouts differ. |
-| SYS-008, SYS-011 | The running system needs stable, machine-readable release and deployment state. |
-| SYS-014–SYS-016 | Neither Containerfiles nor transfer definitions may become an open-ended operator-facing machine language; resolved inputs and generated configuration must remain inspectable. |
-| SYS-017 | Deployment must name the already qualified OCI digest or complete resource-set identity, not merely a mutable tag or version string. |
-| SYS-018 | The project must preserve provenance across build, publication, fetch, staging, activation, health, and rollback. |
+Accepted requirements may disqualify a candidate. Candidate requirements guide
+the comparison but cannot decide it until ratified.
+
+| Requirement | Status | Consequence for this comparison |
+| --- | --- | --- |
+| SYS-002 | Candidate | The release process must pin and qualify the literal OCI digest or systemd resource set eventually offered to a machine. |
+| SYS-003, SYS-009 | Candidate | A rollback command is insufficient; interrupted staging, failed boot, mutable-state interaction, and offline recovery must be exercised. |
+| SYS-005 | Candidate | Workstation and router must share lifecycle semantics even if their image contents or storage layouts differ. |
+| SYS-008, SYS-011 | Candidate | The running system needs stable, machine-readable release and deployment state. |
+| SYS-014–SYS-016 | Accepted | Neither Containerfiles nor transfer definitions may become an open-ended operator-facing machine language; resolved inputs and generated configuration must remain inspectable. |
+| SYS-017 | Accepted | Deployment must name the already qualified OCI digest or complete resource-set identity, not merely a mutable tag or version string. |
+| SYS-018 | Accepted | The project must preserve provenance across build, publication, fetch, staging, activation, health, and rollback. |
+| SYS-019–SYS-026 | Accepted | State ownership, reconstructed `/etc`, migration compatibility, recovery preservation, identity, and diagnostics must retain their declared contracts across the substrate lifecycle. |
+| SYS-030 | Accepted | Normal production boot must authenticate the complete release-owned boot and immutable-root chain from the configured platform trust anchor. |
 
 ## Upstream facts
 
@@ -144,9 +150,8 @@ operational interface that bootc already supplies.
 
 ## ADR-0001 exception analysis
 
-ADR-0001 creates a preference, not an automatic selection. bootc has a strong
-material justification where the accepted requirement is an operable host
-lifecycle rather than atomic file transfer alone:
+ADR-0001 creates a preference, not an automatic selection. bootc still has a
+strong material lifecycle justification:
 
 1. it exposes one stable product surface for install through rollback;
 2. it reuses OCI registries, digests, authentication, mirroring, and signature
@@ -154,20 +159,20 @@ lifecycle rather than atomic file transfer alone:
 3. it supplies a concrete state and deployment model to test; and
 4. it reduces the amount of lifecycle integration NeutrinOS must own.
 
-That justification weakens or reverses if NeutrinOS accepts a trust or layout
-requirement that bootc's production backend cannot meet—for example, a stable
-systemd-boot plus signed-UKI path with a directly authenticated immutable root,
-or independently versioned DDI resources that must not be flattened into an
-OSTree deployment.
+That justification cannot waive an accepted requirement. SYS-030 now requires
+the directly authenticated immutable root that bootc's documented sealed path
+provides only through an experimental backend. bootc can regain default status
+if a production-supported configuration demonstrates the claim or if later
+evidence shows the current assessment is incomplete.
 
 ## Proposed disposition
 
-1. Treat bootc over its production OSTree backend as the default substrate
-   candidate.
-2. Keep the systemd-sysupdate composition as the challenger, especially for
-   the future trust, disk-layout, and component-lifecycle decisions.
-3. Do not accept a substrate ADR until the trust model and state ownership are
-   specified enough to expose disqualifying constraints.
+1. Treat the direct systemd/UAPI and mkosi composition as the default substrate
+   candidate under accepted SYS-030.
+2. Keep bootc as the lifecycle and maintenance challenger; reevaluate any
+   production-supported path that can demonstrate SYS-030.
+3. Do not accept a substrate ADR until the remaining trust model and concrete
+   state ownership are specified enough to expose disqualifying constraints.
 4. Before that ADR, run the same bounded lifecycle scenarios against both final
    candidates. A paper comparison cannot establish failure behavior or owner
    effort.
@@ -175,9 +180,10 @@ OSTree deployment.
    operator-authored Containerfile, shell program, template language, or
    programmable module system in violation of SYS-014.
 
-This resolves the present burden-of-proof challenge: the project will not
-prefer `systemd-sysupdate` merely because it is systemd-native. It does not yet
-make bootc an accepted architectural dependency.
+This resolves the present burden-of-proof challenge without circular reliance
+on ADR-0001: the direct systemd composition leads because an independently
+accepted trust requirement distinguishes it. It is not yet an accepted
+architecture.
 
 ## Required lifecycle evidence
 

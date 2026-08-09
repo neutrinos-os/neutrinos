@@ -28,12 +28,13 @@ The project boundary remains a thin NeutrinOS role, configuration,
 qualification, release, and fleet-policy layer over existing lifecycle
 components. The follow-up
 [bootc versus systemd-sysupdate comparison](bootc-vs-systemd-sysupdate.md)
-makes bootc the default substrate candidate on current accepted requirements.
-A direct systemd/UAPI and mkosi composition remains the challenger if later
-trust, disk-layout, or component-lifecycle requirements justify the additional
-integration ownership. [ParticleOS](https://github.com/systemd/particleos) is
-the closest executable reference for that challenger and should be studied and
-reused selectively, not silently forked or treated as a stable dependency.
+makes a direct systemd/UAPI and mkosi composition the default substrate
+candidate under accepted SYS-030. bootc remains the lifecycle and maintenance
+challenger if a production-supported path can authenticate the complete
+release-owned boot and immutable-root chain.
+[ParticleOS](https://github.com/systemd/particleos) is the closest executable
+reference for the default candidate and should be studied and reused
+selectively, not silently forked or treated as a stable dependency.
 
 This does **not** yet satisfy CH-001. NixOS was a credible adopt-instead
 candidate on technical capabilities, but the
@@ -44,11 +45,11 @@ model. The derived data-first configuration requirements are now
 NixOS is rejected as the primary framework rather than hidden behind a new
 project DSL.
 
-bootc is now the default substrate candidate, not an accepted dependency.
-Rejecting it based on familiarity or the systemd-first posture would be
-circular. The later substrate ADR must test whether its production backend can
-meet the accepted trust and state requirements and the same lifecycle scenarios
-as the direct systemd composition.
+bootc is not rejected as a lifecycle product, but it is no longer the default
+substrate candidate. Its documented production backend does not currently
+demonstrate SYS-030, while the sealed systemd-boot/UKI/composefs path is
+experimental. The later substrate ADR must compare production-supported paths
+through the same trust, state, and lifecycle scenarios.
 
 The unresolved objections and acceptance gates are tracked in the
 [adversarial review](reviews/0001-existing-systems.md).
@@ -79,7 +80,7 @@ hands-on spikes. `Strong` does not mean complete.
 | Candidate | Release identity | Literal artifact testing | Multi-role model | Transaction/recovery | State/configuration | Conclusion |
 | --- | --- | --- | --- | --- | --- | --- |
 | NixOS | Strong | Strong | Strong | Mixed | Strong mechanics; poor operator fit | **Reject as the primary framework** |
-| bootc / rpm-ostree | Strong | Strong | Moderate | Strong | Moderate | **Default substrate candidate; spike required** |
+| bootc / rpm-ostree | Strong | Strong | Moderate | Strong | Moderate | **Lifecycle challenger; production trust gap** |
 | ParticleOS | Strong | Promising | Moderate | Promising | Promising | **Borrow as executable reference** |
 | GNOME OS | Strong | Promising | Weak | Promising | Promising | Borrow mechanisms and operating lessons |
 | Flatcar | Strong | Moderate | Weak | Strong | Moderate | Borrow provisioning and fleet patterns |
@@ -166,18 +167,20 @@ distribution path. It does not inherently provide NeutrinOS's role schema,
 literal-artifact evidence join, state-owner contracts, or fleet policy—but
 those are layers the project would also need on a systemd-native substrate.
 
-Choosing `systemd-sysupdate` instead of bootc therefore needs a lifecycle-level
-reason, not just ADR-0001. Possible reasons include a requirement for DDIs,
-UKI/verity integration, or a materially smaller runtime and trust surface, but
-those reasons have not yet been demonstrated.
+Choosing a direct `systemd-sysupdate` composition instead of bootc requires more
+than ADR-0001. Accepted SYS-030 now supplies that reason: the production bootc
+path does not currently demonstrate authentication of the complete
+release-owned boot and immutable root, while its sealed path is experimental.
+The systemd composition must still prove that it can supply the lifecycle
+reliability and operability bootc already integrates.
 
 #### Conclusion
 
-**Default substrate candidate; not yet selected.** Keep bootc as the benchmark
-that a direct systemd design must beat on complexity, recovery, and
-maintenance. Its production path must also pass the trust, state, and failed-
-boot requirements identified in RES-0003. The Fedora Atomic desktop products
-themselves are not a multi-role framework, but that does not reject bootc.
+**Lifecycle and maintenance challenger; not selected.** Keep bootc as the
+benchmark that a direct systemd design must beat on complexity, recovery, and
+maintenance, and reevaluate a production-supported bootc path that satisfies
+SYS-030. The Fedora Atomic desktop products themselves are not a multi-role
+framework, but that does not reject bootc's reusable lifecycle mechanisms.
 
 ### ParticleOS and the systemd/UAPI image stack
 

@@ -41,7 +41,7 @@ satisfied it.
 | SYS-027 | Candidate | Every security claim must identify its protected assets, attacker capabilities, trust assumptions, guarantees, non-guarantees, and compromise-recovery behavior for each applicable role. | Threat-to-control trace reviewed against workstation and router scenarios. |
 | SYS-028 | Candidate | A deployable release authorization must bind the immutable artifact set, applicable role or channel, configuration identity or compatibility, and freshness policy independently of its transport location or mutable discovery name. | Registry and metadata substitution tests against a signed release manifest. |
 | SYS-029 | Candidate | A target must verify release authorization and content identity before a candidate can replace or outrank the current deployment; failed or interrupted verification must leave the current selection intact. | Corruption, substitution, interruption, and partial-staging tests. |
-| SYS-030 | Candidate | Normal boot on a production physical role must authenticate, from the configured platform trust anchor, every release-owned boot artifact and the release-owned root content before treating it as trusted. | Tamper tests for bootloader, kernel, initrd, command line or equivalent policy, and immutable root. |
+| SYS-030 | Accepted | Normal boot on a production physical role must authenticate, from the configured platform trust anchor, every release-owned boot artifact and the release-owned root content before treating it as trusted. | Tamper tests for bootloader, kernel, initrd, command line or equivalent policy, and immutable root. |
 | SYS-031 | Candidate | Machine status must report release identity, authorization, boot integrity verification, provenance, qualification, freshness, currentness, support, and local modification as distinct properties. | Status-schema tests covering every independent combination relevant to operations and recovery. |
 | SYS-032 | Candidate | Every signing, enrollment, platform, machine, recovery, and data-encryption authority must define scope, storage, delegation, rotation, revocation, audit, loss, compromise, backup or regeneration, and destruction behavior. | Exercised authority inventory and loss/rotation/revocation runbook. |
 | SYS-033 | Candidate | Recovery authorization must remain independently usable after loss or compromise of the normal release signer and must not silently authorize a normal fleet release. | Offline recovery after signer loss and compromise. |
@@ -76,5 +76,7 @@ SYS-019 through SYS-026 are derived from
 the [state ownership requirements review](../project/reviews/0003-state-ownership-requirements.md).
 
 SYS-027 through SYS-037 are derived from
-[DES-0003](../designs/0003-threat-and-trust-model/README.md) and remain
-candidate requirements pending its review.
+[DES-0003](../designs/0003-threat-and-trust-model/README.md). SYS-030 was
+accepted through the
+[boot-to-root integrity review](../project/reviews/0004-boot-to-root-integrity.md);
+the others remain candidate requirements pending review.

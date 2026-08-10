@@ -190,10 +190,46 @@ Format-specific artifact terms retain their upstream meanings:
 
 ## Evidence and authority
 
-- **attestation**: A verifiable statement made by an identified authority about
-  a subject.
-- **provenance**: An attestation describing how build outputs were produced,
-  including their inputs, platform, and parameters.
+- **evidence record**: Immutable, content-identified bytes expressing one typed
+  claim or observation about exact subjects under a declared format, producer,
+  completeness, and verification policy. Record identity does not establish
+  truth.
+- **evidence-set manifest**: A small immutable record joining evidence-record
+  identities for one named purpose and policy. It indexes native claims without
+  copying their semantics or becoming deployment identity.
+- **attestation**: An evidence record containing a typed statement by an
+  identified producer about exact subjects, optionally authenticated through
+  an evidence envelope. Authentication establishes attribution, not truth.
+- **provenance**: An attestation describing where, when, and how exact outputs
+  were produced, including their declared materials, builder, build process,
+  parameters, environment, and completeness boundary.
+- **SBOM**: A Software Bill of Materials: a subject-bound inventory of software
+  components, identities, relationships, ownership, and declared coverage gaps.
+  It is not provenance, a vulnerability verdict, or proof of completeness.
+- **SBOM coverage gap**: A declared component class, artifact, or relationship
+  that the applicable SBOM process could not identify or inspect. A gap is
+  unknown coverage, not evidence of absence.
+- **build replay**: Re-executing a build with its retained inputs and
+  instructions. Success does not imply byte-identical output.
+- **bit-reproducible**: A claim that the explicitly named artifacts from builds
+  with the declared source, instructions, and environment are byte-for-byte
+  identical under the stated comparison.
+- **independently reproduced**: A bit-reproducibility result produced by a
+  separately identified builder or trust domain. Independence must be stated;
+  two runs on one builder do not imply it.
+- **vulnerability source snapshot**: Immutable retained advisory or
+  vulnerability-source records plus their acquisition identity and time. It is
+  input to matching and assessment, not a deployment verdict.
+- **vulnerability finding**: A source-attributable candidate match between a
+  vulnerability record and an exact component or deployment. It may later be
+  confirmed, contradicted, or assessed as not exploitable; it is not deleted by
+  that assessment.
+- **vulnerability assessment**: An attributable, time- and subject-scoped claim
+  about applicability, exploitability, reachability, mitigation, accepted risk,
+  or required action for a finding.
+- **VEX**: Vulnerability Exploitability eXchange: a machine-readable
+  vulnerability assessment in a recognized VEX representation. A negative VEX
+  claim is not proof that code is fixed and does not erase its source finding.
 - **qualification**: Evaluation of an exact deployment identity against a
   named policy and environment.
 - **qualification record**: Attributable evidence recording a qualification

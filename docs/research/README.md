@@ -23,6 +23,8 @@ Initial research tracks:
 - [reference storage layout tabletop](exercises/0008-reference-storage-layouts.md)
 - [package ecosystem and snapshot-policy comparison](comparisons/package-ecosystem-and-snapshot-policy.md)
 - [reference package-input closure and refresh exercise](exercises/0009-package-input-closure.md)
+- [supply-chain evidence standards comparison](comparisons/supply-chain-evidence-standards.md)
+- [representative supply-chain evidence graph](exercises/0010-representative-evidence-graph.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

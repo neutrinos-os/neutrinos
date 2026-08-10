@@ -26,6 +26,7 @@ verify its summary against the current ADRs, requirements, and active design.
 14. [Fleet intent and configuration composition](designs/0005-fleet-intent-and-configuration/README.md)
 15. [Storage layout, immutable root, and encryption](designs/0006-storage-layout-and-encryption/README.md)
 16. [Package inputs and snapshot policy](designs/0007-package-inputs-and-snapshot-policy/README.md)
+17. [Supply-chain evidence, reproducibility, and vulnerability assessment](designs/0008-supply-chain-evidence-and-vulnerability/README.md)
 
 The original conversation is preserved as [background material](background/2026-08-09-design-session-transcript.md).
 

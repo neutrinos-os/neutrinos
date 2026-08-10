@@ -86,6 +86,12 @@ Fedora stable is the leading candidate, and a literal Arch snapshot comparison
 is required before acceptance. SYS-057 through SYS-064 accept the package-input
 and snapshot-policy boundaries without selecting either ecosystem.
 
+Supply-chain evidence, reproducibility, SBOM, vulnerability, and VEX semantics
+are now under review in
+[DES-0008](../designs/0008-supply-chain-evidence-and-vulnerability/README.md).
+No evidence format, scanner, SLSA level, or reproducibility claim is accepted
+merely because it appears in that proposal.
+
 ## User preferences that must remain visible
 
 ### Systemd and UAPI
@@ -326,7 +332,9 @@ implementation-level review work. DES-0005 and ADR-0003 are accepted. The
 policy boundaries in SYS-048 through SYS-056 are accepted; DES-0006 remains in
 review while its concrete storage mechanisms await evidence. SYS-057 through
 SYS-064 accept package-input policy; DES-0007 and the Fedora-versus-Arch
-selection remain in review pending EX-0009.
+selection remain in review pending EX-0009. SYS-065 through SYS-074 accept the
+supply-chain evidence and vulnerability policy boundaries; DES-0008 remains in
+review for concrete formats, mechanisms, and costs.
 
 ## Restart checklist
 

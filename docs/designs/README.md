@@ -30,3 +30,4 @@ Current designs:
 - [DES-0005: fleet intent and configuration composition](0005-fleet-intent-and-configuration/README.md)
 - [DES-0006: storage layout, immutable root, and encryption](0006-storage-layout-and-encryption/README.md)
 - [DES-0007: package inputs and snapshot policy](0007-package-inputs-and-snapshot-policy/README.md)
+- [DES-0008: supply-chain evidence, reproducibility, and vulnerability assessment](0008-supply-chain-evidence-and-vulnerability/README.md)

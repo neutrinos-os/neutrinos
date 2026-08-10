@@ -1,7 +1,7 @@
 ---
 id: RES-0003
 status: in-review
-last_updated: 2026-08-09
+last_updated: 2026-08-10
 evidence_cutoff: 2026-08-09
 decision_gates: [P-001, S-001, L-004]
 review: reviews/0002-bootc-vs-systemd-sysupdate.md
@@ -55,15 +55,15 @@ the comparison but cannot decide it until ratified.
 
 | Requirement | Status | Consequence for this comparison |
 | --- | --- | --- |
-| SYS-002 | Candidate | The release process must pin and qualify the literal OCI digest or systemd resource set eventually offered to a machine. |
-| SYS-003, SYS-009 | Candidate | A rollback command is insufficient; interrupted staging, failed boot, mutable-state interaction, and offline recovery must be exercised. |
-| SYS-005 | Candidate | Workstation and router must share lifecycle semantics even if their image contents or storage layouts differ. |
-| SYS-008, SYS-011 | Candidate | The running system needs stable, machine-readable release and deployment state. |
+| SYS-002 | Accepted | The release process must pin and qualify the literal OCI digest or systemd resource set eventually offered to a machine. |
+| SYS-003, SYS-019–SYS-026 | Accepted | A rollback command is insufficient; interrupted staging, failed boot, state compatibility, preservation, diagnostics, and recovery must be exercised. |
+| SYS-005 | Accepted | Workstation and router must share lifecycle semantics even if their image contents or storage layouts differ. |
+| SYS-008, SYS-031 | Accepted | The running system needs exact deployment identity and machine-readable, independently meaningful release and support properties. |
 | SYS-014–SYS-016 | Accepted | Neither Containerfiles nor transfer definitions may become an open-ended operator-facing machine language; resolved inputs and generated configuration must remain inspectable. |
 | SYS-017 | Accepted | Deployment must name the already qualified OCI digest or complete resource-set identity, not merely a mutable tag or version string. |
-| SYS-018 | Accepted | The project must preserve provenance across build, publication, acquisition, staging, selection, boot, health assessment, and rollback. |
-| SYS-019–SYS-026 | Accepted | State ownership, reconstructed `/etc`, migration compatibility, recovery preservation, identity, and diagnostics must retain their declared contracts across the substrate lifecycle. |
-| SYS-030 | Accepted | Normal production boot must authenticate the complete release-owned boot and immutable-root chain from the configured platform trust anchor. |
+| SYS-018 | Accepted | Configuration and deployment failures must identify the responsible input, scope, output, and lifecycle stage on either substrate. |
+| SYS-028–SYS-041 | Accepted | Authorization, staging, boot integrity, status, recovery, trial boot, blessing, retention, and offline lifecycle behavior apply to the complete substrate mapping. |
+| SYS-057–SYS-064 | Accepted | Package input resolution, retained closure, source boundaries, currentness, executable build inputs, and upstream transitions remain independent of the deployed substrate. |
 
 ## Upstream facts
 

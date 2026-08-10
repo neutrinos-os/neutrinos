@@ -97,6 +97,64 @@ The keyless-access row is the most significant. A project whose thesis is
 separated authority (ADR-0002) should not need a passwordless root account in
 its qualification artifact, and with ephemeral vsock keys it does not.
 
+## Measured 2026-08-10: both techniques work under TCG
+
+Two of the four techniques were tested against **`raw-a`, the literal
+pre-amendment artifact from PLN-0001-03** -- the image that blocked forever on
+an interactive timezone prompt. Nothing in the image was changed.
+
+**`snapshot=on` works.** The artifact was used directly as the boot disk with no
+copy made. Its SHA-256 was
+`449767ea7ec4551aa3e3e1fb59d10038f1d8056299a41d5c76e2a3e272a18b91` before the
+boot and identical after it. This retires the per-run 1.4 GB copy and the boot
+record's "booting mutates the image" caveat: under `snapshot=on` it does not.
+It also means every boot is a first boot, because the machine ID never
+persists.
+
+**SMBIOS Type 11 credentials work**, supplied as
+`-smbios type=11,value=io.systemd.credential:KEY=VALUE`:
+
+| Credential | Value | Observed |
+| --- | --- | --- |
+| `firstboot.timezone` | `UTC` | Prompt gone |
+| `firstboot.locale` | `C.UTF-8` | Prompt gone |
+| `system.hostname` | `tt-smbios-proof` | Appeared in the login banner |
+| `passwd.hashed-password.root` | empty (unlocked, no password) | Prompt gone |
+
+The first run supplied only the top three and advanced from the timezone
+question to the *root password* question -- a useful partial result, since it
+showed the mechanism working before it showed the credential set was
+incomplete. With the fourth added, the unmodified artifact reaches
+`tt-smbios-proof login:`.
+
+**A kernel command line also works from the harness**, via
+`-smbios type=11,value=io.systemd.stub.kernel-cmdline-extra="console=ttyS0"`.
+The same UKI that has no `.cmdline` section produced 91 KB of serial log.
+systemd-stub's documentation places no Secure Boot condition on this string,
+and notes it **is measured into PCR12** -- so it is accounted for rather than
+ignored, but it will move PCR12 and any future policy sealed against that
+register must expect it.
+
+### Consequence for PLN-0001-04
+
+**All three composition amendments made in PLN-0001-04 are now known to be
+unnecessary for reachability.** The literal artifact can be given a console,
+first-boot answers, a hostname, and an unlocked root account entirely from
+outside, leaving the artifact byte-identical.
+
+That does not automatically mean the amendment should be reverted, and this
+document does not recommend it. A physical host has no harness to inject
+SMBIOS strings, so something must still own first-boot configuration --
+the installer, the enrollment record, or the image. That is `L-003` and
+`C-002`, and it should be decided on its own terms. What has changed is that
+"the image must carry it or the VM is unreachable" is no longer an argument,
+because it is false.
+
+The one amendment with an independent justification is the kernel command line:
+a cmdline in the UKI is measured as part of the signed image, while an SMBIOS
+extra is host-supplied. Which of those a NeutrinOS deployment should rely on is
+a boot-integrity question, not a convenience question.
+
 ## The Virtual Machine Image API Specification
 
 test.thing's most interesting artifact is not its code but

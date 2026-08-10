@@ -22,6 +22,14 @@ PLN-0001-03 found three gaps that made the machine unreachable. They were fixed
 in `src/slice/composition/mkosi.conf` under owner authorization on 2026-08-10,
 as an amendment to the PLN-0001-02 fixture:
 
+**Superseded in part, 2026-08-10.** All three gaps were later shown to be
+fixable from the harness against the unmodified artifact, using SMBIOS Type 11
+credentials and `io.systemd.stub.kernel-cmdline-extra`; see
+[RES-0013](../research/comparisons/vm-test-harness.md). The amendment below was
+therefore not required for reachability. Whether it should be reverted is an
+open `C-002`/`L-003` question, because a physical host has no harness to supply
+these.
+
 | Gap | Fix | Effect |
 | --- | --- | --- |
 | No kernel command line | `KernelCommandLine=console=ttyS0 console=hvc0` | 63 KiB of machine-readable boot log on serial where there was none |
@@ -137,11 +145,13 @@ the boot record already names.
    demonstrated by a "read-only root mount". **It is not demonstrated.** The
    trace must be corrected or the composition changed; this report does not
    choose which.
-3. **systemd has no TPM2 support in this image.** The vTPM is present and the
+3. **systemd cannot use the TPM in this image.** The vTPM is present and the
    kernel driver binds it, but `systemd-cryptenroll` reports "TPM2 support is
-   not installed" -- the closure lacks the TPM2 libraries. The boot record's
-   "vTPM found" stands; anything requiring systemd to *use* the TPM needs a
-   package that is not in the 104.
+   not installed". Refined 2026-08-10: systemd itself is built `+TPM2`, as its
+   own banner reports, so the gap is the **tss2 runtime libraries**, which
+   `cryptenroll` loads dynamically and which are not in the 104-package
+   closure. The boot record's "vTPM found" stands; anything requiring systemd
+   to *use* the TPM needs a package that is not in the closure.
 4. **The image has no `awk`.** `util-linux-core` is deliberately minimal. Not a
    defect, but harness scripts must not assume a POSIX userland.
 

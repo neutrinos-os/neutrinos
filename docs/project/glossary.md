@@ -11,8 +11,11 @@ that have not been established.
 
 ## Configuration and machine intent
 
-- **fleet inventory**: The authoritative collection of managed machine
-  records.
+- **fleet inventory**: The authoritative desired-intent collection of managed
+  machine records and their referenced role, platform-class, configuration,
+  state-contract, and policy definitions.
+- **machine name**: A stable human-facing key for one machine record. It is not
+  a machine identity, credential, or hardware observation.
 - **machine record**: Desired metadata for one managed machine, including its
   identity, role assignment, platform constraints, and machine-scoped
   configuration references.
@@ -44,6 +47,10 @@ that have not been established.
   before it is rendered into OS artifacts.
 - **rendered configuration**: Upstream-native files produced from resolved
   configuration.
+- **composition record**: Immutable evidence identifying the ordered
+  configuration inputs, precedence decisions, transformation tools,
+  validations, resolved configuration, and rendered configuration used for a
+  deployment variant.
 - **identity-bound input**: An input fixed by and attributable to a deployment
   identity. Changing it produces a different deployment identity.
 - **late-bound input**: A value supplied after deployment identity is
@@ -53,6 +60,9 @@ that have not been established.
   mechanism. A credential may be secret or non-secret.
 - **provisioning**: Preparing initially blank or reset storage, trust roots,
   and machine identity. Provisioning is not routine OS configuration.
+- **bootstrap hint**: Untrusted or separately authenticated metadata used to
+  locate provisioning intent before enrollment. A bootstrap hint does not
+  assign a role or authorize a deployment.
 - **enrollment**: Binding a machine identity to NeutrinOS administrative
   authority and fleet inventory.
 

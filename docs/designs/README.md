@@ -27,3 +27,4 @@ Current designs:
 - [DES-0002: state ownership and rollback contract](0002-state-ownership/README.md)
 - [DES-0003: initial threat and trust model](0003-threat-and-trust-model/README.md)
 - [DES-0004: minimum viable authority and recovery model](0004-authority-and-recovery/README.md)
+- [DES-0005: fleet intent and configuration composition](0005-fleet-intent-and-configuration/README.md)

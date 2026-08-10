@@ -29,7 +29,7 @@ ADR.
 | --- | --- | --- | --- |
 | S-001 | What is the independently replaceable unit of deployment? | [In review: complete content-identified deployment set](../designs/0001-system-model/README.md) | P-003 |
 | S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | [Ownership boundary accepted; implementation design remains in review](reviews/0003-state-ownership-requirements.md) | S-001 |
-| S-003 | How are common and role-specific artifacts composed? | [In research: prefer shared release artifacts plus an immutable bound configuration artifact, with a flattened variant fallback](../research/exercises/0005-representative-deployment-manifests.md) | P-004, S-001 |
+| S-003 | How are common and role-specific artifacts composed? | [Proposed: versioned fleet intent resolves common, role, and machine configuration into an identity-bound deployment variant](../designs/0005-fleet-intent-and-configuration/README.md) | P-004, S-001 |
 | S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
 | S-005 | What threats and trust assertions govern boot and runtime? | [Boot-to-root and role objectives accepted; remaining threat model in review](reviews/0005-role-security-and-availability-objectives.md) | S-001 |
 | S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | [Accepted policy: separate routine, exceptional, machine, and data authorities; mechanism exercises remain](../adrs/0002-separate-authority-and-recovery.md) | S-005 |
@@ -40,7 +40,7 @@ ADR.
 | --- | --- | --- | --- |
 | L-001 | Which package ecosystem and snapshot policy supply OS inputs? | Open | P-002, S-001 |
 | L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | Open | L-001, S-005 |
-| L-003 | How is a machine installed and enrolled? | Open | S-001, S-004, S-006 |
+| L-003 | How is a machine installed and enrolled? | [Boundary proposed: provisioning may bootstrap storage and enrollment but cannot become normal role or configuration authority; concrete mechanism remains open](../designs/0005-fleet-intent-and-configuration/README.md#provisioning-and-bootstrap-boundary) | S-001, S-004, S-006 |
 | L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [Requirements accepted; substrate conformance remains in research, with direct systemd/UAPI leading under SYS-030](reviews/0007-deployment-lifecycle-requirements.md) | S-001, S-004 |
 | L-005 | How does mutable state remain safe across upgrade and rollback? | [Requirements accepted; migration and recovery mechanisms remain in review](../designs/0002-state-ownership/README.md#update-and-migration-protocol) | S-002, L-004 |
 | L-006 | How are releases promoted, phased, paused, and withdrawn across a fleet? | Open | L-002, L-004 |
@@ -51,8 +51,8 @@ ADR.
 
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
-| C-001 | What is the source of truth and representation for machine and role configuration? | [Boundary accepted: data-first inputs with native configuration; concrete representation remains open](reviews/0002-configuration-authoring-boundary.md) | S-002, S-003 |
-| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted; concrete delivery and exception mechanisms remain in review](../designs/0002-state-ownership/README.md#etc-and-effective-configuration) | C-001, S-005 |
+| C-001 | What is the source of truth and representation for machine and role configuration? | [Proposed: versioned fleet inventory, bounded inputs plus native configuration, fixed precedence, and immutable composition records](../designs/0005-fleet-intent-and-configuration/README.md) | S-002, S-003 |
+| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted; DES-0005 proposes identity-bound configuration and late-bound contracts, while concrete delivery and exception mechanisms remain open](../designs/0005-fleet-intent-and-configuration/README.md#identity-bound-and-late-bound-inputs) | C-001, S-005 |
 | W-001 | What are the supported identity, UID, sub-ID, and rootless-container semantics? | Open | S-002, C-001 |
 | W-002 | What is the microVM artifact, networking, storage, and lifecycle model? | Open | S-003, S-004, C-001 |
 | W-003 | Which software belongs in the OS, user environment, project, GUI sandbox, container, or VM? | Stated direction | S-002 |

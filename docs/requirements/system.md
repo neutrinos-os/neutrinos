@@ -54,6 +54,12 @@ replacement is identified by its acceptance review.
 | SYS-039 | Accepted | Blessing must apply only to one deployment identity on one machine and must not create or replace release authorization, provenance, qualification, compatibility, or fleet-wide health evidence. | Cross-machine and substituted-identity tests proving that one machine's blessing cannot authorize or qualify another deployment. |
 | SYS-040 | Accepted | Retention and garbage collection must preserve the complete deployment closure and required selection metadata of every selected or booted deployment and every deployment or recovery environment with a retention reference until that reference is removed. | Shared-content reachability and interruption tests across selection, fallback, rollback, recovery, and garbage collection. |
 | SYS-041 | Accepted | Once the required deployment sets, policy, and evidence are retained locally, the control path for normal boot, health-result recording, blessing, fallback, and deliberate rollback must not require a publication service, discovery service, package repository, signing environment, WAN, public DNS, or the machine's own production service path. A failed production service may fail health assessment, but it must not prevent recording that result or selecting an eligible fallback. | Offline lifecycle tests for the reference VM, workstation, and router with all named dependencies unavailable. |
+| SYS-042 | Candidate | The authoritative fleet inventory must version machine records, role assignments, platform constraints, and exact configuration-source references independently of runtime observations. | Inventory reconstruction and observation-drift tests for every reference machine. |
+| SYS-043 | Candidate | Platform observations and bootstrap hints must not assign a role or authorize a deployment; normal selection must join an enrolled machine identity's current machine-record binding and role assignment with a compatible platform and eligible deployment identity. | Hostile SMBIOS, metadata substitution, duplicate-record, and re-enrollment tests. |
+| SYS-044 | Candidate | Configuration composition must use fixed `common < role < machine` precedence, explicit same-scope conflict and deletion rules, and policy validation after precedence resolution. | Override, tombstone, same-scope conflict, and forbidden-override tests. |
+| SYS-045 | Candidate | Every deployment variant must retain an immutable composition record identifying its ordered inputs, tool identities, precedence decisions, validations, resolved configuration, rendered outputs, and declared exceptions. | Bidirectional source-to-output attribution and reproduction tests. |
+| SYS-046 | Candidate | Every late-bound input must have an identity-bound contract covering ownership, source, consumer, schema, constraints, delivery or observation, failure behavior, status effect, and qualification fixtures. | Workstation and router late-bound inventories with absent, invalid, stale, and substituted-value tests. |
+| SYS-047 | Candidate | Provisioning and enrollment must remain separate from normal configuration and deployment selection, and replay must not silently change role assignment, machine identity, preserved state, or selected deployment. | Interrupted provisioning, replay, reprovision, and ordinary-reboot tests. |
 
 ## Interpretation of SYS-014 through SYS-018
 
@@ -99,3 +105,7 @@ the [deployment lifecycle requirements review](../project/reviews/0007-deploymen
 which also accepted SYS-001 through SYS-003, SYS-005, SYS-008, SYS-010,
 SYS-012, and SYS-013 and superseded SYS-004, SYS-006, SYS-007, SYS-009, and
 SYS-011.
+
+SYS-042 through SYS-047 are proposed by
+[DES-0005](../designs/0005-fleet-intent-and-configuration/README.md) and remain
+candidate requirements pending adversarial and owner review.

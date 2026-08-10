@@ -108,5 +108,8 @@ launch. `T5-VAL-001` exercises these failure boundaries with synthetic
 processes. `T5-VAL-002` retains the empty-mise-cache acquisition-boundary
 result.
 
-PRE-015 remains active. The empty-cache increment is accepted; clean-checkout
-profile evidence and the pinned least-privilege CI workflow remain required.
+PRE-015 remains active. The empty-cache and bootstrap-boundary increments are
+accepted. Clean-checkout profile evidence is obtained: a fresh clone at
+`42f23b9`, bootstrapped exactly as documented above, passed `check:fast` and
+`check:complete` at `passing=4 failing=0` and left the checkout clean. The
+pinned least-privilege CI workflow remains required.

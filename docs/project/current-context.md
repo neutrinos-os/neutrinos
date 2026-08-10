@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: ecf8f98
+source_snapshot_revision: 42f23b9
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -25,8 +25,8 @@ PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 is satisfied and PRE-015 is active.
-Its one next action is clean local profile evidence, followed by the pinned
-least-privilege initial CI check. The four canonical tasks, Linux-x64
+Its one next action is the pinned least-privilege initial CI check; clean local
+profile evidence is obtained at `42f23b9`. The four canonical tasks, Linux-x64
 tool locks, result-producing failed invocations, output-safety quarantine,
 named T0 checks, and registered hostile runner probes are implemented but do
 not yet satisfy PRE-015. Copilot remains unverified and must not be relied on
@@ -65,8 +65,11 @@ open either for a cold status report.
   environment, cache-boundary, network, timeout, interruption, output, and
   process-cleanup probes are implemented.
   Canary scanning and quarantine are accepted and implemented, as is the
-  retained empty-cache acquisition-boundary probe; clean profiles and CI
-  remain. Repository mise use does not select host-role software placement.
+  retained empty-cache acquisition-boundary probe. Bootstrap is an unfiltered
+  acquisition phase bounded by pinned hash-checked locks, not by endpoint
+  restriction, which the locked platform cannot enforce. Clean-clone profiles
+  pass; CI remains. Repository mise use does not select host-role software
+  placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001, PRE-002, and PRE-010 through PRE-014 are satisfied; PRE-018 and G1
   are not.

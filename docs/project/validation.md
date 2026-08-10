@@ -72,6 +72,13 @@ secrets using the locked betterleaks, always with `--redact` so a finding never
 widens exposure. It is registered in both profiles and runs the same way
 locally and in CI: there is one definition of the check, not a local one and a
 separate CI one. Scoped exceptions live in `.betterleaks.toml`.
+`T2-SLICE-001` validates `src/slice/input-set.toml` against the schema its own
+`[schema]` block declares, and reproduces the nine constructed rejections the
+[input declaration](slice-input-declaration.md) claims. It uses the locked
+`jsonschema` package -- the repository's only runtime dependency, added because
+the schema uses `$ref`, `allOf`, and `if`/`then`, and a hand-rolled subset
+checker that misread any of them would report a record as valid that the schema
+rejects.
 `T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
 with an isolated empty mise cache and runs the registered `check:list` task
 using only the already-installed locked Python and uv inputs. `T5-VAL-003`

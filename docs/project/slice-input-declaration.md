@@ -93,9 +93,14 @@ holding a SHA-256, an undeclared precedence layer, an unsupported schema
 version, a tools tree pinned by tag instead of digest, and an empty tools
 package list. A schema that has only ever been shown to accept is untested.
 
-This verification was performed locally with an ephemeral validator. **No
-registered check validates this record yet.** Slice tests register in the
-existing runner under PLN-0001-05, which depends on PLN-0001-03, so the record
-is unguarded until then and a hand edit to either file would not be caught by
-`mise run check:fast`. This gap is stated rather than closed because closing it
-early would take work out of the task that owns it.
+**Closed by PLN-0001-05.** `T2-SLICE-001` now performs this verification on
+every `mise run check:fast`, against the schema the record's own `[schema]`
+block declares. It reproduces all nine rejections rather than only the
+acceptance, because a schema shown only to accept is untested: an empty schema
+would accept just as well.
+
+The violations are expressed as mutations of the committed record, not as nine
+fixture files. A fixture file is a copy and copies drift, so a record that
+gained a field would leave nine stale files passing for reasons that no longer
+held. The check itself was verified by adding a mutation the schema should
+accept and confirming the check failed.

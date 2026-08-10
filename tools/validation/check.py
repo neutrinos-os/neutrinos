@@ -208,6 +208,21 @@ TESTS = (
         function="check_secret_scan",
     ),
     Test(
+        id="T2-SLICE-001",
+        level="T2",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("PLN-0001/PLN-0001-05", "SYS-057", "SYS-058", "SYS-016"),
+        capabilities=(),
+        fixtures=(
+            "src/slice/input-set.toml",
+            "src/slice/schema/input-set-v2.schema.json",
+            "constructed schema violations",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_input_set",
+    ),
+    Test(
         id="T5-VAL-001",
         level="T5@T1",
         profiles=("fast", "complete"),
@@ -872,7 +887,20 @@ def check_secret_scan() -> int:
     return 0
 
 
+def check_slice_input_set() -> int:
+    # Imported here rather than at module scope: the runner's own preflight,
+    # selection, and listing paths must not depend on a third-party package.
+    # The child executes this file as a script, so the repository root is not
+    # on the import path until it is put there.
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_inputs import check_input_set
+
+    return check_input_set()
+
+
 CHECKS: dict[str, Callable[[], int]] = {
+    "check_slice_input_set": check_slice_input_set,
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
     "check_runner_hostile_probes": check_runner_hostile_probes,

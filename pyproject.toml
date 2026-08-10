@@ -3,7 +3,13 @@ name = "neutrinos-repository-validation"
 version = "0.0.0"
 description = "Repository validation tooling for NeutrinOS"
 requires-python = ">=3.14,<3.15"
-dependencies = []
+# The only runtime dependency. The slice input declaration is validated
+# against its own JSON Schema by a conformant implementation rather than by a
+# hand-rolled subset: this schema uses $ref, allOf, and if/then, and a subset
+# checker that misreads any of them would report a record as valid that the
+# schema rejects. A second, divergent definition of the schema's meaning is
+# exactly what the declaration exists to prevent.
+dependencies = ["jsonschema>=4.26,<5"]
 
 [tool.uv]
 package = false

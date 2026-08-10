@@ -1,6 +1,7 @@
 # Declared input set for the PLN-0001 reference-VM slice.
 #
-# Validated against schema/input-set-v1.schema.json. Every value here is an
+# Validated by T2-SLICE-001 against the schema its own [schema] block declares,
+# currently schema/input-set-v2.schema.json. Every value here is an
 # identity, not a preference: composition resolves exactly these inputs or
 # fails. What makes each one exact is recorded in
 # docs/project/slice-input-declaration.md.

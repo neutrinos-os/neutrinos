@@ -157,6 +157,37 @@ Format-specific artifact terms retain their upstream meanings:
   retried or restored. A filesystem snapshot is only one possible checkpoint
   mechanism and is not an independent backup by itself.
 
+## Package inputs and upstream maintenance
+
+- **package universe**: One declared distribution, release or branch,
+  architecture, repository set, trust policy, and dependency-resolution policy
+  within which a package closure is solved. It is an input boundary, not the
+  identity or runtime lifecycle of NeutrinOS.
+- **repository state**: The exact repository metadata and trust context visible
+  to one dependency resolution. A mirror URL, date, branch name, or repository
+  label alone does not identify a repository state.
+- **package input snapshot**: The immutable record and retained object set that
+  identifies a repository state, solver policy, complete resolved package
+  closure, exact package bytes, source attribution, verification results, and
+  project or third-party inputs used by a build.
+- **package closure**: The complete set of direct and transitive binary package
+  inputs selected for one build variant, including the dependency reasons and
+  repository source for every member.
+- **input intake**: The controlled transition by which an upstream or
+  third-party input is acquired, verified, classified, retained, and made
+  eligible for build resolution. Intake eligibility is not deployment
+  qualification or release authorization.
+- **project-built package**: A package built and maintained by NeutrinOS from
+  pinned sources and a reviewed project-owned recipe or patch set. It creates a
+  downstream maintenance obligation even when its format matches an upstream
+  distribution.
+- **third-party package input**: A package, binary, or build recipe outside the
+  selected official package universe. Package-manager compatibility or a valid
+  third-party signature does not assign NeutrinOS trust or maintenance policy.
+- **upstream branch**: A distribution-maintained release or rolling line whose
+  update and end-of-life policy governs candidate package inputs. Upstream
+  branch support is distinct from NeutrinOS deployment retention.
+
 ## Evidence and authority
 
 - **attestation**: A verifiable statement made by an identified authority about

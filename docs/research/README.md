@@ -21,7 +21,8 @@ Initial research tracks:
 - [native configuration and inspection walkthrough](exercises/0007-native-configuration-and-inspection.md)
 - [storage, root-integrity, and encryption comparison](comparisons/storage-integrity-and-encryption.md)
 - [reference storage layout tabletop](exercises/0008-reference-storage-layouts.md)
-- package-source release and security-maintenance models
+- [package ecosystem and snapshot-policy comparison](comparisons/package-ecosystem-and-snapshot-policy.md)
+- [reference package-input closure and refresh exercise](exercises/0009-package-input-closure.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

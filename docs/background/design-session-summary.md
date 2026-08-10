@@ -80,7 +80,11 @@ distinguishing goals:
 The package distribution is an input to the build, not necessarily the product
 identity. Arch familiarity and currency are useful; Fedora's maintained release
 branches and systemd/Wayland/container integration are useful. The package
-source remains an open decision.
+source remains open under
+[DES-0007](../designs/0007-package-inputs-and-snapshot-policy/README.md):
+Fedora stable is the leading candidate, and a literal Arch snapshot comparison
+is required before acceptance. SYS-057 through SYS-064 accept the package-input
+and snapshot-policy boundaries without selecting either ecosystem.
 
 ## User preferences that must remain visible
 
@@ -320,7 +324,9 @@ Do not reconstruct these from the transcript; read their records:
 DES-0001 through DES-0004 contain accepted policy boundaries but still have
 implementation-level review work. DES-0005 and ADR-0003 are accepted. The
 policy boundaries in SYS-048 through SYS-056 are accepted; DES-0006 remains in
-review while its concrete storage mechanisms await evidence.
+review while its concrete storage mechanisms await evidence. SYS-057 through
+SYS-064 accept package-input policy; DES-0007 and the Fedora-versus-Arch
+selection remain in review pending EX-0009.
 
 ## Restart checklist
 

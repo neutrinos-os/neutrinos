@@ -1,6 +1,6 @@
 ---
 status: draft
-last_updated: 2026-08-09
+last_updated: 2026-08-10
 ---
 
 # Risk register
@@ -26,3 +26,7 @@ last_updated: 2026-08-09
 | R-017 | Separately updated UKI, root, Verity, and configuration artifacts form a locally valid but never-qualified hybrid. | Critical | Enforce DES-0006 exact boot binding, install the entry point last, and run pairwise substitution plus power-loss tests across every storage and selection transition. |
 | R-018 | TPM policy, recovery keys, or LUKS metadata loss either exposes protected state or makes it permanently unavailable. | Critical | Keep hardware-bound and independent recovery paths, separate their custody, back up headers, rotate by add-test-remove, and exercise firmware, TPM, mainboard, and key-loss recovery. |
 | R-019 | Fixed deployment slots and uncontrolled state growth exhaust capacity, especially on the router's 16 GB system disk. | Critical | Measure literal artifacts, enforce DES-0006 capacity reserves, compare router disk layouts, and test full-storage behavior before accepting partition sizes. |
+| R-020 | A mutable repository URL, package version, or archive date is mistaken for the identity of the package inputs actually resolved and built. | Critical | Require the DES-0007 package input snapshot, retain exact metadata and package bytes, and reject mixed or silently re-resolved closures. |
+| R-021 | A valid but old signed package snapshot is reported as current after a security advisory or upstream end of life. | Critical | Keep snapshot identity, signature validity, vulnerability applicability, upstream support, and NeutrinOS currentness separate; test old-valid-snapshot status transitions. |
+| R-022 | A third-party repository, recipe, binary, or package install script compromises the build, release key, or fleet secrets. | Critical | Use finite declared intake, isolate executable package inputs from signing and machine authorities, deny undeclared network access, and exercise a hostile package. |
+| R-023 | The selected ecosystem forces either rolling qualification churn or a private packaging and branch-migration burden that one maintainer cannot sustain. | Critical | Complete EX-0009 with literal Fedora and Arch closures, security-refresh and major-transition scenarios, and measured owner time before accepting the ecosystem ADR. |

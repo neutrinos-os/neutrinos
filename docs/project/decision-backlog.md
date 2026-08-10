@@ -38,8 +38,8 @@ ADR.
 
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
-| L-001 | Which package ecosystem and snapshot policy supply OS inputs? | Open | P-002, S-001 |
-| L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | Open | L-001, S-005 |
+| L-001 | Which package ecosystem and snapshot policy supply OS inputs? | [Input and snapshot requirements accepted; Fedora stable leads and a literal Arch comparison is required before ecosystem selection](reviews/0010-package-input-requirements.md) | P-002, S-001 |
+| L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | [Package-input identity, retention, source attribution, and distinct status boundaries accepted; concrete SBOM, reproducibility, and vulnerability mechanisms remain open](reviews/0010-package-input-requirements.md) | L-001, S-005 |
 | L-003 | How is a machine installed and enrolled? | [Boundary accepted: provisioning may bootstrap storage and enrollment but cannot become normal role or configuration authority; concrete mechanism remains open](reviews/0008-fleet-intent-and-configuration-requirements.md#sys-047-provisioning-lifecycle) | S-001, S-004, S-006 |
 | L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [Requirements accepted; substrate conformance remains in research, with direct systemd/UAPI leading under SYS-030](reviews/0007-deployment-lifecycle-requirements.md) | S-001, S-004 |
 | L-005 | How does mutable state remain safe across upgrade and rollback? | [Requirements accepted; migration and recovery mechanisms remain in review](../designs/0002-state-ownership/README.md#update-and-migration-protocol) | S-002, L-004 |

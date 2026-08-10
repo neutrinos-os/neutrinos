@@ -1,7 +1,7 @@
 ---
 id: PLN-0001
 title: Reference-VM evidence slice
-status: proposed
+status: active
 owner: Jason Tarasovic
 created: 2026-08-10
 last_updated: 2026-08-10
@@ -23,9 +23,9 @@ accepted deployment-identity model can be realized end to end by direct
 systemd/UAPI-oriented composition, and its identity and inspection path can be
 observed rather than asserted.
 
-Accepting this plan satisfies PRE-003 through PRE-009 and, with PRE-018,
-completes G1. It accepts no mechanism, no package ecosystem, and no storage
-layout.
+This plan's acceptance satisfies PRE-003 through PRE-009. G1 additionally
+requires PRE-017's CI evidence and PRE-018's recorded approval. It accepts no
+mechanism, no package ecosystem, and no storage layout.
 
 ## Non-goals
 
@@ -181,14 +181,25 @@ PLN-0000's stop conditions apply unchanged and are the authority. In addition:
 
 ## Decision
 
-Open for owner review.
+Accepted by Jason Tarasovic on 2026-08-10 following
+[PR-0027](../project/reviews/0027-reference-vm-slice-plan.md). PLN-0001 is
+active; its bounded work may proceed.
 
-Accepting this plan would authorize NeutrinOS source implementation for the
-first time, bounded to this slice: repository implementation changes under the
-boundary above, disposable VM execution, and synthetic fixtures. It is the
-authority that PRE-018 and G1 require, and it is the point at which the
-pre-implementation phase ends.
+This acceptance supplies the accepted follow-on plan that PLN-0000 requires.
+It does not by itself authorize NeutrinOS source implementation. PLN-0000
+permits repository implementation changes only **after G1**, and only under an
+accepted follow-on plan: both conditions must hold. A plan carries bounded work
+authority; it is not a gate and cannot grant itself one.
 
-It would not accept any mechanism, package ecosystem, storage layout, or role
-definition; would not authorize physical installation or any effect on
-`desktop-jason`, `router`, or `misc`; and would not satisfy G2.
+Work that is not repository implementation — records, declarations, and
+research under `docs/` — may proceed now. Implementation tasks unlock when G1
+is recorded under PRE-018, which additionally requires PRE-017's CI evidence.
+
+It accepts no mechanism, package ecosystem, storage layout, or role definition;
+authorizes no physical installation and no effect on `desktop-jason`, `router`,
+or `misc`; and does not satisfy G2. It does not by itself satisfy PRE-018 or
+G1, which additionally require PRE-017's CI evidence and a recorded G1
+approval.
+
+Per PR-0027 C-004, the first task that creates a top-level tree amends the
+[hygiene contract](../project/repository-hygiene.md) table in the same commit.

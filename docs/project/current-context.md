@@ -27,11 +27,12 @@ scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 and PRE-015 are satisfied.
 PRE-016 is satisfied. PRE-017 is active: the tracked baseline, licence, and
 secret scanning are committed, and it needs a passing CI run, which has never
-executed. PRE-003 through PRE-009 and PRE-018 all wait on `PLN-0001`
-(`docs/plans/0001-reference-vm-slice.md`), the reference-VM evidence slice,
-which is now **proposed** and awaits owner acceptance. Accepting it would
-authorize NeutrinOS source implementation for the first time, bounded to that
-slice; it is not accepted, so implementation remains **unauthorized**. The four canonical tasks, Linux-x64 tool locks, failed
+executed. PRE-003 through PRE-009 are satisfied by owner acceptance of `PLN-0001`
+(`docs/plans/0001-reference-vm-slice.md`) on 2026-08-10. That plan is
+**active** and is the sole active implementation slice. NeutrinOS source
+implementation remains **unauthorized**: PLN-0000 permits repository
+implementation changes only after G1 *and* under an accepted follow-on plan,
+and only the second condition holds. PRE-018 and G1 are unsatisfied. The four canonical tasks, Linux-x64 tool locks, failed
 invocations, output-safety quarantine, named T0 checks, secret scanning, and
 registered hostile, empty-cache, and clean-clone probes are implemented.
 Copilot remains unverified and must not be relied on for autonomous repository

@@ -11,6 +11,11 @@ mean an ADR has been accepted. Accepted project-scope decisions may be recorded
 in the charter or scope document; accepted architectural decisions require an
 ADR.
 
+This backlog owns question and decision state. The
+[work register](work-register.md) provides the aggregate policy, mechanism,
+evidence, implementation, and phase-gate view; plans and issues must not turn
+this backlog into a duplicate task tracker.
+
 ## Wave 0: project identity
 
 | ID | Question | State | Depends on |

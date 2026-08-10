@@ -63,6 +63,12 @@ operator-facing configuration must not become a Turing-complete module
 language, and missing convenience-schema support must not block direct use of
 upstream-native configuration.
 
+The [aggregate work register](../project/work-register.md) is the canonical
+summary of remaining policy, mechanism, evidence, implementation, and gate
+work. [PLN-0000](../plans/0000-pre-implementation-readiness.md) defines the
+proposed boundary for authorizing a first disposable VM-only implementation
+slice; neither document changes the authority of its linked source records.
+
 ## Project thesis
 
 The durable project idea is not “an Arch derivative” or “Fedora Atomic Sway
@@ -404,11 +410,13 @@ Before continuing architecture work after compaction or in a new session:
 3. Read the [ADR index](../adrs/README.md),
    [system requirements](../requirements/system.md), and
    [decision backlog](../project/decision-backlog.md).
-4. Read the complete current design and adversarial review for the active
+4. Read the [work register](../project/work-register.md) and current
+   [plans](../plans/README.md) to identify the active gate and next action.
+5. Read the complete current design and adversarial review for the active
    backlog question.
-5. Use the [glossary](../project/glossary.md) rather than inventing synonyms.
-6. Consult the full transcript for provenance when this brief says a direction
+6. Use the [glossary](../project/glossary.md) rather than inventing synonyms.
+7. Consult the full transcript for provenance when this brief says a direction
    came from it.
-7. Never upgrade a preference, candidate, research mention, or assistant
+8. Never upgrade a preference, candidate, research mention, or assistant
    suggestion into an accepted decision without the normal review and ADR
    workflow.

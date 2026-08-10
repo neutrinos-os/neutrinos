@@ -65,7 +65,9 @@ def execution(command: tuple[str, ...], timeout: float = 2, limit: int = 4096):
             command,
             cwd=directory,
             environment=check.child_environment(
-                directory, check.validation_cache_root()
+                directory,
+                check.validation_cache_root(),
+                check.make_synthetic_canary(),
             ),
             stdout_path=directory / "stdout.log",
             stderr_path=directory / "stderr.log",
@@ -104,7 +106,8 @@ def test_cache_root_must_be_absolute_and_external() -> None:
 def test_child_environment_is_allowlisted() -> None:
     home = Path("/synthetic/home")
     cache = Path("/synthetic/cache")
-    environment = check.child_environment(home, cache)
+    canary = check.make_synthetic_canary()
+    environment = check.child_environment(home, cache, canary)
     assert set(environment) == {
         "GIT_CONFIG_GLOBAL",
         "GIT_CONFIG_NOSYSTEM",
@@ -115,9 +118,121 @@ def test_child_environment_is_allowlisted() -> None:
         "PATH",
         "PYTHONDONTWRITEBYTECODE",
         "PYTHONIOENCODING",
+        check.SYNTHETIC_CANARY_ENV,
     }
     assert environment["HOME"] == str(home)
     assert environment[check.VALIDATION_CACHE_ROOT_ENV] == str(cache)
+    assert environment[check.SYNTHETIC_CANARY_ENV] == canary
+
+
+def test_canary_and_credential_markers_are_detected() -> None:
+    canary = check.make_synthetic_canary().encode()
+    assert check.unsafe_bytes_kinds(b"prefix " + canary + b" suffix", canary) == [
+        "synthetic_canary"
+    ]
+    assert "private_key" in check.unsafe_bytes_kinds(
+        b"-----BEGIN PRIVATE KEY-----", canary
+    )
+    assert "aws_access_key" in check.unsafe_bytes_kinds(
+        b"AKIAIOSFODNN7EXAMPLE", canary
+    )
+    assert "github_token" in check.unsafe_bytes_kinds(
+        b"github_pat_" + (b"a" * 30), canary
+    )
+    assert "bearer_token" in check.unsafe_bytes_kinds(
+        b"Authorization: Bearer " + (b"a" * 30), canary
+    )
+
+
+def test_unsafe_files_are_quarantined_outside_retained_results() -> None:
+    with tempfile.TemporaryDirectory(prefix="neutrinos-output-probe-") as raw:
+        run_dir = Path(raw) / "run"
+        log = run_dir / "logs" / "probe.stdout.log"
+        artifact = run_dir / "artifacts" / "probe.bin"
+        log.parent.mkdir(parents=True)
+        artifact.parent.mkdir(parents=True)
+        canary = check.make_synthetic_canary().encode()
+        log.write_bytes(
+            (b"x" * (check.SCAN_CHUNK_BYTES - 10)) + canary + b" safe suffix"
+        )
+        artifact.write_bytes(b"-----BEGIN PRIVATE KEY-----")
+        safety = check.OutputSafety(canary=canary)
+
+        assert safety.inspect_file(log, run_dir)
+        assert safety.inspect_file(artifact, run_dir)
+        assert safety.quarantine_dir is not None
+        assert run_dir not in safety.quarantine_dir.parents
+        assert canary not in log.read_bytes()
+        assert b"PRIVATE KEY" not in artifact.read_bytes()
+        assert (safety.quarantine_dir / "logs" / log.name).read_bytes().endswith(
+            canary + b" safe suffix"
+        )
+        assert (
+            safety.quarantine_dir / "artifacts" / artifact.name
+        ).read_bytes() == b"-----BEGIN PRIVATE KEY-----"
+        shutil.rmtree(safety.quarantine_dir)
+
+
+def test_run_fails_when_registered_output_contains_canary(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    snapshot = {"git_identity": "synthetic-git", "tree_identity": "synthetic-tree"}
+    monkeypatch.setattr(check, "repository_snapshot", lambda: snapshot)
+    monkeypatch.setattr(check, "preflight_errors", lambda: [])
+    monkeypatch.setattr(
+        check, "validation_cache_root", lambda: Path("/synthetic/cache")
+    )
+
+    def unsafe_test(
+        test: check.Test,
+        run_dir: Path,
+        _home: Path,
+        _cache_root: Path,
+        canary: str,
+    ) -> dict[str, Any]:
+        stdout = run_dir / "logs" / f"{test.id}.stdout.log"
+        stderr = run_dir / "logs" / f"{test.id}.stderr.log"
+        stdout.write_text(canary, encoding="utf-8")
+        stderr.write_bytes(b"")
+        return {
+            "cleanup": {"process_group_absent": True},
+            "duration_seconds": 0,
+            "ended_at": check.utc_now(),
+            "id": test.id,
+            "output_bytes": len(canary),
+            "result": "passing",
+            "started_at": check.utc_now(),
+        }
+
+    monkeypatch.setattr(check, "execute_test", unsafe_test)
+    status = check.run("run", ("T0-DOC-001",))
+    output = capsys.readouterr()
+    run_dir = Path(
+        next(
+            line.removeprefix("run: ")
+            for line in output.out.splitlines()
+            if line.startswith("run: ")
+        )
+    )
+    quarantine: Path | None = None
+    try:
+        manifest = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+        quarantine = Path(manifest["output_safety"]["quarantine_path"])
+        retained = b"".join(
+            path.read_bytes() for path in run_dir.rglob("*") if path.is_file()
+        )
+        assert status == 1
+        assert manifest["failure_stage"] == "output_safety"
+        assert manifest["output_safety"]["passed"] is False
+        assert manifest["counts"]["failing"] == 1
+        assert check.SYNTHETIC_CANARY_PREFIX.encode() not in retained
+        assert check.SYNTHETIC_CANARY_PREFIX not in output.out
+        assert check.SYNTHETIC_CANARY_PREFIX not in output.err
+        assert (quarantine / "logs" / "T0-DOC-001.stdout.log").is_file()
+    finally:
+        shutil.rmtree(run_dir)
+        if quarantine is not None:
+            shutil.rmtree(quarantine)
 
 
 def test_source_identification_environment_is_allowlisted() -> None:

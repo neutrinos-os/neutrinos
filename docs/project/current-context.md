@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: f776586
+source_snapshot_revision: 0352c06
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -25,13 +25,12 @@ PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 is satisfied and PRE-015 is active.
-Its one next action is to add synthetic-canary output scanning and unsafe-output
-quarantine, then retain the empty-cache probe and run clean local profiles plus
-the pinned least-privilege initial CI check. The four canonical tasks,
-Linux-x64 tool locks, result-producing failed invocations, named T0 checks, and
-registered hostile runner probes are implemented but do not yet satisfy
-PRE-015. Copilot remains unverified and must not be relied on for autonomous
-repository work.
+Its one next action is a retained empty-cache/offline-acquisition probe,
+followed by clean local profiles and the pinned least-privilege initial CI
+check. The four canonical tasks, Linux-x64 tool locks, result-producing failed
+invocations, output-safety quarantine, named T0 checks, and registered hostile
+runner probes are implemented but do not yet satisfy PRE-015. Copilot remains
+unverified and must not be relied on for autonomous repository work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -65,8 +64,9 @@ open either for a cold status report.
   The Linux-x64 task/runner/T0 slice, external XDG test cache, and registered
   environment, cache-boundary, network, timeout, interruption, output, and
   process-cleanup probes are implemented.
-  Canary scanning, retained empty-cache evidence, clean profiles, and CI
-  remain. Repository mise use does not select host-role software placement.
+  Canary scanning and quarantine are accepted and implemented; retained
+  empty-cache evidence, clean profiles, and CI remain. Repository mise use does
+  not select host-role software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001, PRE-002, and PRE-010 through PRE-014 are satisfied; PRE-018 and G1
   are not.

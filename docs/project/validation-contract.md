@@ -292,7 +292,7 @@ Acceptance of this document alone does not satisfy PRE-015.
 
 ## Decision
 
-Accepted by Jason Tarasovic on 2026-08-10 and amended through accepted PR-0019
+Accepted by Jason Tarasovic on 2026-08-10 and amended through accepted PR-0021
 on the same date. The canonical mise task interface, locked Python 3.14 and uv
 toolchain policy, applicable-suite meaning of `complete`, offline/unprivileged/
 secret-free defaults, initial budgets, result and cleanup contract, flaky-test

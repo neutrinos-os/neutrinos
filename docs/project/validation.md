@@ -46,6 +46,16 @@ Each execution writes `run.json`, `results.jsonl`, and bounded per-test logs to
 the printed temporary run directory outside the checkout. A dirty-checkout
 pass is development feedback only.
 
+The runner gives registered child tests one unique synthetic canary and scans
+each log, result record, declared artifact, and the proposed manifest before
+retention. It also recognizes a conservative set of private-key, AWS-key,
+GitHub-token, and bearer-token markers. A finding fails the run, moves the raw
+file into a private `neutrinos-validation-quarantine-*` directory outside the
+run directory, and leaves only a content-free placeholder and finding metadata
+in the uploadable result. `run.json` reports the quarantine path locally but
+never the canary value or matched content. Symlinks and other non-regular
+retained outputs are quarantined rather than followed.
+
 Argument-validation, preflight, and selection failures also write a run
 directory and report their failure stage. When no test began, `results.jsonl`
 is present and empty. Diagnostics retain rejected environment names but never
@@ -68,12 +78,13 @@ in-repository value.
 The Python 3.14 runner implements named registration and selection, exact
 runner and child environment allowlists, per-test process groups and timeouts,
 live bounded output capture, interruption and descendant cleanup,
-machine-readable results, and before/after identities covering Git, untracked,
-and ignored checkout state. Mise blocks inherited environment and network
-syscalls around the complete task and prevents acquisition before task launch.
-`T5-VAL-001` exercises these failure boundaries with synthetic processes.
+machine-readable results, synthetic-canary and conservative credential-marker
+scanning, out-of-result quarantine, and before/after identities covering Git,
+untracked, and ignored checkout state. Mise blocks inherited environment and
+network syscalls around the complete task and prevents acquisition before task
+launch. `T5-VAL-001` exercises these failure boundaries with synthetic
+processes.
 
-PRE-015 remains active. Synthetic canary scanning and unsafe-output handling
-need implementation; the empty-cache acquisition probe needs a repeatable
-retained form; and clean-checkout profile evidence plus the pinned
-least-privilege CI workflow remain required.
+PRE-015 remains active. The empty-cache acquisition probe needs a repeatable
+retained form; clean-checkout profile evidence and the pinned least-privilege
+CI workflow remain required.

@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import selectors
 import shutil
 import signal
@@ -30,7 +31,29 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 MAX_OUTPUT_BYTES = 1_048_576
 MAX_ERROR_BYTES = 16_384
+SCAN_CHUNK_BYTES = 65_536
+SCAN_OVERLAP_BYTES = 512
 VALIDATION_CACHE_ROOT_ENV = "NEUTRINOS_VALIDATION_CACHE_ROOT"
+SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
+SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
+UNSAFE_OUTPUT_PATTERNS = (
+    ("private_key", re.compile(rb"-----BEGIN [A-Z0-9 ]{0,48}PRIVATE KEY-----")),
+    ("aws_access_key", re.compile(rb"(?:AKIA|ASIA)[A-Z0-9]{16}")),
+    (
+        "github_token",
+        re.compile(
+            rb"(?:gh[pousr]_[A-Za-z0-9_]{20,255}|"
+            rb"github_pat_[A-Za-z0-9_]{20,255})"
+        ),
+    ),
+    (
+        "bearer_token",
+        re.compile(
+            rb"(?i:authorization)[ \t]*:[ \t]*"
+            rb"(?i:bearer)[ \t]+[^\s]{20,255}"
+        ),
+    ),
+)
 ALLOWED_RUNNER_ENVIRONMENT = frozenset(
     {
         "COLORTERM",
@@ -71,6 +94,70 @@ class ProcessExecution:
     detail: str | None
     output_bytes: int
     cleanup_ok: bool
+
+
+@dataclasses.dataclass
+class OutputSafety:
+    canary: bytes
+    quarantine_dir: Path | None = None
+    findings: list[dict[str, str]] = dataclasses.field(default_factory=list)
+
+    def _quarantine_root(self) -> Path:
+        if self.quarantine_dir is None:
+            self.quarantine_dir = Path(
+                tempfile.mkdtemp(prefix="neutrinos-validation-quarantine-")
+            )
+            self.quarantine_dir.chmod(0o700)
+        return self.quarantine_dir
+
+    def _record(self, relative: Path, kinds: Sequence[str]) -> None:
+        for kind in kinds:
+            finding = {"kind": kind, "path": str(relative)}
+            if finding not in self.findings:
+                self.findings.append(finding)
+
+    def _destination(self, relative: Path) -> Path:
+        destination = self._quarantine_root() / relative
+        if destination.exists() or destination.is_symlink():
+            destination = (
+                self._quarantine_root()
+                / "duplicates"
+                / f"{len(self.findings):06d}"
+                / relative
+            )
+        destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        return destination
+
+    def inspect_file(self, path: Path, run_dir: Path) -> bool:
+        relative = path.relative_to(run_dir)
+        try:
+            kinds = unsafe_output_kinds(path, self.canary)
+        except OSError:
+            kinds = ["scan_error"]
+        if not kinds:
+            return False
+        destination = self._destination(relative)
+        os.replace(path, destination)
+        if relative.parts[0] in {"logs", "artifacts"}:
+            path.write_text(
+                "unsafe output quarantined; content omitted\n", encoding="utf-8"
+            )
+            path.chmod(0o600)
+        self._record(relative, kinds)
+        return True
+
+    def quarantine_bytes(
+        self,
+        storage_relative: Path,
+        value: bytes,
+        kinds: Sequence[str],
+        *,
+        finding_relative: Path | None = None,
+    ) -> None:
+        destination = self._destination(storage_relative)
+        destination.write_bytes(value)
+        destination.chmod(0o600)
+        self._record(finding_relative or storage_relative, kinds)
 
 
 TESTS = (
@@ -127,6 +214,49 @@ def bounded_error(value: object) -> str:
     return (encoded[: MAX_ERROR_BYTES - len(suffix)] + suffix).decode(
         "utf-8", errors="replace"
     )
+
+
+def unsafe_bytes_kinds(value: bytes, canary: bytes) -> list[str]:
+    kinds = []
+    if canary in value:
+        kinds.append("synthetic_canary")
+    for name, pattern in UNSAFE_OUTPUT_PATTERNS:
+        if pattern.search(value):
+            kinds.append(name)
+    return kinds
+
+
+def unsafe_output_kinds(path: Path, canary: bytes) -> list[str]:
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode):
+        return ["unsupported_file_type"]
+    kinds: set[str] = set()
+    overlap = b""
+    with path.open("rb") as stream:
+        while chunk := stream.read(SCAN_CHUNK_BYTES):
+            value = overlap + chunk
+            kinds.update(unsafe_bytes_kinds(value, canary))
+            overlap = value[-SCAN_OVERLAP_BYTES:]
+    return sorted(kinds)
+
+
+def make_synthetic_canary() -> str:
+    return SYNTHETIC_CANARY_PREFIX + secrets.token_hex(24)
+
+
+def output_safe_error(value: object, safety: OutputSafety) -> str:
+    error = bounded_error(value)
+    encoded = error.encode("utf-8")
+    kinds = unsafe_bytes_kinds(encoded, safety.canary)
+    if not kinds:
+        return error
+    safety.quarantine_bytes(
+        Path("raw-runner-error.txt"),
+        encoded,
+        kinds,
+        finding_relative=Path("run.json"),
+    )
+    return "unsafe runner diagnostic quarantined; content omitted"
 
 
 def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -280,7 +410,7 @@ def preflight_errors(
     return errors
 
 
-def child_environment(home: Path, cache_root: Path) -> dict[str, str]:
+def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, str]:
     environment = {
         "GIT_CONFIG_GLOBAL": os.devnull,
         "GIT_CONFIG_NOSYSTEM": "1",
@@ -291,6 +421,7 @@ def child_environment(home: Path, cache_root: Path) -> dict[str, str]:
         "PATH": os.environ["PATH"],
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONIOENCODING": "utf-8",
+        SYNTHETIC_CANARY_ENV: canary,
     }
     if "SYSTEMROOT" in os.environ:
         environment["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
@@ -413,6 +544,7 @@ def execute_test(
     run_dir: Path,
     home: Path,
     cache_root: Path,
+    canary: str,
 ) -> dict[str, Any]:
     logs = run_dir / "logs"
     stdout_path = logs / f"{test.id}.stdout.log"
@@ -422,7 +554,7 @@ def execute_test(
     execution = execute_process(
         (sys.executable, str(Path(__file__).resolve()), "_execute", test.id),
         cwd=ROOT,
-        environment=child_environment(home, cache_root),
+        environment=child_environment(home, cache_root, canary),
         stdout_path=stdout_path,
         stderr_path=stderr_path,
         timeout_seconds=test.timeout_seconds,
@@ -449,6 +581,41 @@ def execute_test(
         "result": status,
         "started_at": started,
         "subjects": list(test.fixtures),
+        "traces": list(test.traces),
+    }
+
+
+def test_output_paths(test: Test, run_dir: Path) -> list[Path]:
+    paths = [
+        run_dir / "logs" / f"{test.id}.stdout.log",
+        run_dir / "logs" / f"{test.id}.stderr.log",
+    ]
+    for path in sorted((run_dir / "artifacts").rglob("*")):
+        if stat.S_ISDIR(path.lstat().st_mode):
+            continue
+        paths.append(path)
+    return paths
+
+
+def sanitized_unsafe_result(
+    test: Test,
+    result: Mapping[str, Any],
+    findings: Sequence[Mapping[str, str]],
+) -> dict[str, Any]:
+    return {
+        "assertions": ["retained_output_contains_no_unsafe_material"],
+        "cleanup": result.get("cleanup", {"process_group_absent": False}),
+        "diagnostics": {},
+        "detail": "unsafe output quarantined; content omitted",
+        "duration_seconds": result.get("duration_seconds", 0),
+        "ended_at": result.get("ended_at", utc_now()),
+        "id": test.id,
+        "level": test.level,
+        "output_bytes": result.get("output_bytes", 0),
+        "output_safety_findings": list(findings),
+        "result": "failing",
+        "started_at": result.get("started_at", utc_now()),
+        "subjects": [],
         "traces": list(test.traces),
     }
 
@@ -499,6 +666,8 @@ def run(
     home.mkdir()
     results_path = run_dir / "results.jsonl"
     results_path.touch()
+    canary = make_synthetic_canary()
+    output_safety = OutputSafety(canary=canary.encode("utf-8"))
 
     before: dict[str, str] | None = None
     after: dict[str, str] | None = None
@@ -515,30 +684,33 @@ def run(
     results: list[dict[str, Any]] = []
     runner_error: str | None = None
     failure_stage: str | None = None
+    output_safety_trigger_stage: str | None = None
 
     try:
         before = repository_snapshot()
     except BaseException as error:
-        runner_error = bounded_error(f"{type(error).__name__}: {error}")
+        runner_error = output_safe_error(
+            f"{type(error).__name__}: {error}", output_safety
+        )
         failure_stage = "source_snapshot"
 
     if runner_error is None:
         errors = preflight_errors()
         if errors:
-            runner_error = bounded_error("; ".join(errors))
+            runner_error = output_safe_error("; ".join(errors), output_safety)
             failure_stage = "preflight"
         else:
             cache_root = validation_cache_root()
 
     if runner_error is None and invocation_error is not None:
-        runner_error = bounded_error(invocation_error)
+        runner_error = output_safe_error(invocation_error, output_safety)
         failure_stage = "invocation"
 
     if runner_error is None:
         try:
             profile, selected = select_tests(mode, values)
         except ValueError as error:
-            runner_error = bounded_error(error)
+            runner_error = output_safe_error(error, output_safety)
             failure_stage = "selection"
 
     if runner_error is None:
@@ -546,12 +718,36 @@ def run(
         try:
             with results_path.open("a", encoding="utf-8") as stream:
                 for test in selected:
-                    result = execute_test(test, run_dir, home, cache_root)
+                    finding_start = len(output_safety.findings)
+                    result = execute_test(test, run_dir, home, cache_root, canary)
+                    for path in test_output_paths(test, run_dir):
+                        output_safety.inspect_file(path, run_dir)
+                    new_findings = output_safety.findings[finding_start:]
+                    if new_findings:
+                        result = sanitized_unsafe_result(test, result, new_findings)
+                    encoded_result = canonical_json(result).encode("utf-8")
+                    result_kinds = unsafe_bytes_kinds(
+                        encoded_result, output_safety.canary
+                    )
+                    if result_kinds:
+                        output_safety.quarantine_bytes(
+                            Path("raw-results") / f"{test.id}.json",
+                            encoded_result,
+                            result_kinds,
+                            finding_relative=Path("results.jsonl"),
+                        )
+                        result = sanitized_unsafe_result(
+                            test,
+                            result,
+                            output_safety.findings[finding_start:],
+                        )
                     results.append(result)
                     stream.write(canonical_json(result) + "\n")
                     stream.flush()
         except BaseException as error:
-            runner_error = bounded_error(f"{type(error).__name__}: {error}")
+            runner_error = output_safe_error(
+                f"{type(error).__name__}: {error}", output_safety
+            )
             failure_stage = "execution"
 
     if before is not None:
@@ -559,7 +755,9 @@ def run(
             after = repository_snapshot()
         except BaseException as error:
             if runner_error is None:
-                runner_error = bounded_error(f"{type(error).__name__}: {error}")
+                runner_error = output_safe_error(
+                    f"{type(error).__name__}: {error}", output_safety
+                )
                 failure_stage = "cleanup_verification"
 
     cleanup_ok = before is not None and after is not None and before == after
@@ -568,10 +766,30 @@ def run(
             runner_error = "validation changed repository state"
             failure_stage = "cleanup_verification"
 
-    counts = {name: 0 for name in ("passing", "failing", "blocked", "skipped", "not_applicable", "deferred")}
+    if output_safety.findings:
+        output_safety_trigger_stage = failure_stage
+        if runner_error is None:
+            runner_error = "unsafe output quarantined; content omitted"
+        failure_stage = "output_safety"
+
+    counts = {
+        name: 0
+        for name in (
+            "passing",
+            "failing",
+            "blocked",
+            "skipped",
+            "not_applicable",
+            "deferred",
+        )
+    }
     for result in results:
         counts[result["result"]] += 1
-    success = runner_error is None and len(results) == len(selected) and counts["failing"] == 0
+    success = (
+        runner_error is None
+        and len(results) == len(selected)
+        and counts["failing"] == 0
+    )
     revision: str | None = None
     dirty: bool | None = None
     if before is not None:
@@ -601,6 +819,17 @@ def run(
             for test in TESTS
             if test not in selected
         ],
+        "output_safety": {
+            "canary_configured": True,
+            "findings": output_safety.findings,
+            "passed": not output_safety.findings,
+            "quarantine_path": (
+                str(output_safety.quarantine_dir)
+                if output_safety.quarantine_dir is not None
+                else None
+            ),
+            "trigger_stage": output_safety_trigger_stage,
+        },
         "profile": profile,
         "registered_suite_identity": hashlib.sha256(
             canonical_json([dataclasses.asdict(test) for test in TESTS]).encode()
@@ -615,7 +844,31 @@ def run(
         },
         "worktree_identity": before["tree_identity"] if before is not None else None,
     }
-    (run_dir / "run.json").write_text(canonical_json(manifest) + "\n", encoding="utf-8")
+    manifest_bytes = (canonical_json(manifest) + "\n").encode("utf-8")
+    manifest_kinds = unsafe_bytes_kinds(manifest_bytes, output_safety.canary)
+    if manifest_kinds:
+        output_safety.quarantine_bytes(
+            Path("raw-run.json"),
+            manifest_bytes,
+            manifest_kinds,
+            finding_relative=Path("run.json"),
+        )
+        manifest["error"] = "unsafe manifest content quarantined; content omitted"
+        manifest["failure_stage"] = "output_safety"
+        manifest["final_result"] = "failing"
+        manifest["output_safety"] = {
+            "canary_configured": True,
+            "findings": output_safety.findings,
+            "passed": False,
+            "quarantine_path": str(output_safety.quarantine_dir),
+            "trigger_stage": failure_stage,
+        }
+        runner_error = manifest["error"]
+        failure_stage = "output_safety"
+        success = False
+    (run_dir / "run.json").write_text(
+        canonical_json(manifest) + "\n", encoding="utf-8"
+    )
 
     print(f"run: {run_dir}")
     print(" ".join(f"{name}={count}" for name, count in counts.items()))

@@ -34,6 +34,8 @@ MAX_ERROR_BYTES = 16_384
 SCAN_CHUNK_BYTES = 65_536
 SCAN_OVERLAP_BYTES = 512
 VALIDATION_CACHE_ROOT_ENV = "NEUTRINOS_VALIDATION_CACHE_ROOT"
+PYTHON_INSTALL_ENV = "NEUTRINOS_VALIDATION_PYTHON_INSTALL"
+UV_INSTALL_ENV = "NEUTRINOS_VALIDATION_UV_INSTALL"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -61,6 +63,8 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         "LANG",
         "MISE_TASK_PGID_MANAGED",
         VALIDATION_CACHE_ROOT_ENV,
+        PYTHON_INSTALL_ENV,
+        UV_INSTALL_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -193,6 +197,17 @@ TESTS = (
         fixtures=("synthetic hostile validation processes",),
         cleanup_owner="validation runner",
         function="check_runner_hostile_probes",
+    ),
+    Test(
+        id="T5-VAL-002",
+        level="T5@T1",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("PLN-0000/PRE-015",),
+        capabilities=(),
+        fixtures=("isolated empty mise cache", "locked local Python and uv"),
+        cleanup_owner="validation runner",
+        function="check_empty_mise_cache",
     ),
 )
 TEST_BY_ID = {test.id: test for test in TESTS}
@@ -368,6 +383,24 @@ def validation_cache_root(environment: Mapping[str, str] = os.environ) -> Path:
     return path
 
 
+def tool_install_path(
+    name: str, environment: Mapping[str, str] = os.environ
+) -> Path:
+    raw = environment.get(name)
+    if not raw:
+        raise ValueError(f"{name} is not set")
+    path = Path(raw)
+    if not path.is_absolute():
+        raise ValueError(f"{name} must be an absolute path")
+    path = path.resolve()
+    if not path.is_dir():
+        raise ValueError(f"{name} must identify an installed tool directory")
+    repository = ROOT.resolve()
+    if path == repository or repository in path.parents:
+        raise ValueError(f"{name} must be outside the repository")
+    return path
+
+
 def check_runner_hostile_probes() -> int:
     cache_dir = validation_cache_root() / "pytest"
     result = subprocess.run(
@@ -386,10 +419,174 @@ def check_runner_hostile_probes() -> int:
     return result.returncode
 
 
+def relative_files(root: Path) -> list[str]:
+    if not root.exists():
+        return []
+    return sorted(
+        str(path.relative_to(root)) for path in root.rglob("*") if path.is_file()
+    )
+
+
+def check_empty_mise_cache() -> int:
+    mise = shutil.which("mise")
+    if mise is None:
+        print("mise executable unavailable", file=sys.stderr)
+        return 1
+    try:
+        installs = {
+            "python": tool_install_path(PYTHON_INSTALL_ENV),
+            "uv": tool_install_path(UV_INSTALL_ENV),
+        }
+    except ValueError as error:
+        print(bounded_error(error), file=sys.stderr)
+        return 1
+
+    with tempfile.TemporaryDirectory(prefix="neutrinos-empty-mise-cache-") as raw:
+        root = Path(raw)
+        directories = {
+            "cache": root / "xdg-cache" / "mise",
+            "config": root / "xdg-config" / "mise",
+            "data": root / "xdg-data" / "mise",
+            "home": root / "home",
+            "state": root / "xdg-state" / "mise",
+        }
+        for directory in directories.values():
+            directory.mkdir(mode=0o700, parents=True)
+        global_config = directories["config"] / "config.toml"
+        global_config.touch()
+        system_config = root / "system-config"
+        system_config.mkdir(mode=0o700)
+        for name, source in installs.items():
+            target = directories["data"] / "installs" / name
+            target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            target.symlink_to(source.parent, target_is_directory=True)
+
+        environment = {
+            "HOME": str(directories["home"]),
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "MISE_CACHE_DIR": str(directories["cache"]),
+            "MISE_CEILING_PATHS": str(ROOT.parent),
+            "MISE_CONFIG_DIR": str(directories["config"]),
+            "MISE_DATA_DIR": str(directories["data"]),
+            "MISE_GLOBAL_CONFIG_FILE": str(global_config),
+            "MISE_INSTALLS_DIR": str(directories["data"] / "installs"),
+            "MISE_NO_HOOKS": "1",
+            "MISE_STATE_DIR": str(directories["state"]),
+            "MISE_SYSTEM_CONFIG_DIR": str(system_config),
+            "PATH": os.pathsep.join(
+                dict.fromkeys(
+                    (str(Path(mise).parent), "/usr/local/bin", "/usr/bin", "/bin")
+                )
+            ),
+            "XDG_CACHE_HOME": str(root / "xdg-cache"),
+            "XDG_CONFIG_HOME": str(root / "xdg-config"),
+            "XDG_DATA_HOME": str(root / "xdg-data"),
+            "XDG_STATE_HOME": str(root / "xdg-state"),
+        }
+        trust = subprocess.run(
+            (mise, "trust", "--yes", "--quiet", str(ROOT / "mise.toml")),
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if trust.returncode != 0:
+            print(
+                "isolated mise trust setup failed: " + bounded_error(trust.stderr),
+                file=sys.stderr,
+            )
+            return 1
+        if relative_files(directories["cache"]):
+            print("isolated mise cache was not empty before task execution", file=sys.stderr)
+            return 1
+
+        result = subprocess.run(
+            (
+                mise,
+                "run",
+                "--allow-env=MISE_*",
+                "--allow-env=XDG_*",
+                "check:list",
+            ),
+            cwd=ROOT,
+            env=environment,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if result.returncode != 0:
+            print(
+                "isolated empty-cache task failed: " + bounded_error(result.stderr),
+                file=sys.stderr,
+            )
+            return 1
+        resolved_tools: dict[str, str] = {}
+        for name, source in installs.items():
+            resolved = subprocess.run(
+                (mise, "which", name),
+                cwd=ROOT,
+                env=environment,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            resolved_path = Path(resolved.stdout.strip()).resolve()
+            if resolved.returncode != 0 or not resolved_path.is_relative_to(source):
+                print(
+                    f"isolated task did not resolve the locked {name} installation",
+                    file=sys.stderr,
+                )
+                return 1
+            resolved_tools[name] = str(resolved_path.relative_to(source))
+        cache_files = relative_files(directories["cache"])
+        allowed_bin_path_files = {
+            (name, source.name) for name, source in installs.items()
+        }
+        unexpected = []
+        for path in cache_files:
+            parts = Path(path).parts
+            if (
+                len(parts) != 3
+                or (parts[0], parts[1]) not in allowed_bin_path_files
+                or not parts[2].startswith("bin_paths-")
+                or not parts[2].endswith(".msgpack.z")
+            ):
+                unexpected.append(path)
+        if "T5-VAL-002" not in result.stdout:
+            print("isolated task did not execute the registered list query", file=sys.stderr)
+            return 1
+        if unexpected:
+            print(
+                "isolated task wrote non-local-resolution cache metadata: "
+                + ", ".join(unexpected),
+                file=sys.stderr,
+            )
+            return 1
+        print(
+            canonical_json(
+                {
+                    "cache_files": cache_files,
+                    "cache_was_empty": True,
+                    "nested_task": "check:list",
+                    "remote_metadata_files": [],
+                    "resolved_tools": resolved_tools,
+                    "result": "passing",
+                }
+            )
+        )
+    return 0
+
+
 CHECKS: dict[str, Callable[[], int]] = {
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
     "check_runner_hostile_probes": check_runner_hostile_probes,
+    "check_empty_mise_cache": check_empty_mise_cache,
 }
 
 
@@ -407,6 +604,11 @@ def preflight_errors(
         validation_cache_root(environment)
     except ValueError as error:
         errors.append(str(error))
+    for name in (PYTHON_INSTALL_ENV, UV_INSTALL_ENV):
+        try:
+            tool_install_path(name, environment)
+        except ValueError as error:
+            errors.append(str(error))
     return errors
 
 
@@ -422,6 +624,8 @@ def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, st
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONIOENCODING": "utf-8",
         SYNTHETIC_CANARY_ENV: canary,
+        PYTHON_INSTALL_ENV: os.environ[PYTHON_INSTALL_ENV],
+        UV_INSTALL_ENV: os.environ[UV_INSTALL_ENV],
     }
     if "SYSTEMROOT" in os.environ:
         environment["SYSTEMROOT"] = os.environ["SYSTEMROOT"]

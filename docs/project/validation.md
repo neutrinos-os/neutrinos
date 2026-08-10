@@ -41,6 +41,9 @@ mise run check:run T0-DOC-001 T0-DOC-002
 `T0-DOC-001` is the former `git diff --check` validation.
 `T0-DOC-002` is the former internal Markdown-link validation. Do not duplicate
 their implementations in documentation or CI.
+`T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
+with an isolated empty mise cache and runs the registered `check:list` task
+using only the already-installed locked Python and uv inputs.
 
 Each execution writes `run.json`, `results.jsonl`, and bounded per-test logs to
 the printed temporary run directory outside the checkout. A dirty-checkout
@@ -71,7 +74,20 @@ must not restore or upload it. Do not redirect it into the checkout or merely
 gitignore it: checkout-preservation checks intentionally include ignored state.
 The task dispatcher declares the resolved path after mise establishes its
 deny-environment sandbox, and the runner rejects an absent, relative, or
-in-repository value.
+in-repository value. It likewise declares the exact resolved Python and uv
+installation roots; the runner rejects missing, relative, non-directory, or
+in-repository roots.
+
+`T5-VAL-002` never deletes or substitutes the operator cache. It creates
+private HOME, XDG, mise cache/config/data/state, system-config, and trust-state
+directories; prevents config discovery above the repository; links only the
+local Python and uv installation families; and runs nested `check:list` under
+the repository's offline and no-auto-install settings. Its retained log records
+that the cache began empty, the exact locked executables resolved beneath the
+declared installations, and every cache file created. Only mise's local
+per-version `bin_paths-*.msgpack.z` resolution record is permitted; any other
+cache file fails the test. This is repeatable development/CI result evidence,
+not qualification retention.
 
 ## Current implementation boundary
 
@@ -83,8 +99,8 @@ scanning, out-of-result quarantine, and before/after identities covering Git,
 untracked, and ignored checkout state. Mise blocks inherited environment and
 network syscalls around the complete task and prevents acquisition before task
 launch. `T5-VAL-001` exercises these failure boundaries with synthetic
-processes.
+processes. `T5-VAL-002` retains the empty-mise-cache acquisition-boundary
+result.
 
-PRE-015 remains active. The empty-cache acquisition probe needs a repeatable
-retained form; clean-checkout profile evidence and the pinned least-privilege
-CI workflow remain required.
+PRE-015 remains active. The empty-cache increment is accepted; clean-checkout
+profile evidence and the pinned least-privilege CI workflow remain required.

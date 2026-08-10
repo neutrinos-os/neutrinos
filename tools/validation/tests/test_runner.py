@@ -77,30 +77,58 @@ def execution(command: tuple[str, ...], timeout: float = 2, limit: int = 4096):
         return result, (directory / "stdout.log").read_bytes()
 
 
+def preflight_environment(cache: str) -> dict[str, str]:
+    install = str(Path(sys.executable).resolve().parent)
+    return {
+        check.VALIDATION_CACHE_ROOT_ENV: cache,
+        check.PYTHON_INSTALL_ENV: install,
+        check.UV_INSTALL_ENV: install,
+    }
+
+
 def test_preflight_rejects_root_and_undeclared_environment() -> None:
     cache = "/synthetic/cache"
     assert check.preflight_errors(
-        {check.VALIDATION_CACHE_ROOT_ENV: cache}, effective_uid=0
+        preflight_environment(cache), effective_uid=0
     ) == ["validation refuses to run as root"]
+    environment = preflight_environment(cache)
+    environment.update({"PATH": "/synthetic", "AWS_SECRET_ACCESS_KEY": "synthetic"})
     assert check.preflight_errors(
-        {
-            "PATH": "/synthetic",
-            "AWS_SECRET_ACCESS_KEY": "synthetic",
-            check.VALIDATION_CACHE_ROOT_ENV: cache,
-        },
+        environment,
         effective_uid=1000,
     ) == ["undeclared environment variables: AWS_SECRET_ACCESS_KEY"]
 
 
 def test_cache_root_must_be_absolute_and_external() -> None:
     name = check.VALIDATION_CACHE_ROOT_ENV
-    assert check.preflight_errors({}, effective_uid=1000) == [f"{name} is not set"]
-    assert check.preflight_errors({name: "relative"}, effective_uid=1000) == [
-        f"{name} must be an absolute path"
+    environment = preflight_environment("/synthetic/cache")
+    environment.pop(name)
+    assert check.preflight_errors(environment, effective_uid=1000) == [
+        f"{name} is not set"
     ]
     assert check.preflight_errors(
-        {name: str(check.ROOT / ".pytest_cache")}, effective_uid=1000
+        preflight_environment("relative"), effective_uid=1000
+    ) == [
+        f"{name} must be an absolute path"
+    ]
+    environment = preflight_environment(str(check.ROOT / ".pytest_cache"))
+    assert check.preflight_errors(
+        environment, effective_uid=1000
     ) == [f"{name} must be outside the repository"]
+
+
+def test_tool_install_paths_must_be_existing_absolute_external_directories(
+    tmp_path: Path,
+) -> None:
+    name = check.PYTHON_INSTALL_ENV
+    with pytest.raises(ValueError, match=f"{name} is not set"):
+        check.tool_install_path(name, {})
+    with pytest.raises(ValueError, match=f"{name} must be an absolute path"):
+        check.tool_install_path(name, {name: "relative"})
+    with pytest.raises(ValueError, match=f"{name} must identify an installed"):
+        check.tool_install_path(name, {name: str(tmp_path / "missing")})
+    with pytest.raises(ValueError, match=f"{name} must be outside the repository"):
+        check.tool_install_path(name, {name: str(check.ROOT)})
 
 
 def test_child_environment_is_allowlisted() -> None:
@@ -115,6 +143,8 @@ def test_child_environment_is_allowlisted() -> None:
         "LANG",
         "LC_ALL",
         check.VALIDATION_CACHE_ROOT_ENV,
+        check.PYTHON_INSTALL_ENV,
+        check.UV_INSTALL_ENV,
         "PATH",
         "PYTHONDONTWRITEBYTECODE",
         "PYTHONIOENCODING",
@@ -123,6 +153,8 @@ def test_child_environment_is_allowlisted() -> None:
     assert environment["HOME"] == str(home)
     assert environment[check.VALIDATION_CACHE_ROOT_ENV] == str(cache)
     assert environment[check.SYNTHETIC_CANARY_ENV] == canary
+    assert environment[check.PYTHON_INSTALL_ENV] == os.environ[check.PYTHON_INSTALL_ENV]
+    assert environment[check.UV_INSTALL_ENV] == os.environ[check.UV_INSTALL_ENV]
 
 
 def test_canary_and_credential_markers_are_detected() -> None:

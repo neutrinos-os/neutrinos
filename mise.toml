@@ -19,6 +19,8 @@ run = '''
 #!/bin/sh
 set -eu
 export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+export NEUTRINOS_VALIDATION_PYTHON_INSTALL="$(mise where python)"
+export NEUTRINOS_VALIDATION_UV_INSTALL="$(mise where uv)"
 exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
   --python "$(mise which python)" python tools/validation/check.py profile fast
 '''
@@ -29,6 +31,8 @@ run = '''
 #!/bin/sh
 set -eu
 export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+export NEUTRINOS_VALIDATION_PYTHON_INSTALL="$(mise where python)"
+export NEUTRINOS_VALIDATION_UV_INSTALL="$(mise where uv)"
 exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
   --python "$(mise which python)" python tools/validation/check.py profile complete
 '''
@@ -39,6 +43,8 @@ run = '''
 #!/bin/sh
 set -eu
 export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+export NEUTRINOS_VALIDATION_PYTHON_INSTALL="$(mise where python)"
+export NEUTRINOS_VALIDATION_UV_INSTALL="$(mise where uv)"
 exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
   --python "$(mise which python)" python tools/validation/check.py list
 '''
@@ -50,6 +56,8 @@ run = '''
 #!/bin/sh
 set -eu
 export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+export NEUTRINOS_VALIDATION_PYTHON_INSTALL="$(mise where python)"
+export NEUTRINOS_VALIDATION_UV_INSTALL="$(mise where uv)"
 exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
   --python "$(mise which python)" python tools/validation/check.py run "$@"
 '''

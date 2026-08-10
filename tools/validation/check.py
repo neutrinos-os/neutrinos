@@ -475,7 +475,14 @@ def relative_files(root: Path) -> list[str]:
 def check_empty_mise_cache() -> int:
     mise = shutil.which("mise")
     if mise is None:
-        print("mise executable unavailable", file=sys.stderr)
+        # Report the search path: this check resolves mise from PATH rather
+        # than from a declared input, so where it looked is the whole answer
+        # when it fails, and the path differs between a workstation and CI.
+        print(
+            "mise executable unavailable on PATH="
+            f"{os.environ.get('PATH', '')}",
+            file=sys.stderr,
+        )
         return 1
     try:
         installs = {
@@ -747,8 +754,13 @@ def check_clean_clone() -> int:
         )
         if executed.returncode != 0:
             print(
+                # The clone's summary line and run directory are on stdout;
+                # a preflight or selection failure writes only there, so
+                # reporting stderr alone can produce an empty reason.
                 "clean clone failed its own fast profile: "
-                + bounded_error(executed.stderr),
+                + bounded_error(executed.stderr)
+                + " stdout: "
+                + bounded_error(executed.stdout),
                 file=sys.stderr,
             )
             return 1

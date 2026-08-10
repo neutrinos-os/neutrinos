@@ -4,6 +4,10 @@ This directory is the design record for NeutrinOS. The project is currently in
 the discovery and architecture phase; documents marked `draft`, `sketch`, or
 `proposed` are not commitments.
 
+Architecture sessions should begin with the
+[design-session restart brief](background/design-session-summary.md), then
+verify its summary against the current ADRs, requirements, and active design.
+
 ## Start here
 
 1. [Project charter](project/charter.md)

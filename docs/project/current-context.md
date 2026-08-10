@@ -82,9 +82,11 @@ open either for a cold status report.
   acquisition phase bounded by pinned hash-checked locks, not by endpoint
   restriction, which the locked platform cannot enforce. Clean-clone profiles
   pass, and the pinned least-privilege CI job runs both profiles on a hosted
-  runner. Executables resolved from `PATH` rather than declared inputs are a
-  known defect class: one such dependency passed locally only by accident and
-  failed in CI. Repository mise use does not select
+  runner. `T5-VAL-002` and `T5-VAL-003` now build `PATH` as a directory of
+  symlinks to exactly the executables they declare, closing PR-0028 C-002 for
+  both known instances: a system directory admits everything beside the tool
+  that justified it, so an undeclared dependency resolves and the probe passes
+  for a reason it never stated. Repository mise use does not select
   host-role software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001 through PRE-017 are satisfied; PRE-018 and G1 are not.

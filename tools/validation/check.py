@@ -530,11 +530,8 @@ def check_empty_mise_cache() -> int:
             "MISE_NO_HOOKS": "1",
             "MISE_STATE_DIR": str(directories["state"]),
             "MISE_SYSTEM_CONFIG_DIR": str(system_config),
-            "PATH": os.pathsep.join(
-                dict.fromkeys(
-                    (str(Path(mise).parent), "/usr/local/bin", "/usr/bin", "/bin")
-                )
-            ),
+            # Declared executables only; see declared_path_directory.
+            "PATH": str(declared_path_directory(root, (mise,))),
             "XDG_CACHE_HOME": str(root / "xdg-cache"),
             "XDG_CONFIG_HOME": str(root / "xdg-config"),
             "XDG_DATA_HOME": str(root / "xdg-data"),
@@ -638,6 +635,22 @@ def check_empty_mise_cache() -> int:
     return 0
 
 
+def declared_path_directory(root: Path, executables: Sequence[str]) -> Path:
+    """Build a PATH directory containing only the named executables.
+
+    A probe that admits a system directory admits everything in it, so an
+    undeclared dependency resolves and the probe passes for a reason it never
+    stated. Linking each declared executable into a directory of its own makes
+    the declaration exact: anything not named here fails to resolve rather than
+    being satisfied by whatever the host happens to install.
+    """
+    directory = root / "declared-bin"
+    directory.mkdir(mode=0o700)
+    for executable in executables:
+        (directory / Path(executable).name).symlink_to(executable)
+    return directory
+
+
 def check_clean_clone() -> int:
     """A clean clone runs its own committed fast profile from declared inputs.
 
@@ -704,21 +717,15 @@ def check_clean_clone() -> int:
         environment = {
             "HOME": str(home),
             "LANG": "C.UTF-8",
-            # The clone's own fast profile includes T5-VAL-002, which resolves
-            # mise from PATH. Include mise's directory explicitly: on a
-            # workstation it is usually /usr/bin and was covered by accident,
-            # but a CI runner installs it elsewhere and the clone then fails
-            # for a reason that has nothing to do with the clone.
-            "PATH": os.pathsep.join(
-                dict.fromkeys(
-                    (
-                        str(Path(git).parent),
-                        str(Path(mise).parent),
-                        "/usr/bin",
-                        "/bin",
-                    )
-                )
-            ),
+            # PATH is a directory of symlinks to exactly the executables this
+            # probe declares, not a list of system directories. Directory
+            # granularity cannot express the constraint: on a workstation git
+            # and mise usually live in /usr/bin, so admitting their directory
+            # admits every other binary beside them, and a check that resolves
+            # an undeclared executable then passes locally and fails wherever
+            # the host is arranged differently. That is what happened to this
+            # check. Here an undeclared executable does not resolve anywhere.
+            "PATH": str(declared_path_directory(root, (git, mise))),
             VALIDATION_CACHE_ROOT_ENV: str(cache_root),
             PYTHON_INSTALL_ENV: str(python_install),
             UV_INSTALL_ENV: str(uv_install),

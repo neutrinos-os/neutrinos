@@ -72,7 +72,10 @@ jobs:
           set -euo pipefail
           mise trust "$PWD/mise.toml"
           MISE_OFFLINE=0 mise install --locked python uv betterleaks
-          uv sync --locked --python "$(mise which python)"
+          # Resolve uv through mise rather than PATH: mise installs the locked
+          # tools but does not activate shims in this shell, and a bare `uv`
+          # would either fail or silently use a runner-provided one.
+          "$(mise which uv)" sync --locked --python "$(mise which python)"
 
       - name: Fast profile
         run: mise run check:fast

@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: e349c7d
+source_snapshot_revision: 2dec09a
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0001
@@ -70,8 +70,9 @@ credentials -- with the UKI on its own ESP bit-identical to the composed
 output. Three findings: the image carries **no package database**, so package
 closure is not self-verifiable and rests on the builder's manifest alone; the
 root filesystem is mounted `rw`, so **SYS-049 is not demonstrated** and the
-plan's earlier read-only-root claim was never true; and systemd lacks TPM2
-support although the vTPM is present. A correction to PLN-0001-02's method is
+plan's earlier read-only-root claim was never true; and systemd cannot use the
+vTPM, because the tss2 runtime libraries are missing from the closure (systemd
+itself is built `+TPM2`). A correction to PLN-0001-02's method is
 recorded: `CleanPackageMetadata=auto` skips `directory` output, so the two
 directory builds compared a tree that is not the shipped tree. See the
 [identity report](slice-identity-report.md). PLN-0001-05 is next. mkosi and
@@ -85,8 +86,13 @@ cloud-hypervisor and `test.thing` offer neither, and `test.thing` is
 GPL-3.0-or-later, so its code cannot be copied into this Apache-2.0 repository.
 Four of its techniques should still be adopted independently -- guest-driven
 readiness over a notify vsock, SMBIOS Type 11 credentials, ssh over vsock with
-ephemeral keys, and `snapshot=on` disposability -- three of which would undo
-choices made in PLN-0001-03 and PLN-0001-04. **KVM does not work on
+ephemeral keys, and `snapshot=on` disposability. Two were measured working
+under TCG against the literal pre-amendment artifact: `snapshot=on` leaves it
+byte-identical, and SMBIOS credentials plus
+`io.systemd.stub.kernel-cmdline-extra` take it from a blocking prompt to a
+login prompt without changing a byte. **All three PLN-0001-04 composition
+amendments are therefore unnecessary for reachability**; whether to revert them
+is an open `C-002`/`L-003` question, because a physical host has no harness. **KVM does not work on
 `desktop-jason` because SVM is disabled in firmware**, not because a module or
 group is missing; TCG is the only option until that changes, and it rules out
 both alternative runners. `W-002` now blocks `P-009`.

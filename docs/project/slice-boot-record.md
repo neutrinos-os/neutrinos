@@ -136,4 +136,7 @@ from the running machine requires reaching the running machine.
   [PR-0029](reviews/0029-g1-gate-approval.md) C-005.
 - **Booting mutates the image.** The boot wrote a random seed and an EFI system
   token to its disk copy, so a booted image no longer matches the composed one.
-  PLN-0001-07's reconstruction comparison must account for this.
+  Resolved 2026-08-10: QEMU's `snapshot=on` discards all guest writes, and the
+  artifact was measured byte-identical after being used directly as a boot disk.
+  PLN-0001-07 no longer has to account for this, and no per-run copy is needed.
+  See [RES-0013](../research/comparisons/vm-test-harness.md).

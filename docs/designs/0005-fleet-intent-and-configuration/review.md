@@ -33,7 +33,10 @@ attribution, validation, selection, status, or recovery.
 - Required response or experiment: write representative common, workstation,
   and router inputs using mostly native files; measure duplicated declarations
   and identify defaults that remain unambiguous.
-- Disposition: open.
+- Author response: EX-0006 models source-level metadata defaults and an
+  unmodeled native networkd setting. Extraction of literal current native
+  configuration remains follow-up evidence.
+- Disposition: mitigated at the paper-model level.
 - Residual risk: a convenience schema can slowly become mandatory even though
   SYS-015 prohibits that outcome.
 
@@ -46,8 +49,10 @@ attribution, validation, selection, status, or recovery.
 - Required response or experiment: enumerate non-overridable project and role
   invariants and show post-composition policy rejecting representative unsafe
   machine values.
-- Disposition: mitigated in the design; the concrete invariant set remains
-  open.
+- Author response: EX-0006 enumerates the accepted project and role invariants
+  that ordinary precedence cannot override.
+- Disposition: mitigated at the policy level; enforcement representation
+  remains open.
 - Residual risk: policy exceptions can recreate an unreviewed second
   authorization language.
 
@@ -61,7 +66,10 @@ attribution, validation, selection, status, or recovery.
   role behavior, release-owned service, or independently managed workload and
   show that one role does not prohibit composition at those ownership
   boundaries.
-- Disposition: open.
+- Author response: EX-0006 classifies the initial functions as one primary role,
+  release-owned role services, or independently owned workloads without using
+  multi-role inheritance.
+- Disposition: mitigated for the initial fleet; owner review remains open.
 - Residual risk: arbitrary multi-role inheritance would recreate the graph the
   design is trying to avoid.
 
@@ -74,7 +82,11 @@ attribution, validation, selection, status, or recovery.
 - Required response or experiment: produce a field-authority table identifying
   which object owns each declaration and which later objects bind or attest to
   it without becoming another source of intent.
-- Disposition: open.
+- Author response: the EX-0006 field-authority table assigns desired intent to
+  inventory and role/machine records, exact output binding to the deployment
+  manifest, claims to qualification, permission to release authorization, and
+  observations to status.
+- Disposition: resolved at the model level.
 - Residual risk: a signed downstream copy can appear authoritative even when it
   attests to stale source intent.
 
@@ -87,7 +99,11 @@ attribution, validation, selection, status, or recovery.
   explicitly referenced by several machine records and compare it with a
   platform scope. Confirm that reference reuse does not let observation assign
   behavior.
-- Disposition: open.
+- Author response: EX-0006 applies one reusable hardware-specific source through
+  explicit role or machine references and rejects platform precedence for the
+  initial fleet.
+- Disposition: resolved for the initial model; measured duplication is a review
+  trigger.
 - Residual risk: adding platform precedence later would change existing
   configuration meaning.
 
@@ -111,7 +127,10 @@ attribution, validation, selection, status, or recovery.
 - Required response or experiment: classify the reference-machine late-bound
   inputs, constrain their semantic effects, and reject one that attempts to
   introduce executable normal policy.
-- Disposition: mitigated in principle; representative contract review remains
+- Author response: EX-0006 inventories representative contracts and adds
+  semantic-power limits that prohibit nominal data from carrying undeclared
+  units, scripts, package selections, or privileged policy.
+- Disposition: mitigated at the paper-model level; real consumer schemas remain
   open.
 - Residual risk: some upstream services intentionally consume powerful policy
   as data and may need to be deployment-bound despite changing frequently.
@@ -152,34 +171,33 @@ attribution, validation, selection, status, or recovery.
 - Residual risk: access control and availability for a private inventory can
   impair qualification or recovery.
 
-## Missing alternatives or evidence
+## Remaining evidence
 
-- Concrete machine records for the reference VM, `desktop-jason`, and `router`.
-- A field-authority table across inventory, role, machine, composition,
-  deployment manifest, authorization, status, and provisioning records.
 - Native systemd, networkd, tmpfiles, sysusers, kernel-command-line, and mount
   examples exercising conflict and deletion rules.
-- A late-bound contract inventory for both physical roles.
 - An authenticated first-enrollment sequence with hostile SMBIOS or instance
   metadata.
-- A comparison of explicit shared hardware sources with a fourth platform
-  configuration scope.
+- Concrete schema and serialization alternatives measured against the EX-0006
+  records.
 
 ## Required changes before acceptance
 
-1. Produce representative machine records without selecting a final
-   serialization format.
-2. Produce the field-authority table and remove duplicate sources of intent.
-3. Enumerate non-overridable invariants and exception authority.
-4. Classify representative late-bound inputs and their permitted semantic
-   power.
-5. Decide whether one primary role plus services/workloads is sufficient for
-   the initial fleet.
-6. Review SYS-042 through SYS-047 for acceptance, revision, or rejection.
+1. **Complete on paper:** EX-0006 provides representative machine records
+   without selecting a final serialization format.
+2. **Complete on paper:** EX-0006 provides the field-authority table and removes
+   duplicate sources of intent.
+3. **Complete at policy level:** EX-0006 enumerates non-overridable invariants;
+   enforcement and exception representation remain open.
+4. **Complete on paper:** EX-0006 classifies representative late-bound inputs
+   and their permitted semantic power.
+5. **Open:** owner review of one primary role plus services/workloads for the
+   initial fleet.
+6. **Open:** review SYS-042 through SYS-047 for acceptance, revision, or
+   rejection.
 
 ## Review disposition
 
-DES-0005 should advance to `in-review` after the paper artifacts above resolve
-C-001 through C-005 and C-007. Provisioning mechanism and first-enrollment
-authentication may remain open under L-003, but the authority boundary and
-replay requirements must be normative before accepting this design.
+DES-0005 advances to `in-review` based on EX-0006. Provisioning mechanism and
+first-enrollment authentication may remain open under L-003, but the authority
+boundary and replay requirements must be normative before accepting this
+design.

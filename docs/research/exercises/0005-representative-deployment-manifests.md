@@ -208,7 +208,7 @@ schema: <deployment-manifest-policy>
 role: workstation
 platform_scope:
   architecture: x86-64
-  classes: [desktop-jason, reference-qemu-workstation-model]
+  classes: [x570-aorus-pro-wifi, reference-qemu-workstation-model]
 artifacts:
   boot: <final-signed-workstation-boot-digest>
   root: <workstation-root-digest>

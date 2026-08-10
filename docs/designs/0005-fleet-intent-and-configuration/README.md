@@ -1,7 +1,7 @@
 ---
 id: DES-0005
 title: Fleet intent and configuration composition
-status: proposed
+status: in-review
 owners: [Jason Tarasovic]
 reviewers: [Codex]
 created: 2026-08-09
@@ -536,7 +536,10 @@ This design proposes the following requirements for adversarial review:
 
 ## Review disposition
 
-An adversarial review is open in [review.md](review.md). The design remains
-proposed until the candidate requirements, machine-record examples, role-
-assignment authority, composition semantics, and provisioning boundary receive
-owner review.
+An adversarial review is open in [review.md](review.md).
+[EX-0006](../../research/exercises/0006-representative-fleet-intent.md)
+provides candidate machine records, a field-authority table, non-overridable
+invariants, representative late-bound contracts, and scope-composition
+fixtures. The design is in review pending owner decisions and candidate-
+requirement disposition; concrete provisioning and first-enrollment mechanisms
+remain open follow-on work.

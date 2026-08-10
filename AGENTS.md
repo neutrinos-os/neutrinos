@@ -2,10 +2,13 @@
 
 ## Read
 
-- Cold start / status: this file + [current context](docs/project/current-context.md).
-  Stop there unless the task needs more.
-- Read-only orientation: rely on the context summary; do not verify each linked
-  claim. Open only an explicitly requested authority (for example ADR-0001).
+- Read-only status/orientation/report: read only this file +
+  [current context](docs/project/current-context.md). Hard stop.
+- Exception: when the user explicitly names or asks to verify one authority,
+  open only that source (example: ADR-0001 for systemd-first).
+- A request for citations or loaded-instruction files does not authorize source
+  discovery. Cite paths from current context; report only files actually read.
+- Read-only task: do not run validation commands. Report requirements only.
 - Execution/edit: active plan + only sources governing the exact change/risk.
 - Never cold-read `docs/research/results/`, session history, or every linked
   source. Use only for an explicit evidence/history task.
@@ -47,7 +50,8 @@
 ## Work
 
 - Before edits: `git status`; preserve unrelated tracked/untracked/staged work.
-- Validate via commands in current context. Report checks run/not run.
+- After edits, validate via the source named in current context. Report checks
+  run/not run.
 - Small coherent commits; only after user approval/request; no unrelated work.
 - Update source + affected indexes/context/work register together when their
   declared triggers fire.

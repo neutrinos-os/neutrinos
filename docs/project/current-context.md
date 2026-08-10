@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: e3be851
+source_snapshot_revision: 38725e6
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -9,10 +9,11 @@ active_plan: PLN-0000
 
 # Current project context
 
-> Maintained, non-normative orientation aid. Safe to rely on for read-only
-> status/orientation; do not traverse its links by default. Before a mutation,
-> acceptance, or high-risk claim, verify the governing source. A conflicting
-> source wins and this summary must be corrected.
+> Maintained, non-normative, self-contained cold-context artifact. For a
+> read-only status/orientation/report task, rely on this file and do not open
+> any path it cites. Exception: open one authority explicitly named by the
+> user. Before edits, acceptance, or a high-risk claim, verify only the
+> governing source. A conflicting source wins; correct this summary.
 
 ## Current position
 
@@ -20,37 +21,35 @@ NeutrinOS has an accepted architecture-policy baseline and is preparing the G1
 gate for one disposable VM-only evidence prototype. G1 is **not satisfied** and
 NeutrinOS source implementation is **not authorized**.
 
-[PLN-0000](../plans/0000-pre-implementation-readiness.md) is active only for
+PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
-scaffolding. Its next action is to disposition the failed EX-0016 rerun at
-`e3be851`: Claude followed the bounded route, while Codex avoided history but
-still opened most of PLN-0000 and ran unnecessary validation. Decide whether
-to reshape this file into a hard-bounded, self-contained cold-context artifact
-or record a bounded Codex client exception before any further paid rerun. The
-layered test strategy in PRE-014 follows after PRE-012/PRE-013 close.
+scaffolding. Its one next action is the final EX-0016 Codex/Claude cold rerun at
+the revision containing this hard-bound route. If it passes, close PRE-012 and
+PRE-013; if Codex still exceeds the route, record the bounded client limitation
+without another routing iteration. PRE-014 layered test strategy follows.
 
-The [work register](work-register.md) is the aggregate view of remaining work.
-The [decision backlog](decision-backlog.md) owns question state. Neither is
-architecture authority.
+`docs/project/work-register.md` is the aggregate view. Question state lives in
+`docs/project/decision-backlog.md`. Neither is architecture authority. Do not
+open either for a cold status report.
 
 ## Accepted decisions relevant now
 
 - The project name is **NeutrinOS** in prose, **`neutrinos`** in machine-facing
   identifiers, and **`neutrinos-os`** for the GitHub organization
-  ([naming decision](naming.md)).
+  (`docs/project/naming.md`).
 - NeutrinOS is systemd-first; an overlapping non-systemd mechanism carries a
-  documented burden of proof ([ADR-0001](../adrs/0001-systemd-first.md)).
+  documented burden of proof (`docs/adrs/0001-systemd-first.md`, ADR-0001).
 - Routine, exceptional, machine, and data authorities remain separate, with an
   independently usable recovery path
-  ([ADR-0002](../adrs/0002-separate-authority-and-recovery.md)).
+  (`docs/adrs/0002-separate-authority-and-recovery.md`, ADR-0002).
 - Fleet intent uses bounded TOML records and exact native configuration, JSON
   Schema validation, and canonical JSON evidence
-  ([ADR-0003](../adrs/0003-bounded-fleet-intent-representation.md)).
+  (`docs/adrs/0003-bounded-fleet-intent-representation.md`, ADR-0003).
 - Accepted system policy covers deployment lifecycle, configuration, storage
   boundaries, package inputs, supply-chain evidence, rollout, installation,
   credentials, Unix identity, and software-placement boundaries
-  ([system requirements](../requirements/system.md)). Exact mechanisms remain
-  open where no ADR accepts them.
+  (`docs/requirements/system.md`). Exact mechanisms remain open where no ADR
+  accepts them.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001, PRE-002, PRE-010, and PRE-011 are satisfied; PRE-018 and G1 are not.
 
@@ -95,44 +94,33 @@ Currently prohibited:
   accepted decision; and
 - autonomous push, merge, release, or publication.
 
-The full mutation boundary and stop conditions live in
-[PLN-0000](../plans/0000-pre-implementation-readiness.md).
+The exact mutation-changing authority and stop conditions live in
+`docs/plans/0000-pre-implementation-readiness.md`. Do not open it for a
+read-only status report; the current boundary above is complete for that task.
 
 ## Working-tree and validation expectations
 
-Assume a dirty worktree may contain user or another task's work. Inspect it
-before editing, preserve unrelated changes, and name them in the handoff.
-Concurrent work requires explicit ownership and isolated worktrees as defined
-in the root [repository instructions](../../AGENTS.md).
+Assume a dirty worktree may contain user or another task's work. Before editing,
+inspect it, preserve unrelated changes, and name them in the handoff.
+Concurrent work requires explicit ownership and isolated worktrees under root
+`AGENTS.md`.
 
-Until PRE-015 supplies canonical entry points, documentation changes must pass:
-
-```sh
-git diff --check
-```
-
-and the existing internal Markdown-link check:
-
-```sh
-perl -MFile::Basename=dirname -MFile::Spec -e 'for my $f (@ARGV) { open my $h, q{<}, $f or die qq{$f: $!\n}; my $code=0; while (<$h>) { if (/^\s*```/) { $code=!$code; next } next if $code; while (/\[[^\]]*\]\(([^)]+)\)/g) { my $p=$1; $p =~ s/#.*//; $p =~ s/^<|>$//g; next if $p eq q{} || $p =~ m{^(?:https?|mailto):}; my $x=File::Spec->rel2abs($p,dirname($f)); print qq{$f -> $1\n} unless -e $x } } }' $(rg --files --hidden -g '*.md' -g '!.git/**')
-```
-
-No output from the link check is a pass. These commands are temporary and do
-not satisfy PRE-015.
+Read-only task: do not run validation. Report only this requirement: after
+documentation edits, run `git diff --check` and the internal Markdown-link
+check; no output is a pass. Exact temporary commands:
+`docs/project/validation.md`. They do not satisfy PRE-015.
 
 ## Context path for a fresh task
 
-1. Read root [AGENTS.md](../../AGENTS.md).
-2. Read this file; stop for a read-only orientation/status task.
-3. For execution/editing, read the active
-   [PLN-0000](../plans/0000-pre-implementation-readiness.md) sections governing
-   the exact task.
-4. Read the [work register](work-register.md) only for aggregate backlog/gate
-   analysis.
-5. Open only the authoritative source needed for the exact decision, change,
-   conflict, or risk.
-6. Consult the [design-session summary](../background/design-session-summary.md)
-   or full transcript only for history and provenance.
+1. Read root `AGENTS.md`.
+2. Read this file.
+3. Read-only status/orientation/report: hard stop. Cite paths from this file
+   without opening them. Open only one authority explicitly named by the user.
+4. Execution/edit: read only the active-plan sections and sources governing the
+   exact change or risk.
+5. Aggregate analysis: `docs/project/work-register.md` on demand.
+6. History/provenance only: `docs/background/design-session-summary.md`, then
+   the transcript only if necessary.
 
 ## Maintenance and verification
 
@@ -148,6 +136,6 @@ Update this file whenever any of the following changes:
 
 Set `source_snapshot_revision` to the source revision against which the summary
 was checked. This names its inputs, not this file's containing commit, and may
-therefore precede HEAD. PRE-012 and PRE-013 remain incomplete until
-[EX-0016](../research/exercises/0016-agent-context-and-instruction-loading.md)
-passes across the supported clients.
+therefore precede HEAD. PRE-012 and PRE-013 remain incomplete until EX-0016
+(`docs/research/exercises/0016-agent-context-and-instruction-loading.md`) is
+dispositioned across the supported clients.

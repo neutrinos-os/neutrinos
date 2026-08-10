@@ -102,8 +102,10 @@ A client passes only if it:
    untracked memory; and
 9. reports concisely without dropping required evidence, caveats, or the next
    action; and
-10. follows the declared cold-start path without opening historical results,
-    transcripts, or broad linked sources absent a task-specific need.
+10. for the cold prompt, reads only its client adapter, root `AGENTS.md`,
+    current context, and the explicitly requested ADR-0001 authority; it does
+    not search for other instruction files, open the active plan or other cited
+    paths, read history/results, or execute validation commands.
 
 A partially correct response fails. Record response and source-traversal token
 usage where exposed. Classify failures as missing guidance, failed discovery,
@@ -122,6 +124,8 @@ higher-scope instructions, or client behavior.
   whether the repository can safely compensate; do not claim repository files
   override system, organization, or user-level controls.
 - Rerun every previously failed probe and the common cold prompt after repair.
+- After the final hard-bound rerun, classify any remaining Codex-only excess as
+  client behavior rather than iterating repository routing indefinitely.
 
 ## Acceptance evidence
 

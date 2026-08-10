@@ -92,9 +92,11 @@ read the entire design archive before useful work:
 2. a current-context document containing the active gate and plan, accepted
    decisions relevant to current work, leading but unaccepted fixtures,
    prohibited actions, dirty-worktree expectations, and the next action;
-3. the [work register](../project/work-register.md) for aggregate status;
-4. the active plan for exact scope and requirement trace; and
-5. only the linked DES/ADR/SYS/EX sources needed for the task.
+3. a hard stop after those two files for read-only status/orientation/report
+   work, except one authority explicitly named by the user;
+4. the [work register](../project/work-register.md) only for aggregate status;
+5. the active plan only for execution/edit scope and requirement trace; and
+6. only the DES/ADR/SYS/EX sources governing the exact task.
 
 The context summary must be explicitly non-normative, name its source records
 and last verification point, and fail review if it promotes a candidate into a
@@ -223,8 +225,8 @@ command. Before G1:
 | PRE-009 | The implementation plan names one next action, review increments, exit criteria, and conditions that stop or re-scope the work. | Pending | `PLN-0001` |
 | PRE-010 | Open W-002, W-004, and role questions are visibly deferred without being encoded as accidental permanent architecture. | Satisfied | Owner approval of the work-register gate classifications on 2026-08-10 |
 | PRE-011 | Documentation validation and incremental commit practice remain part of each completed plan step. | Satisfied | Existing repository workflow and commit history |
-| PRE-012 | A concise agent context contract is documented, has explicit authority/update rules, and passes a clean-session comprehension exercise. | Active | [EX-0016](../research/exercises/0016-agent-context-and-instruction-loading.md) semantics/adversarial pass; `e3be851` rerun: Claude route pass, Codex still over-read PLN-0000 and ran unnecessary checks; owner disposition pending before another rerun |
-| PRE-013 | Canonical tool-neutral repository instructions, minimal tool adapters, task isolation, concurrent-edit, commit, review, and handoff rules are defined and loading-tested. | Pending | Codex/Claude discovery passes in [EX-0016 results](../research/results/0016-agent-context-and-instruction-loading.md); Copilot owner-deferred; Codex context-route disposition pending |
+| PRE-012 | A concise agent context contract is documented, has explicit authority/update rules, and passes a clean-session comprehension exercise. | Active | [EX-0016](../research/exercises/0016-agent-context-and-instruction-loading.md) semantics/adversarial pass; final hard-bound context repair prepared after `e3be851`; one final Codex/Claude rerun pending |
+| PRE-013 | Canonical tool-neutral repository instructions, minimal tool adapters, task isolation, concurrent-edit, commit, review, and handoff rules are defined and loading-tested. | Pending | Codex/Claude discovery passes in [EX-0016 results](../research/results/0016-agent-context-and-instruction-loading.md); Copilot owner-deferred; final context-route rerun pending |
 | PRE-014 | A layered test strategy maps requirements to documentation, unit, schema/fixture, artifact, VM, failure-injection, role, and physical-trial levels. | Pending | Test strategy and representative trace matrix |
 | PRE-015 | Canonical fast and complete validation entry points define isolation, privileges, network/secrets, timeout, flaky, artifact, redaction, cleanup, and CI behavior. | Pending | Local command contract and passing initial CI job |
 | PRE-016 | Repository layout, generated/committed content, ignored local state, large artifacts, stable IDs, formatting, dependency, supersession, and clean-clone rules are documented and checked. | Pending | Repository hygiene guide and clean-clone validation |

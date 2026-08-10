@@ -37,9 +37,10 @@ from 427,690 to 173,387 tokens, but still opened most of PLN-0000, ran both
 documentation checks despite making no changes, and produced 6,442 output
 tokens. The run also exposed stale housekeeping inventory in PLN-0000 and
 wording that let Claude describe the already-applied repair as still pending.
-Stop before another paid rerun; owner disposition is required between reshaping
-current-context as a hard-bounded, self-contained cold artifact and documenting
-a Codex-specific route exception.
+The final permitted routing repair reshapes current-context as a hard-bounded,
+self-contained cold artifact. Run it once at the containing revision. If Codex
+still exceeds the route, record a client-specific limitation rather than
+iterating repository wording again.
 
 ## Rerun at `e3be851`
 
@@ -146,20 +147,16 @@ transcripts are not part of the response record.
 
 - `8dd0669`: updated the context marker and added selective-verification
   wording. Insufficient; retained as failed-rerun evidence.
-- Draft: make cold-start/status routing explicit and terminal after AGENTS plus
-  current context; permit read-only reliance on the maintained summary; forbid
-  default loading of historical results and broad linked sources.
-- Draft: correct the stale next action and explain that the source-snapshot
-  revision names inputs rather than the containing commit.
-- Pending: commit the structural repair; clone that revision; rerun the cold
-  prompt in both clients; require semantic, freshness, and context-route passes.
 - `e3be851`: structural route committed and rerun. Claude route passed; Codex
   materially narrowed traversal but still ignored the terminal two-file route,
   opened most of PLN-0000, and ran unnecessary validation. Strict run failed.
-- Pending owner disposition: reshape current-context as a hard-bounded,
-  self-contained cold artifact with no broad traversal cues, or document a
-  bounded Codex client exception. Do not spend another model run before that
-  choice and repair.
+- Final repair in the revision containing this paragraph: make the cold route
+  categorical; forbid citation/instruction discovery and validation execution;
+  make current-context self-contained; move executable validation detail to
+  `docs/project/validation.md`; correct the next action.
+- Pending: one final same-revision Codex/Claude cold rerun. On any remaining
+  Codex-only excess, record a bounded client limitation; do not revise routing
+  again.
 - Adapter drift review at `a191e17`: pass. `CLAUDE.md` and
   `.github/copilot-instructions.md` contain discovery behavior only, not copied
   project policy.

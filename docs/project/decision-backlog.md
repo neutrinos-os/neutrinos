@@ -26,6 +26,7 @@ this backlog into a duplicate task tracker.
 | P-004 | Which role and hardware are the first reference target? | [Accepted: VM qualification, `desktop-jason` first, `router` second](scope.md#initial-target-strategy) | P-001, P-002 |
 | P-005 | Is systemd-native composition a project constraint? | [Accepted: systemd-first](../adrs/0001-systemd-first.md) | P-001 |
 | P-006 | What is the canonical project name and technical identifier? | [Accepted: NeutrinOS and `neutrinos`](naming.md#decision) | P-002 |
+| P-007 | Under what license, and at what visibility, is this repository published? | Open: no license file exists, so no rights are granted and the design record is not reusable by others. PRE-017 exit item; owner decision | P-002 |
 
 
 ## Wave 1: system and trust model

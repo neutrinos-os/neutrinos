@@ -1,0 +1,18 @@
+#!/bin/sh
+# Runs the canonical fast profile before a commit. Enable with:
+#
+#   git config core.hooksPath .githooks
+#
+# This hook defines nothing. It dispatches the same registered tests that CI
+# runs, so local and remote validation cannot drift apart. Add checks by
+# registering them in tools/validation/check.py, never here.
+#
+# Bypass with `git commit --no-verify` when committing work in progress.
+set -eu
+
+if ! command -v mise >/dev/null 2>&1; then
+  echo "pre-commit: mise is not installed; see docs/project/validation.md" >&2
+  exit 1
+fi
+
+exec mise run check:fast

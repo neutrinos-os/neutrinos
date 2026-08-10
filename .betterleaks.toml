@@ -1,0 +1,22 @@
+# Secret-scanning configuration for T0-SEC-001. The default rule set applies;
+# the only exception is recorded below and is scoped to one rule in one file.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+The validation runner's own output-safety scanner is tested with literal
+credential markers. tools/validation/tests/test_runner.py asserts that a
+PEM private-key header is detected, so the marker must appear in the source
+of the test that proves detection works. Scoped to that one rule in that one
+file: a real key anywhere else, or any other rule in this file, still fails.
+
+Verified by planting a realistic PEM block elsewhere under tools/validation
+and confirming it is still reported. Re-verify that way after any rule-set
+or scanner upgrade; note that betterleaks auto-detects this file, so a
+control run must point --config at a configuration without this block rather
+than simply omitting the flag.
+"""
+targetRules = ["private-key"]
+paths = ['''^tools/validation/tests/test_runner\.py$''']

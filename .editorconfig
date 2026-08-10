@@ -1,0 +1,21 @@
+# Formatting rules declared by docs/project/repository-hygiene.md.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+max_line_length = 79
+# Markdown hard line breaks are not used in this repository; trailing
+# whitespace is a defect and is checked by T0-DOC-001.
+
+[*.{toml,yml,yaml,json}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

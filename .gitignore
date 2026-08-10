@@ -1,0 +1,51 @@
+# Declared by the repository hygiene contract:
+# docs/project/repository-hygiene.md. Local state only. Evidence, run
+# directories, and caches live outside the checkout by construction and are
+# listed here as defense in depth, not as their primary control.
+
+# Virtual environments and installed packages
+/.venv/
+__pycache__/
+*.py[cod]
+
+# Validation run directories, retained logs, and quarantine
+/neutrinos-validation-*/
+neutrinos-validation-quarantine-*/
+
+# Tool and test caches
+.pytest_cache/
+.mise/
+/.mise-no-system-config/
+
+# Build output, images, VM disks, firmware and vTPM state
+/build/
+/dist/
+/out/
+*.img
+*.iso
+*.qcow2
+*.raw
+*.vhd
+*.vmdk
+*.fd
+
+# Credentials and key material
+*.pem
+*.key
+*.p12
+*.pfx
+*.gpg
+*.kdbx
+.env
+.env.*
+
+# Agent-local memory and session records
+memory/
+*.session.json
+
+# Editor and OS scratch files
+*~
+*.swp
+*.swo
+.DS_Store
+Thumbs.db

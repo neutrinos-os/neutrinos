@@ -37,6 +37,7 @@ VALIDATION_CACHE_ROOT_ENV = "NEUTRINOS_VALIDATION_CACHE_ROOT"
 PYTHON_INSTALL_ENV = "NEUTRINOS_VALIDATION_PYTHON_INSTALL"
 UV_INSTALL_ENV = "NEUTRINOS_VALIDATION_UV_INSTALL"
 UV_CACHE_ENV = "NEUTRINOS_VALIDATION_UV_CACHE"
+BETTERLEAKS_ENV = "NEUTRINOS_VALIDATION_BETTERLEAKS"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -67,6 +68,7 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         PYTHON_INSTALL_ENV,
         UV_INSTALL_ENV,
         UV_CACHE_ENV,
+        BETTERLEAKS_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -188,6 +190,17 @@ TESTS = (
         fixtures=("repository Markdown files",),
         cleanup_owner="validation runner",
         function="check_markdown_links",
+    ),
+    Test(
+        id="T0-SEC-001",
+        level="T0",
+        profiles=("fast", "complete"),
+        timeout_seconds=120,
+        traces=("PLN-0000/PRE-017",),
+        capabilities=("locked betterleaks",),
+        fixtures=("repository checkout", "reachable Git history"),
+        cleanup_owner="validation runner",
+        function="check_secret_scan",
     ),
     Test(
         id="T5-VAL-001",
@@ -468,6 +481,10 @@ def check_empty_mise_cache() -> int:
         installs = {
             "python": tool_install_path(PYTHON_INSTALL_ENV),
             "uv": tool_install_path(UV_INSTALL_ENV),
+            # The dispatcher declares the scanner executable rather than an
+            # install root; aqua places the binary directly in the versioned
+            # install directory, so its parent is that root.
+            "betterleaks": declared_executable(BETTERLEAKS_ENV).parent,
         }
     except ValueError as error:
         print(bounded_error(error), file=sys.stderr)
@@ -631,6 +648,7 @@ def check_clean_clone() -> int:
         python_install = tool_install_path(PYTHON_INSTALL_ENV)
         uv_install = tool_install_path(UV_INSTALL_ENV)
         uv_cache = declared_directory(UV_CACHE_ENV)
+        scanner = declared_executable(BETTERLEAKS_ENV)
     except ValueError as error:
         print(bounded_error(error), file=sys.stderr)
         return 1
@@ -678,6 +696,7 @@ def check_clean_clone() -> int:
             PYTHON_INSTALL_ENV: str(python_install),
             UV_INSTALL_ENV: str(uv_install),
             UV_CACHE_ENV: str(uv_cache),
+            BETTERLEAKS_ENV: str(scanner),
         }
         uv_flags = (
             "--offline",
@@ -767,13 +786,77 @@ def check_clean_clone() -> int:
     return 0
 
 
+def check_secret_scan() -> int:
+    """No committed secret in the working tree or in reachable history.
+
+    Runs the locked betterleaks against both sources. Scanning is offline and
+    uses the pinned binary the dispatcher resolved, so this behaves the same
+    locally and in CI: there is one definition of the check, not two.
+
+    ``--redact`` is not optional. A finding must never widen exposure by
+    printing the secret into a log, a result record, or a CI transcript.
+    """
+    scanner = declared_executable(BETTERLEAKS_ENV)
+    config = ROOT / ".betterleaks.toml"
+    if not config.is_file():
+        print("secret-scanning configuration is missing", file=sys.stderr)
+        return 1
+    for source in ("dir", "git"):
+        result = subprocess.run(
+            (
+                str(scanner),
+                source,
+                # A relative target keeps reported paths repository-relative,
+                # which is what allowlist path patterns are written against.
+                ".",
+                "--config",
+                str(config),
+                "--redact",
+                "--no-banner",
+            ),
+            cwd=ROOT,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        sys.stdout.write(result.stdout)
+        sys.stderr.write(result.stderr)
+        if result.returncode != 0:
+            print(f"secret scan of {source} reported findings", file=sys.stderr)
+            return result.returncode
+    return 0
+
+
 CHECKS: dict[str, Callable[[], int]] = {
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
     "check_runner_hostile_probes": check_runner_hostile_probes,
     "check_empty_mise_cache": check_empty_mise_cache,
     "check_clean_clone": check_clean_clone,
+    "check_secret_scan": check_secret_scan,
 }
+
+
+def declared_executable(
+    name: str, environment: Mapping[str, str] = os.environ
+) -> Path:
+    """An externally declared executable resolved by the task dispatcher."""
+    raw = environment.get(name)
+    if not raw:
+        raise ValueError(f"{name} is not set")
+    path = Path(raw)
+    if not path.is_absolute():
+        raise ValueError(f"{name} must be an absolute path")
+    path = path.resolve()
+    if not path.is_file():
+        raise ValueError(f"{name} must identify an existing file")
+    if not os.access(path, os.X_OK):
+        raise ValueError(f"{name} must identify an executable file")
+    repository = ROOT.resolve()
+    if path == repository or repository in path.parents:
+        raise ValueError(f"{name} must be outside the repository")
+    return path
 
 
 def preflight_errors(
@@ -796,6 +879,10 @@ def preflight_errors(
         except ValueError as error:
             errors.append(str(error))
     try:
+        declared_executable(BETTERLEAKS_ENV, environment)
+    except ValueError as error:
+        errors.append(str(error))
+    try:
         declared_directory(UV_CACHE_ENV, environment)
     except ValueError as error:
         errors.append(str(error))
@@ -817,6 +904,7 @@ def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, st
         PYTHON_INSTALL_ENV: os.environ[PYTHON_INSTALL_ENV],
         UV_INSTALL_ENV: os.environ[UV_INSTALL_ENV],
         UV_CACHE_ENV: os.environ[UV_CACHE_ENV],
+        BETTERLEAKS_ENV: os.environ[BETTERLEAKS_ENV],
     }
     if "SYSTEMROOT" in os.environ:
         environment["SYSTEMROOT"] = os.environ["SYSTEMROOT"]

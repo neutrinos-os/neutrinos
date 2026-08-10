@@ -21,7 +21,7 @@ mise trust "$PWD/mise.toml"
 export MISE_GLOBAL_CONFIG_FILE=/dev/null
 export MISE_SYSTEM_CONFIG_DIR="$PWD/.mise-no-system-config"
 export MISE_CEILING_PATHS="$(dirname "$PWD")"
-MISE_OFFLINE=0 mise install --locked python uv
+MISE_OFFLINE=0 mise install --locked python uv betterleaks
 uv sync --locked --python "$(mise which python)"
 ```
 
@@ -47,7 +47,7 @@ the pinned input set, not the network path: `mise.lock` fixes the tool
 versions, `uv.lock` with `--locked` fixes every package and hash, and a lock
 mismatch fails rather than resolving.
 
-Naming `python uv` prevents unrelated tools in a developer's global mise
+Naming the tools explicitly prevents unrelated tools in a developer's global mise
 configuration from becoming repository bootstrap inputs. `MISE_OFFLINE=0` is
 an explicit acquisition-phase exception to the repository default. Bootstrap
 may use the network and tool caches. The canonical checks may not: mise itself
@@ -67,6 +67,11 @@ mise run check:run T0-DOC-001 T0-DOC-002
 `T0-DOC-001` is the former `git diff --check` validation.
 `T0-DOC-002` is the former internal Markdown-link validation. Do not duplicate
 their implementations in documentation or CI.
+`T0-SEC-001` scans the working tree and all reachable history for committed
+secrets using the locked betterleaks, always with `--redact` so a finding never
+widens exposure. It is registered in both profiles and runs the same way
+locally and in CI: there is one definition of the check, not a local one and a
+separate CI one. Scoped exceptions live in `.betterleaks.toml`.
 `T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
 with an isolated empty mise cache and runs the registered `check:list` task
 using only the already-installed locked Python and uv inputs. `T5-VAL-003`

@@ -1,0 +1,94 @@
+name: validation
+
+# Pinned, least-privilege validation. Every external input is pinned by digest
+# or checksum: actions by commit SHA, mise by release version and SHA-256, and
+# the repository toolchain -- Python, uv, and betterleaks -- by mise.lock and
+# uv.lock.
+#
+# Behavior is defined by docs/project/validation-contract.md. This workflow is
+# an execution environment for the canonical tasks, never a second definition
+# of what they do. Do not reimplement individual checks here.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: validation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  MISE_VERSION: v2026.7.17
+  MISE_SHA256: 8aba14e84ffeb312ca600f1a16b23c217c0d7f55c64d93f867f754efed3d8a43
+
+jobs:
+  checks:
+    name: canonical profiles
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check out the revision under test
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # Full history: T0-SEC-001 scans every reachable commit, not just
+          # the working tree.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install pinned mise
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error \
+            --location --output "$RUNNER_TEMP/mise" \
+            "https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-x64"
+          echo "${MISE_SHA256}  ${RUNNER_TEMP}/mise" | sha256sum --check --strict
+          install -m 0755 "$RUNNER_TEMP/mise" "$RUNNER_TEMP/bin/mise"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+
+      - name: Declare configuration isolation
+        # PR-0025: mise cannot exclude ancestor or global configuration from a
+        # repository-level setting, so the boundary is environment-scoped and
+        # must be declared here for canonical invocation, not only bootstrap.
+        run: |
+          set -euo pipefail
+          {
+            echo "MISE_GLOBAL_CONFIG_FILE=/dev/null"
+            echo "MISE_SYSTEM_CONFIG_DIR=${GITHUB_WORKSPACE}/.mise-no-system-config"
+            echo "MISE_CEILING_PATHS=$(dirname "${GITHUB_WORKSPACE}")"
+          } >> "$GITHUB_ENV"
+
+      - name: Bootstrap the locked toolchain
+        # The one acquisition phase, exactly as docs/project/validation.md
+        # documents it. Bounded by the committed locks, not by reachable hosts.
+        run: |
+          set -euo pipefail
+          mise trust "$PWD/mise.toml"
+          MISE_OFFLINE=0 mise install --locked python uv betterleaks
+          uv sync --locked --python "$(mise which python)"
+
+      - name: Fast profile
+        run: mise run check:fast
+
+      - name: Complete profile
+        # Includes T5-VAL-003, which clones committed HEAD and re-runs the fast
+        # profile offline. The bootstrap above leaves the uv cache warm, which
+        # that check requires.
+        run: mise run check:complete
+
+      - name: Assert the checkout is unmodified
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "validation modified the checkout:" >&2
+            git status --porcelain >&2
+            exit 1
+          fi

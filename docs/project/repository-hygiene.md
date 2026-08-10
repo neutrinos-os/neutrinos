@@ -25,6 +25,11 @@ purpose:
 | `mise.toml`, `mise.lock` | Toolchain and Linux-x64 lock | PRE-015 |
 | `pyproject.toml`, `uv.lock` | Validation engine deps and lock | PRE-015 |
 | `.github/` | Forge configuration | PRE-017 |
+| `README.md` | Repository entry point and status | PRE-017 |
+| `.gitignore`, `.editorconfig` | Ignored local state; editor formatting | PRE-017 |
+| `.betterleaks.toml` | Secret-scanning rules and scoped exceptions | PRE-017 |
+| `.githooks/` | Opt-in Git hooks that dispatch canonical tasks | PRE-017 |
+| `.claude/`, `.agents/`, `.codex/` | Per-tool adapter content | PRE-013 |
 
 A new top-level entry requires a named owner and lifecycle in this table.
 Absent that, it belongs under an existing directory. `tools/` holds repository
@@ -65,18 +70,15 @@ editor and OS scratch files, and agent-local memory or session records.
 Validation already keeps its run directories and cache outside the checkout,
 so its evidence cannot be committed by accident.
 
-Two current gaps, both real:
+Both gaps recorded during PRE-016 are now closed under PRE-017:
 
-- The repository has **no tracked `.gitignore`**. `.venv/` is currently
-  excluded only because uv writes `.venv/.gitignore` containing `*` — an
-  artifact of a tool's behavior, not a declared repository rule. If that
-  behavior changes, the virtual environment becomes committable. The tracked
-  `.gitignore` is PRE-017's deliverable; the rule set above is what it must
-  encode.
-- `.agents/` and `.codex/` exist as empty, read-only, untracked directories.
-  Git cannot see empty directories, so nothing in the repository declares or
-  enforces them. They are either adapter locations that need tracked content
-  or leftovers that should be removed.
+- The tracked `.gitignore` encodes the rule set above. Before it existed,
+  `.venv/` was excluded only because uv writes `.venv/.gitignore` containing
+  `*` — an artifact of a tool's behavior, not a declared repository rule.
+  Ignoring is defense in depth: run directories, retained logs, and caches are
+  already outside the checkout by construction.
+- `.claude/`, `.agents/`, and `.codex/` are declared adapter locations and each
+  carries a tracked `.gitkeep`, so a clean clone reproduces them.
 
 ## Artifact size and external retention
 

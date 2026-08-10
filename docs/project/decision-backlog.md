@@ -1,6 +1,6 @@
 ---
 status: active
-last_updated: 2026-08-09
+last_updated: 2026-08-10
 ---
 
 # Decision backlog
@@ -30,7 +30,7 @@ ADR.
 | S-001 | What is the independently replaceable unit of deployment? | [In review: complete content-identified deployment set](../designs/0001-system-model/README.md) | P-003 |
 | S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | [Ownership boundary accepted; implementation design remains in review](reviews/0003-state-ownership-requirements.md) | S-001 |
 | S-003 | How are common and role-specific artifacts composed? | [Accepted: versioned fleet intent resolves common, role, and machine configuration into an identity-bound deployment variant](../designs/0005-fleet-intent-and-configuration/README.md) | P-004, S-001 |
-| S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
+| S-004 | What are the disk, partition, filesystem, and encryption models? | [Storage ownership, integrity, encryption, recovery, and capacity requirements accepted; concrete layout and mechanism design remains in review](reviews/0009-storage-layout-and-encryption-requirements.md) | S-001, S-002 |
 | S-005 | What threats and trust assertions govern boot and runtime? | [Boot-to-root and role objectives accepted; remaining threat model in review](reviews/0005-role-security-and-availability-objectives.md) | S-001 |
 | S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | [Accepted policy: separate routine, exceptional, machine, and data authorities; mechanism exercises remain](../adrs/0002-separate-authority-and-recovery.md) | S-005 |
 

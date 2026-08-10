@@ -126,6 +126,37 @@ Format-specific artifact terms retain their upstream meanings:
   corresponding OCI Image Specification objects. An OCI layer is a filesystem
   changeset blob, not a configuration scope or generic architectural layer.
 
+## Storage and data protection
+
+- **storage region**: A persistent partition, volume, filesystem, subvolume,
+  image store, mount, or explicitly reserved capacity range with declared
+  lifecycle purposes. A storage region is not automatically a state owner.
+- **storage slot**: A bounded destination capable of holding one version of a
+  deployment artifact. A slot name, number, partition label, or position is a
+  locator, not artifact or deployment identity.
+- **root slot**: A storage slot holding one immutable root image. When dm-verity
+  is used, its matching Verity data is part of the deployment closure even if
+  stored in a separate slot.
+- **root hash**: The trusted top-level dm-verity digest that authenticates one
+  exact root data and hash-tree combination. A root hash is an artifact binding,
+  not release authorization or qualification.
+- **state volume**: A block volume or filesystem holding one or more persistent
+  state-contract namespaces with compatible custody, unlock, preservation,
+  recovery, and destruction policy.
+- **unlock method**: A declared way to obtain or derive the key that activates
+  an encrypted state volume, such as TPM2 policy, FIDO2, passphrase, or a
+  recovery key.
+- **recovery key**: An independently retained high-entropy storage-unlock secret
+  used deliberately when the routine unlock method is unavailable. It is not
+  recovery-environment authorization or a release-signing key.
+- **capacity reserve**: Storage deliberately withheld or protected for a named
+  update, fallback, recovery, migration, diagnostic, or layout-evolution
+  obligation. Unallocated space is not a reserve unless policy keeps it
+  available for that purpose.
+- **checkpoint**: An owner-specific consistent point from which state can be
+  retried or restored. A filesystem snapshot is only one possible checkpoint
+  mechanism and is not an independent backup by itself.
+
 ## Evidence and authority
 
 - **attestation**: A verifiable statement made by an identified authority about

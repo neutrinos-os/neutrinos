@@ -1,6 +1,6 @@
 ---
 status: active
-last_updated: 2026-08-09
+last_updated: 2026-08-10
 ---
 
 # System requirements
@@ -60,6 +60,15 @@ replacement is identified by its acceptance review.
 | SYS-045 | Accepted | Every deployment variant must retain an immutable composition record identifying its ordered inputs, tool identities, precedence decisions, validations, resolved configuration, rendered outputs, and declared exceptions. | Bidirectional source-to-output attribution and reproduction tests. |
 | SYS-046 | Accepted | Every late-bound input must have an identity-bound contract covering ownership, source, consumer, schema, constraints, delivery or observation, failure behavior, status effect, and qualification fixtures. | Workstation and router late-bound inventories with absent, invalid, stale, and substituted-value tests. |
 | SYS-047 | Accepted | Provisioning and enrollment must remain separate from normal configuration and deployment selection, and replay must not silently change role assignment, machine identity, preserved state, or selected deployment. | Interrupted provisioning, replay, reprovision, and ordinary-reboot tests. |
+| SYS-048 | Accepted | Every persistent partition, volume, filesystem, subvolume, mount, image store, and reserved region must map to explicit deployment, recovery, lifecycle-metadata, state-contract, or capacity-reserve purposes; shared physical storage must not erase owner-specific lifecycle semantics. | Storage map traced bidirectionally to every deployment artifact, recovery reference, mount, and state contract on each reference role. |
+| SYS-049 | Accepted | Normal release root content must be mounted read-only and authenticated against an exact identity carried or authenticated by the selected boot artifact; independently valid substituted release-owned members must fail the boot-integrity gate. | UKI, root, Verity, configuration, manifest, and slot-substitution matrix on VM and physical roles. |
+| SYS-050 | Accepted | Storage and selection must preserve the complete booted deployment and capacity for one complete candidate or eligible fallback; partial staging must not consume the booted closure, expose a boot entry, or assemble a hybrid deployment. | Power-loss injection before and after every artifact, label, boot-entry, and selection transition. |
+| SYS-051 | Accepted | Each role must map protected data and every relevant plaintext spill path—including swap, hibernation, crash dumps, temporary storage, diagnostics, and workload scratch data—to a declared encryption and unlock boundary. | Powered-off inspection and plaintext-canary tests for every protected state class and spill path. |
+| SYS-052 | Accepted | Every encrypted volume must define and exercise routine unlock, independent recovery, metadata or header backup, enrollment, rotation, loss, compromise, restoration, and destruction behavior outside its own failure domain. | Key rotation, lost routine method, recovery-key use, header corruption/restore, disk replacement, and destruction exercises. |
+| SYS-053 | Accepted | Unattended hardware-bound unlock must bind a hardware-protected secret to the accepted authenticated or measured boot policy and pass update, rollback, firmware, reset, and recovery tests; a colocated software secret must not be represented as equivalent. | Authorized/substituted UKI tests plus firmware update, Secure Boot change, TPM clear/loss, offline reboot, and recovery. |
+| SYS-054 | Accepted | An independently authorized recovery environment must boot without automatically unlocking, mounting, executing, or restoring normal mutable state; each transition must be deliberate, attributable, and owner-aware. | Availability- and compromise-recovery exercises with hostile state and state initially locked. |
+| SYS-055 | Accepted | Filesystem and block snapshots, reflinks, and checkpoints must remain named state-owner operations and must not imply deployment identity, independent backup, application consistency, or whole-state rollback. | Owner-specific checkpoint, interruption, restore, capacity, and OS fallback tests. |
+| SYS-056 | Accepted | Every layout must reserve and enforce capacity for the booted deployment, required candidate or fallback, retained recovery, update temporaries, state migration, bounded diagnostics, and safety margin; growth and garbage collection must fail before violating those references. | Artifact-size budget, full-storage, growth, garbage-collection, diagnostic-retention, and layout-migration tests per role. |
 
 ## Interpretation of SYS-014 through SYS-018
 
@@ -110,3 +119,8 @@ SYS-042 through SYS-047 are derived from
 [DES-0005](../designs/0005-fleet-intent-and-configuration/README.md) and were
 accepted through the
 [fleet intent and configuration requirements review](../project/reviews/0008-fleet-intent-and-configuration-requirements.md).
+
+SYS-048 through SYS-056 are derived from
+[DES-0006](../designs/0006-storage-layout-and-encryption/README.md) and were
+accepted through the
+[storage layout and encryption requirements review](../project/reviews/0009-storage-layout-and-encryption-requirements.md).

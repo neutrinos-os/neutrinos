@@ -19,9 +19,11 @@ Initial research tracks:
 - [representative fleet intent and field-authority model](exercises/0006-representative-fleet-intent.md)
 - [fleet-intent representation and validation comparison](comparisons/fleet-intent-representation.md)
 - [native configuration and inspection walkthrough](exercises/0007-native-configuration-and-inspection.md)
+- [storage, root-integrity, and encryption comparison](comparisons/storage-integrity-and-encryption.md)
+- [reference storage layout tabletop](exercises/0008-reference-storage-layouts.md)
 - package-source release and security-maintenance models
 - systemd/UAPI image-building and update capability gaps
-- update rollback versus mutable-state migration
+- update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts
 - Btrfs and ZFS workload/storage behavior
-- Secure Boot, UKI, TPM, verity, encryption, and key recovery
+- Secure Boot, UKI, TPM, verity, encryption, and key recovery implementation

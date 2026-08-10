@@ -1,7 +1,7 @@
 ---
 status: informational
 source: 2026-08-09-design-session-transcript.md
-last_updated: 2026-08-09
+last_updated: 2026-08-10
 ---
 
 # Design-session restart brief
@@ -116,10 +116,11 @@ idea:
 - Filesystem features serve mutable state. Filesystem snapshots are not the
   primary OS deployment identity or rollback mechanism.
 
-The current storage proposal is
+The current storage mechanism proposal is
 [DES-0006](../designs/0006-storage-layout-and-encryption/README.md), which is
-still in review. It must preserve this stated direction while retaining ext4
-as an evidence-based challenger where a role does not benefit from Btrfs.
+still in review. SYS-048 through SYS-056 accept its policy boundaries. The
+mechanism design must preserve this stated direction while retaining ext4 as
+an evidence-based challenger where a role does not benefit from Btrfs.
 
 ### Configuration
 
@@ -317,9 +318,9 @@ Do not reconstruct these from the transcript; read their records:
   [reference host inventory](../research/hardware/reference-host-inventory.md).
 
 DES-0001 through DES-0004 contain accepted policy boundaries but still have
-implementation-level review work. DES-0005 and ADR-0003 are accepted. DES-0006
-and SYS-048 through SYS-056 are currently in review and must not be described
-as accepted until their records say so.
+implementation-level review work. DES-0005 and ADR-0003 are accepted. The
+policy boundaries in SYS-048 through SYS-056 are accepted; DES-0006 remains in
+review while its concrete storage mechanisms await evidence.
 
 ## Restart checklist
 

@@ -24,6 +24,7 @@ verify its summary against the current ADRs, requirements, and active design.
 12. [Initial threat and trust model](designs/0003-threat-and-trust-model/README.md)
 13. [Minimum viable authority and recovery model](designs/0004-authority-and-recovery/README.md)
 14. [Fleet intent and configuration composition](designs/0005-fleet-intent-and-configuration/README.md)
+15. [Storage layout, immutable root, and encryption](designs/0006-storage-layout-and-encryption/README.md)
 
 The original conversation is preserved as [background material](background/2026-08-09-design-session-transcript.md).
 

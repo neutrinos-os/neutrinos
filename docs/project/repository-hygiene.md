@@ -23,6 +23,7 @@ purpose:
 | `CLAUDE.md` | Thin Claude adapter; imports `AGENTS.md` | PRE-013 |
 | `docs/` | The entire design and project record | `docs/README.md` |
 | `tools/` | Repository tooling that is not NeutrinOS source | PRE-015 |
+| `src/` | NeutrinOS source and slice implementation; authorized by G1 and bounded by the active implementation plan | PLN-0001 |
 | `mise.toml`, `mise.lock` | Toolchain and Linux-x64 lock | PRE-015 |
 | `pyproject.toml`, `uv.lock` | Validation engine deps and lock | PRE-015 |
 | `.github/` | Forge configuration | PRE-017 |

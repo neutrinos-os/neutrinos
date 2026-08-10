@@ -124,7 +124,7 @@ At most one task is `active`.
 
 | Task | Status | Depends on | Output/evidence | Next action |
 | --- | --- | --- | --- | --- |
-| PLN-0001-01 | pending | — | Declared input set: source revision, package snapshot identity, repository list, tool identities, minimal fleet intent | Write the input declaration and its schema, and record what makes each input exact |
+| PLN-0001-01 | complete | — | `src/slice/input-set.toml`, `src/slice/schema/input-set-v1.schema.json`, and [input declaration](../project/slice-input-declaration.md) recording what makes each input exact. Instance validates; schema rejects seven constructed violations | Complete 2026-08-10. No registered check guards these files until PLN-0001-05; the record states this. PLN-0001-02 is next |
 | PLN-0001-02 | pending | 01 | Composition fixture producing a bootable deployment set | Compose the smallest bootable set and retain its composition record |
 | PLN-0001-03 | pending | 02 | Boot of the literal artifact in a disposable VM | Boot the composed set unmodified and capture console and journal evidence |
 | PLN-0001-04 | pending | 03 | Identity report from the running machine | Report booted deployment and input identities; compare against the composition record |

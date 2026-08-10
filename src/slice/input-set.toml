@@ -1,0 +1,51 @@
+# Declared input set for the PLN-0001 reference-VM slice.
+#
+# Validated against schema/input-set-v1.schema.json. Every value here is an
+# identity, not a preference: composition resolves exactly these inputs or
+# fails. What makes each one exact is recorded in
+# docs/project/slice-input-declaration.md.
+#
+# Nothing in this file accepts a mechanism. Fedora and mkosi are candidate
+# fixtures under PLN-0001 and remain candidates however many times they work.
+
+[schema]
+id = "neutrinos.slice.input-set"
+version = 1
+
+[source]
+repository = "https://github.com/neutrinos-os/neutrinos"
+revision = "874e9c7709984a37eebde1fddbe6af49a2d29109"
+
+[packages]
+distribution = "fedora"
+release = "44"
+architecture = "x86_64"
+
+# Exactly one repository. The Fedora release tree is frozen at GA, so its
+# metadata is a stable identity. `updates` is deliberately absent: it is
+# republished continuously and cannot be an exact input. Omitting it means the
+# slice builds GA package versions and nothing newer, which is the intended
+# cost of exactness rather than an oversight.
+[[packages.repositories]]
+name = "fedora"
+url = "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os"
+metadata_digest = "da3845427d188097f6fd71b417a039bdfb8efefc4f38ca44b5cbb94f95a18991"
+metadata_revision = "1776864872"
+frozen = true
+
+[[tools]]
+name = "mkosi"
+version = "v26"
+identity_kind = "git-commit"
+identity = "84af20892b61c8e177e391f997ded8b4cb5514f2"
+note = "Candidate composition fixture. Commit is the v26 annotated tag dereferenced; the tag itself is mutable."
+
+# QEMU is deliberately absent. It executes the artifact but cannot change what
+# composition produces, and this record declares composition inputs only. The
+# boot tool's identity is PLN-0001-03's evidence, recorded with the boot rather
+# than pinned here where nothing would check it.
+
+[intent]
+role = "qualification"
+machine = "slice-vm-01"
+layers = ["common", "role", "machine"]

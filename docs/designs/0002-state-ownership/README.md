@@ -51,8 +51,10 @@ rollback, and reset semantics under CH-005 and Principles 3 and 4. SYS-014
 through SYS-018 constrain how declared configuration is authored, composed,
 deployed, and diagnosed.
 
-SYS-004 and SYS-009 remain candidate requirements. SYS-019 through SYS-026 were
-accepted as normative project policy through
+SYS-004 and SYS-009 were superseded by the more precise accepted SYS-019 and
+SYS-021 through SYS-023 through
+[PR-0007](../../project/reviews/0007-deployment-lifecycle-requirements.md).
+SYS-019 through SYS-026 were accepted as normative project policy through
 [PR-0003](../../project/reviews/0003-state-ownership-requirements.md), while
 this implementation design remains in review. The design must not assume that
 a snapshot is a backup, that an OS rollback is a state rollback, or that a path

@@ -128,10 +128,12 @@ operator mistake compromises every copy.
   the exposure window, or anti-downgrade state makes recovery unavailable.
 - Required response or experiment: define the maximum offline window, retained
   policy epoch, boot behavior after expiry or clock failure, and recovery-only
-  exception before accepting SYS-037.
-- Author response: explicitly deferred; this design prevents dependency on an
-  online check but does not yet bound offline exposure.
-- Disposition: open.
+  exception before claiming conformance with SYS-037.
+- Author response: PR-0007 accepts the requirement that these outcomes remain
+  explicit and preserve declared offline recovery; this design prevents
+  dependency on an online check but does not yet bound offline exposure.
+- Disposition: mitigated at the requirement level; concrete policy remains
+  open.
 - Residual risk: no mechanism can provide immediate revocation to a disconnected
   machine without a pre-existing local bound.
 
@@ -171,8 +173,9 @@ operator mistake compromises every copy.
    custody worksheet and retrieval exercise remain implementation evidence.
 3. **Complete on paper:** EX-0001 exercises loss and compromise of every custody
    class. Disposable-key and physical exercises remain implementation evidence.
-4. **Complete for this design:** offline freshness is explicitly deferred to
-   SYS-037 and must be resolved before that requirement is accepted.
+4. **Complete at requirement level:** PR-0007 accepts SYS-037. The concrete
+   freshness and policy-epoch design remains open before implementation can
+   claim conformance.
 5. **Complete at policy level:** EX-0002 disposes of C-002 by requiring separate
    routine signing compromise compartments. Mechanism and attack exercises
    remain implementation evidence.

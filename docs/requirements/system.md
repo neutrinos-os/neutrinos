@@ -6,25 +6,26 @@ last_updated: 2026-08-09
 # System requirements
 
 These requirements are extracted from the design session and subsequent
-research. The status of each requirement is tracked independently; `accepted`
+research. The status of each requirement is tracked independently. `Accepted`
 means the requirement is normative project policy, not that a design has yet
-satisfied it.
+satisfied it. `Superseded` preserves an earlier requirement whose normative
+replacement is identified by its acceptance review.
 
 | ID | Status | Requirement | Acceptance evidence |
 | --- | --- | --- | --- |
-| SYS-001 | Candidate | A release must be traceable to source revision, pinned inputs, build configuration, and test results. | Deployment manifest, release authorization, and provenance verification. |
-| SYS-002 | Candidate | Qualification must boot and test the same complete immutable deployment-set identity that is offered for deployment. | Deployment-manifest closure, artifact hashes, and boot-test record. |
-| SYS-003 | Candidate | A failed or interrupted OS update must have a documented, testable recovery path. | Failure-injection test matrix. |
-| SYS-004 | Candidate | The system must identify the owners and lifecycles of OS, machine, administrator, user, and workload state. | State inventory with upgrade, rollback, backup, and reset semantics. |
-| SYS-005 | Candidate | Role specialization must retain common deployment identity, release, update, status, and recovery semantics without requiring identical artifact shapes. | Cross-role architecture trace. |
-| SYS-006 | Candidate | Machine and role configuration must be reviewable in version control. | Configuration provenance and deployment test. |
-| SYS-007 | Candidate | Security mechanisms must state the assets, attackers, guarantees, and recovery behavior they address. | Threat-model traceability. |
-| SYS-008 | Candidate | The running machine must expose enough deployment identity to correlate it with its deployment manifest and qualification results. | On-machine identity inspection test. |
-| SYS-009 | Candidate | Mutable-state changes must not silently make the advertised rollback path unusable. | Forward/backward state compatibility tests. |
-| SYS-010 | Candidate | Every supported role must define externally observable health and acceptance criteria. | Role qualification specification. |
-| SYS-011 | Candidate | The system must distinguish the current qualified release from stale, pinned, locally modified, and unsupported deployments. | Machine inventory and release-identity inspection. |
-| SYS-012 | Candidate | An emergency release must retain minimum provenance, integrity, literal-artifact boot, changed-behavior, and rollback qualification. | Emergency release test record and documented skipped checks. |
-| SYS-013 | Candidate | Every deployed software component must expose who owns its vulnerability monitoring and update lifecycle. | Cross-component maintenance ownership inventory. |
+| SYS-001 | Accepted | A release must be traceable to source revision, pinned inputs, build configuration, and test results. | Deployment manifest, release authorization, and provenance verification. |
+| SYS-002 | Accepted | Qualification must boot and test the exact deployment identity and complete deployment closure that are offered for deployment. | Deployment manifest, deployment closure, artifact digests, and boot-test record. |
+| SYS-003 | Accepted | A failed or interrupted deployment-lifecycle transition must leave the prior valid selection intact, select another eligible retained deployment, or preserve a documented, testable path to deliberate recovery. | Failure-injection test matrix for every lifecycle transition. |
+| SYS-004 | Superseded | The system must identify the owners and lifecycles of OS, machine, administrator, user, and workload state. | Superseded by SYS-019. |
+| SYS-005 | Accepted | Role specialization must retain common deployment identity, release, update, status, and recovery semantics without requiring identical artifact shapes. | Cross-role architecture trace. |
+| SYS-006 | Superseded | Machine and role configuration must be reviewable in version control. | Superseded by SYS-014 through SYS-018. |
+| SYS-007 | Superseded | Security mechanisms must state the assets, attackers, guarantees, and recovery behavior they address. | Superseded by SYS-027. |
+| SYS-008 | Accepted | The running machine must expose its exact booted deployment identity and the evidence needed to correlate it with its deployment manifest, release authorization, and qualification record. | On-machine identity and evidence-correlation test. |
+| SYS-009 | Superseded | Mutable-state changes must not silently make the advertised rollback path unusable. | Superseded by SYS-021 through SYS-023. |
+| SYS-010 | Accepted | Every supported role must define externally observable health and acceptance criteria. | Role qualification specification. |
+| SYS-011 | Superseded | The system must distinguish the current qualified release from stale, pinned, locally modified, and unsupported deployments. | Superseded by SYS-031. |
+| SYS-012 | Accepted | An emergency release must retain minimum provenance, content integrity, literal-artifact boot, changed-behavior qualification, and an applicable fallback, rollback, or maintenance-recovery exercise; skipped normal checks and reduced claims must remain explicit. | Emergency release evidence, exercised return path, and documented skipped checks and reduced claims. |
+| SYS-013 | Accepted | Every deployed software component must expose who owns its vulnerability monitoring and update lifecycle. | Cross-component maintenance ownership inventory. |
 | SYS-014 | Accepted | Normal machine and role intent must be expressible as bounded declarative data or upstream-native configuration; understanding it must not require evaluating a general-purpose programming language. | Representative workstation and router configurations reviewed without composition-engine knowledge. |
 | SYS-015 | Accepted | A missing project convenience schema must not prevent use of a supported upstream setting; native configuration and explicit pass-through inputs must remain attributable and testable. | Exercise an unmodeled upstream setting through the documented native-input path and trace it into qualification evidence. |
 | SYS-016 | Accepted | Configuration composition must have deterministic precedence and expose the fully resolved inputs and generated native configuration used for an artifact. | Composition inspection and conflicting-override tests. |
@@ -39,16 +40,20 @@ satisfied it.
 | SYS-025 | Accepted | Machine identity, enrollment records, and secrets must have lifecycles independent of OS rollback, including rotation, revocation, regeneration or restore, and destruction. | Re-enrollment, revocation, rollback, and factory-reset tests. |
 | SYS-026 | Accepted | Failed-update diagnostics must remain available through rollback or recovery subject to explicit sensitivity, retention, and storage limits. | Failure evidence retrieval, redaction, rotation, and full-storage tests on each role. |
 | SYS-027 | Accepted | Every security claim must identify its protected assets, attacker capabilities, trust assumptions, guarantees, non-guarantees, and compromise-recovery behavior for each applicable role. | Threat-to-control trace reviewed against workstation and router scenarios. |
-| SYS-028 | Candidate | A deployable release authorization must bind the immutable artifact set, applicable role or channel, configuration identity or compatibility, and freshness policy independently of its transport location or mutable discovery name. | Registry and metadata substitution tests against a signed release authorization joined to its deployment manifest. |
-| SYS-029 | Candidate | A machine must verify release authorization and content identity before a candidate can replace or outrank its currently selected deployment; failed or interrupted verification must leave that selection intact. | Corruption, substitution, interruption, and partial-staging tests. |
+| SYS-028 | Accepted | A deployable release authorization must bind the exact deployment identity, qualification record, authorization scope, configuration identity or compatibility, and freshness policy independently of transport location or mutable discovery name. | Registry and metadata substitution tests against a release authorization joined to its deployment manifest and qualification record. |
+| SYS-029 | Accepted | A candidate must be fully staged and eligible before it can replace or outrank the currently selected deployment; failed or interrupted acquisition, verification, or eligibility evaluation must leave that selection intact. | Corruption, substitution, interruption, policy-gate, and partial-staging tests. |
 | SYS-030 | Accepted | Normal boot on a production physical role must authenticate, from the configured platform trust anchor, every release-owned boot artifact and the release-owned root content before executing or mounting it as normal release-owned content. | Tamper tests for bootloader, kernel, initrd, command line or equivalent policy, and immutable root. |
-| SYS-031 | Candidate | Machine status must report release identity, authorization, boot integrity verification, provenance, qualification, freshness, currentness, support, and local modification as distinct properties. | Status-schema tests covering every independent combination relevant to operations and recovery. |
+| SYS-031 | Accepted | Machine status must report deployment identity, authorization, boot integrity verification, provenance, qualification, freshness, currentness, compatibility, health, blessing, support, and local modification as distinct properties. | Status-schema tests covering every independent combination relevant to operations and recovery. |
 | SYS-032 | Accepted | Every signing, enrollment, platform, machine, recovery, and data-encryption authority must define scope, storage, delegation, rotation, revocation, audit, loss, compromise, backup or regeneration, and destruction behavior. | Exercised authority inventory and loss/rotation/revocation runbook. |
 | SYS-033 | Accepted | Recovery authorization must remain independently usable after loss or compromise of the normal release signer and must not silently authorize a normal fleet release. | Offline recovery after signer loss and compromise. |
 | SYS-034 | Accepted | Each role must declare the data protected against powered-off device loss and an unlock/recovery model consistent with its unattended availability requirements. | Workstation theft-confidentiality test and router unattended reboot/recovery test. |
-| SYS-035 | Candidate | Compromise recovery must treat mutable executable state, machine identity, administrator overrides, user state, and workload state as potentially hostile and support owner-aware quarantine, selective restore, re-enrollment, or destruction. | Compromise-recovery exercise distinct from ordinary OS rollback. |
-| SYS-036 | Candidate | Cryptographic authorization must not substitute for provenance or qualification; promotion must verify that the authorized artifact identities are the literal qualified outputs. | Negative test signing an attributable but unqualified rebuild. |
-| SYS-037 | Candidate | Freshness, revocation, and downgrade policy must distinguish normal, recovery-only, and withdrawn artifacts without making declared offline recovery impossible. | Offline rollback/recovery tests after expiry, withdrawal, clock failure, and authority unavailability. |
+| SYS-035 | Accepted | Compromise recovery must treat mutable executable state, machine identity, administrator overrides, user state, and workload state as potentially hostile and support owner-aware quarantine, selective restore, re-enrollment, or destruction. | Compromise-recovery exercise distinct from ordinary OS rollback. |
+| SYS-036 | Accepted | Cryptographic authorization must not substitute for provenance or qualification; promotion must verify that the authorized artifact identities are the literal qualified outputs. | Negative test signing an attributable but unqualified rebuild. |
+| SYS-037 | Accepted | Freshness, revocation, and downgrade policy must distinguish deployments authorized for normal use, recovery-only use, and withdrawn use without making declared offline recovery impossible. | Offline rollback and recovery tests after expiry, withdrawal, clock failure, and authority unavailability. |
+| SYS-038 | Accepted | Every trial boot must have durable bounded attempt accounting, and a deployment may be blessed only after its exact booted identity passes the applicable role-health assessment. Exhaustion must select an eligible normal fallback or stop with an attributable diagnosis; it must not enter recovery automatically. | Power-loss and repeated-failure tests before, during, and after boot assessment and blessing. |
+| SYS-039 | Accepted | Blessing must apply only to one deployment identity on one machine and must not create or replace release authorization, provenance, qualification, compatibility, or fleet-wide health evidence. | Cross-machine and substituted-identity tests proving that one machine's blessing cannot authorize or qualify another deployment. |
+| SYS-040 | Accepted | Retention and garbage collection must preserve the complete deployment closure and required selection metadata of every selected or booted deployment and every deployment or recovery environment with a retention reference until that reference is removed. | Shared-content reachability and interruption tests across selection, fallback, rollback, recovery, and garbage collection. |
+| SYS-041 | Accepted | Once the required deployment sets, policy, and evidence are retained locally, the control path for normal boot, health-result recording, blessing, fallback, and deliberate rollback must not require a publication service, discovery service, package repository, signing environment, WAN, public DNS, or the machine's own production service path. A failed production service may fail health assessment, but it must not prevent recording that result or selecting an eligible fallback. | Offline lifecycle tests for the reference VM, workstation, and router with all named dependencies unavailable. |
 
 ## Interpretation of SYS-014 through SYS-018
 
@@ -84,4 +89,13 @@ SYS-027 and SYS-034 were accepted through the
 [role security and availability review](../project/reviews/0005-role-security-and-availability-objectives.md).
 SYS-032 and SYS-033 were accepted through the
 [authority and recovery policy review](../project/reviews/0006-authority-and-recovery-policy.md).
-The others remain candidate requirements pending review.
+SYS-028, SYS-029, SYS-031, and SYS-035 through SYS-037 were accepted through
+the [deployment lifecycle requirements review](../project/reviews/0007-deployment-lifecycle-requirements.md).
+
+SYS-038 through SYS-041 sharpen the trial-boot, blessing, retention, garbage-
+collection, and offline-operation behavior proposed by
+[DES-0001](../designs/0001-system-model/README.md). They were accepted through
+the [deployment lifecycle requirements review](../project/reviews/0007-deployment-lifecycle-requirements.md),
+which also accepted SYS-001 through SYS-003, SYS-005, SYS-008, SYS-010,
+SYS-012, and SYS-013 and superseded SYS-004, SYS-006, SYS-007, SYS-009, and
+SYS-011.

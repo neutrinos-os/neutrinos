@@ -245,7 +245,7 @@ workload, and machine state and restores it wholesale after reinstalling the OS.
 4. The machine remains quarantined until normal qualification, enrollment, and
    owner-specific checks succeed.
 
-**Result:** Pass on paper under SYS-024, SYS-025, and candidate SYS-035. The
+**Result:** Pass on paper under SYS-024, SYS-025, and accepted SYS-035. The
 state-contract inventory and malicious-state exercise remain implementation
 evidence.
 

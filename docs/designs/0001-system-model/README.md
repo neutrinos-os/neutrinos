@@ -77,9 +77,12 @@ The deployment model is constrained by existing project policy:
   platform signing, release authorization, recovery, enrollment, machine
   identity, and data recovery.
 
-SYS-001 through SYS-013 and SYS-028, SYS-029, SYS-031, SYS-035 through SYS-037
-remain candidate requirements. This design may sharpen them but does not ratify
-them.
+SYS-001 through SYS-003, SYS-005, SYS-008, SYS-010, SYS-012, SYS-013, SYS-028,
+SYS-029, SYS-031, and SYS-035 through SYS-041 are accepted lifecycle
+constraints through the
+[deployment lifecycle requirements review](../../project/reviews/0007-deployment-lifecycle-requirements.md).
+That review also records the accepted requirements that supersede the earlier
+SYS-004, SYS-006, SYS-007, SYS-009, and SYS-011 statements.
 
 ## Terminology
 

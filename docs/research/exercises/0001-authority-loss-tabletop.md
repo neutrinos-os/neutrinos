@@ -304,8 +304,9 @@ offline root during a normal emergency release.
    separately controlled.
 5. **The logical model survives total root loss only through visible trust
    reset.** It cannot promise continuity without a surviving root or successor.
-6. **SYS-037 remains the largest policy gap.** Offline revocation, expiry, clock
-   failure, and anti-downgrade must be resolved together.
+6. **Satisfying SYS-037 remains the largest concrete policy gap.** Offline
+   revocation, expiry, clock failure, and anti-downgrade must be resolved
+   together.
 7. **Manual promotion is viable on paper and accepted for the initial fleet but
    needs a timed exercise.** The owner accepted it, including urgent releases,
    on 2026-08-09. Automation should assemble and verify evidence without holding
@@ -323,7 +324,7 @@ offline root during a normal emergency release.
   work begins.
 - Physical Secure Boot, TPM-loss, and recovery-boot exercises on the reference
   VM before either production host.
-- A freshness and downgrade design before SYS-037 is considered for acceptance.
+- A freshness and downgrade design that satisfies accepted SYS-037.
 
 ## Conclusion
 

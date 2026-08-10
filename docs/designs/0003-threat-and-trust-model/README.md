@@ -55,10 +55,11 @@ provenance and literal-artifact qualification to remain distinct. SYS-025
 requires machine identity and secret lifecycles to remain independent of OS
 rollback.
 
-SYS-001, SYS-002, and SYS-007 remain candidate requirements that this design
-supports but cannot silently ratify. The initial project has one maintainer and
-no external availability promise, so the authority model must be operable at
-that scale.
+SYS-001 and SYS-002 were accepted and SYS-007 was superseded by accepted
+SYS-027 through
+[PR-0007](../../project/reviews/0007-deployment-lifecycle-requirements.md).
+The initial project has one maintainer and no external availability promise, so
+the authority model must be operable at that scale.
 
 ## Assets
 

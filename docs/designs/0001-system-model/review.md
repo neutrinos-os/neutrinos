@@ -249,8 +249,11 @@ updater or object store.
 4. **Complete at documentation level:** RES-0004 maps the model to both
    candidates, rejects a custom updater/object store, and bounds the two
    justified project joins. Symmetric production-supported spikes remain open.
-5. **Open:** review which candidate lifecycle requirements should become
-   normative before the substrate ADR.
+5. **Complete at requirement level:**
+   [PR-0007](../../project/reviews/0007-deployment-lifecycle-requirements.md)
+   accepts the refined and newly required lifecycle requirements and records
+   the superseded early statements. Substrate conformance evidence remains
+   open.
 
 ## Review disposition
 

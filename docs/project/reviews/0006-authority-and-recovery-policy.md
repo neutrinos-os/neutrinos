@@ -77,4 +77,6 @@ and SYS-032 and SYS-033 are normative project requirements.
 Physical keys and storage locations must not be created as production
 authorities until the disposable-key, custody, firmware, unlock, recovery, and
 router out-of-band exercises named by DES-0004 have passed. SYS-035, SYS-036,
-and SYS-037 remain candidate requirements for their own reviews.
+and SYS-037 remained candidate requirements at this review; they were
+subsequently accepted through
+[PR-0007](0007-deployment-lifecycle-requirements.md).

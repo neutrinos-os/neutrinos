@@ -318,6 +318,14 @@ Format-specific artifact terms retain their upstream meanings:
 
 ## Evidence and authority
 
+- **test level**: One category in the accepted T0-through-T7 testing taxonomy,
+  identifying the subject and environment in which a claim is exercised. Test
+  levels are not an ordinal confidence scale and do not substitute for an
+  exact claim boundary. See the [test and evidence strategy](test-strategy.md).
+- **requirements-to-test trace**: A plan-scoped record joining an accepted
+  requirement or explicit experimental question to its claim classification,
+  exact boundary and non-claims, applicable test levels and scenarios, oracle,
+  inputs, evidence, result, gaps, and execution authority.
 - **evidence record**: Immutable, content-identified bytes expressing one typed
   claim or observation about exact subjects under a declared format, producer,
   completeness, and verification policy. Record identity does not establish

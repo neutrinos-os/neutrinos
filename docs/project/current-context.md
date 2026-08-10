@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: c96fdbb
+source_snapshot_revision: 89f58b0
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -24,9 +24,10 @@ NeutrinOS source implementation is **not authorized**.
 PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
-the owner-approved Codex/Claude set. Its one next action is PRE-014: define the
-layered test strategy and representative requirements-to-test trace. Copilot
-remains unverified and must not be relied on for autonomous repository work.
+the owner-approved Codex/Claude set. PRE-014 is satisfied. Its one next action
+is PRE-015: define canonical fast and complete validation entry points and
+their execution, isolation, evidence, cleanup, and CI contract. Copilot remains
+unverified and must not be relied on for autonomous repository work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -50,9 +51,12 @@ open either for a cold status report.
   credentials, Unix identity, and software-placement boundaries
   (`docs/requirements/system.md`). Exact mechanisms remain open where no ADR
   accepts them.
+- Test policy uses the T0-through-T7 taxonomy, cross-cutting `T5@Tn` failure
+  notation, exact requirements-to-test traces, and explicit claim boundaries
+  (`docs/project/test-strategy.md`).
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
-  PRE-001, PRE-002, PRE-010, PRE-011, PRE-012, and PRE-013 are satisfied;
-  PRE-018 and G1 are not.
+  PRE-001, PRE-002, and PRE-010 through PRE-014 are satisfied; PRE-018 and G1
+  are not.
 
 ## Leading but unaccepted fixtures
 

@@ -40,7 +40,13 @@ Digests of the retained build, SHA-256:
 | `neutrinos-slice.efi` (UKI) | `575c847dd491a081ff364b0139fe3e81b4e00add7f08f12fb6b4c2582a8cd0fd` | yes |
 | `neutrinos-slice.vmlinuz` | `4b37e4e542a62c580c751787848be6c99e6f908f6712c8c6da85516b8d541de2` | yes |
 | `neutrinos-slice.initrd` | `e7061e2539c9bab9b2c3a94f7f4bf75d4da6103cba6d490730896d43382c8b71` | yes |
-| `neutrinos-slice.raw` (disk) | `d3b5560d7394ce91f864ee1ee2ac1f42f1f936874fc72a686112c1edc42fb689` | **no** |
+| `neutrinos-slice.manifest` | `cb438999575af8889ba4bc23534e7b4a6e683d115e81d10f1b77120ef63bbaa2` | yes |
+| `neutrinos-slice.raw` (disk) | no stable digest; differs every build | **no** |
+
+The UKI, kernel, and initrd digests are unchanged by the `RemoveFiles=`
+normalization, which is expected: the removed paths are not inputs to the
+kernel image. The disk image has no digest to record because it does not have a
+stable one; see the reproducibility section below.
 
 ## Resolved package closure
 
@@ -58,22 +64,75 @@ The complete resolved set with exact versions is retained as
 the composition configuration so the record is produced by every build rather
 than by a flag someone remembers to pass.
 
-## The disk image is not reproducible
+## Reproducibility, measured
 
-Measured across four builds, two with a random repart seed and two with a fixed
-one:
+The UKI, kernel, initrd, and package manifest are bit-identical across builds.
+The disk image is not, and the reasons are now identified rather than unknown.
 
-- the UKI, kernel, and initrd are bit-identical every time, with or without the
-  fixed seed;
-- the disk image differs every time, including with the seed fixed.
+### The file tree is reproducible
 
-Fixing `Seed=` removes partition UUID randomness and was not sufficient.
-Whatever else varies inside the image has not been identified. This is recorded
-rather than resolved because SYS-016 asks for a comparison across two builds and
-the honest answer today is that the comparison succeeds at the UKI layer and
-fails at the disk layer. PLN-0001-07's offline reconstruction must compare the
-UKI and the resolved package set, not the `.raw` digest, until this is
-understood.
+Two `Format=directory` builds were compared by per-file SHA-256 over all 7780
+files. File metadata -- type, mode, and symlink targets -- was identical for
+every entry. Four files differed:
+
+| Path | Nature |
+| --- | --- |
+| `var/cache/ldconfig/aux-cache` | Linker cache, regenerated at runtime |
+| `usr/lib/sysimage/rpm/rpmdb.sqlite-shm` | SQLite shared-memory sidecar |
+| `usr/lib/sysimage/rpm/rpmdb.sqlite-wal` | SQLite write-ahead log, empty |
+| `usr/lib/sysimage/libdnf5/transaction_history.sqlite-{shm,wal}` | As above |
+
+The package databases themselves (`rpmdb.sqlite`,
+`transaction_history.sqlite`) are byte-identical; only the journal sidecars
+vary, because the databases were not closed cleanly. Checkpointing the dnf
+history WAL reports zero live frames and leaves the database unchanged, so the
+sidecars hold no committed data and `RemoveFiles=` discards nothing. With them
+removed, the tree is reproducible.
+
+Four files (`etc/shadow`, `etc/shadow-`, `etc/gshadow`, `etc/gshadow-`) are
+mode 0000 and were skipped by the first comparison. They were hashed inside the
+user namespace and are identical. A comparison that silently omits the files
+most likely to carry a random salt is not a comparison.
+
+### The disk image is not reproducible, for two identified reasons
+
+With the tree reproducible, two `Format=disk` builds still differ in 101679
+bytes out of 1.39 GB. Both causes lie below the file tree:
+
+1. **The btrfs chunk tree UUID.** `mkfs.btrfs` generates it randomly, and it is
+   embedded in the 80-byte header of every metadata node and leaf, so each
+   header and its checksum differs. Measured directly: the filesystem UUID is
+   now identical across builds (`Seed=` works), while the chunk tree UUID
+   differs. `mkfs.btrfs` exposes `-U` for the filesystem UUID and
+   `--device-uuid` for the device UUID, and **no option for the chunk tree
+   UUID**. This is not a configuration gap on our side; upstream btrfs
+   discussion of reproducible builds names the same three obstacles --
+   UUIDs other than the volume UUID, timestamps, and non-deterministic extent
+   and inode allocation -- and singles out the chunk UUID because it appears in
+   every node and leaf.
+2. **The FAT volume serial number of the ESP**, nine bytes immediately before
+   the `ESP` volume label. `mkfs.vfat` supports `-i` to set it, so this one is
+   fixable in principle, but it is not reachable through mkosi configuration
+   here.
+
+### Status of the goal
+
+Full disk-image reproducibility is a worthwhile goal and not a requirement at
+this stage. It is currently **unreachable with a btrfs root and this
+toolchain**, and no amount of configuration in `mkosi.conf` will change that.
+
+EROFS supports both a fixed UUID and `--mkfs-time`, and is deterministic by
+design. It is already a named candidate for the slice root. That makes
+"an EROFS root would probably be bit-reproducible" a plausible hypothesis and
+explicitly **not a reason to select EROFS**: the storage mechanism is open
+under S-004, and choosing a filesystem because it made a build comparison
+convenient is precisely the failure [PR-0029](reviews/0029-g1-gate-approval.md)
+C-005 warns about. The hypothesis is recorded for whoever takes that decision
+on its own merits.
+
+Until then, SYS-016's two-build comparison holds at the UKI, kernel, initrd,
+manifest, and file-tree layers, and fails at the disk layer. PLN-0001-07's
+offline reconstruction must compare those layers, not the `.raw` digest.
 
 ## What this does not establish
 

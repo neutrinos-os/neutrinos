@@ -43,8 +43,13 @@ PLN-0001-01 and PLN-0001-02 are complete. The slice declares its inputs in
 bounded TOML validated by JSON Schema, and composes a bootable Fedora 44
 deployment set unprivileged on `desktop-jason` with no host mutation, from a
 single frozen repository enforced by mkosi's `LocalMirror`. The UKI, kernel,
-and initrd are bit-identical across builds; the disk image is not, and that is
-unexplained. See the [input declaration](slice-input-declaration.md) and
+initrd, package manifest, and the complete 7780-file tree are bit-identical
+across builds. The disk image is not, and the cause is identified: the btrfs
+chunk tree UUID is generated randomly and `mkfs.btrfs` offers no way to fix it,
+so disk-image reproducibility is unreachable with a btrfs root regardless of
+configuration. It is a goal, not a G1 requirement. An EROFS root would likely
+be reproducible; that is a recorded hypothesis and not a reason to select
+EROFS. See the [input declaration](slice-input-declaration.md) and
 [composition record](slice-composition-record.md). mkosi and Fedora remain
 candidate fixtures; nothing has booted yet.
 

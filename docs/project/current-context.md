@@ -70,7 +70,10 @@ credentials -- with the UKI on its own ESP bit-identical to the composed
 output. Three findings: the image carries **no package database**, so package
 closure is not self-verifiable and rests on the builder's manifest alone; the
 root filesystem is mounted `rw`, so **SYS-049 is not demonstrated** and the
-plan's earlier read-only-root claim was never true; and systemd cannot use the
+plan's earlier read-only-root claim was never true -- owner-deferred to G2 on
+2026-08-10, because the authenticated half needs a Verity substrate `S-004` has
+not selected, a signature this slice has no authority to make, and a second
+deployment to substitute; and systemd cannot use the
 vTPM, because the tss2 runtime libraries are missing from the closure (systemd
 itself is built `+TPM2`). A correction to PLN-0001-02's method is
 recorded: `CleanPackageMetadata=auto` skips `directory` output, so the two

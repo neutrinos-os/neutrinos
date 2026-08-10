@@ -156,9 +156,14 @@ the boot record already names.
    in this report.
 2. **The root filesystem is mounted read-write**: `/dev/vda2 / btrfs
    rw,nodev,relatime`. PLN-0001's requirement trace lists SYS-049 as partially
-   demonstrated by a "read-only root mount". **It is not demonstrated.** The
-   trace must be corrected or the composition changed; this report does not
-   choose which.
+   demonstrated by a "read-only root mount". **It is not demonstrated.**
+   Resolved 2026-08-10 by owner decision: the trace is corrected and SYS-049 is
+   **deferred to G2**, not grown here. Both halves are absent, and the
+   authenticated half needs a UKI-to-root/Verity binding over a substrate
+   `S-004` has not selected, a signature the slice has no authority to make, and
+   a second deployment to substitute. Mounting the root read-only on its own was
+   considered and rejected: it would make the requirement read as partly met
+   while the half that carries the security value stayed absent.
 3. **systemd cannot use the TPM in this image.** The vTPM is present and the
    kernel driver binds it, but `systemd-cryptenroll` reports "TPM2 support is
    not installed". Refined 2026-08-10: systemd itself is built `+TPM2`, as its

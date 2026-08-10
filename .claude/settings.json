@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mise run check:fast)",
+      "Bash(mise run check:complete)",
+      "Bash(mise run check:list)",
+      "Bash(mise config ls *)",
+      "Bash(mise registry *)",
+      "Bash(lsmod)",
+      "Bash(gh run watch *)",
+      "Bash(gh label list *)",
+      "Bash(pnpm exec oxlint *)",
+      "Bash(pnpm lint)",
+      "Bash(pnpm knip)",
+      "Bash(pnpm osv)",
+      "mcp__claude_ai_DeepWiki__ask_question",
+      "mcp__claude_ai_DeepWiki__read_wiki_contents",
+      "mcp__claude_ai_DeepWiki__read_wiki_structure"
+    ]
+  }
+}

@@ -78,6 +78,19 @@ directory builds compared a tree that is not the shipped tree. See the
 Fedora remain candidate fixtures; one boot under emulation is not
 qualification.
 
+`P-009` is newly open and blocks nothing under G1: QEMU became the VM harness in
+PLN-0001-03 without a comparison, so [RES-0013](../research/comparisons/vm-test-harness.md)
+records one. QEMU alone offers a writable firmware varstore and a TCG fallback;
+cloud-hypervisor and `test.thing` offer neither, and `test.thing` is
+GPL-3.0-or-later, so its code cannot be copied into this Apache-2.0 repository.
+Four of its techniques should still be adopted independently -- guest-driven
+readiness over a notify vsock, SMBIOS Type 11 credentials, ssh over vsock with
+ephemeral keys, and `snapshot=on` disposability -- three of which would undo
+choices made in PLN-0001-03 and PLN-0001-04. **KVM does not work on
+`desktop-jason` because SVM is disabled in firmware**, not because a module or
+group is missing; TCG is the only option until that changes, and it rules out
+both alternative runners. `W-002` now blocks `P-009`.
+
 `P-008` is open and blocks nothing under G1: the required `canonical profiles`
 check cannot report on an unpushed commit, so direct pushes to `main` are
 rejected and `main` is pull-request-only in effect, and the only enabled merge

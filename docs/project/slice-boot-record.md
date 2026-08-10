@@ -34,10 +34,16 @@ These come from the build host's rolling package set and are not exact inputs.
 That is acceptable for a boot witness and would not be acceptable for anything
 this record claimed about composition output.
 
-**KVM was not used.** `/dev/kvm` does not exist on the build host: the CPU
-reports `svm`, and `kvm-amd.ko` is present but not loaded. Loading it requires
-root and would mutate `desktop-jason`, which PLN-0001 does not authorize, so the
-boot ran under TCG instead. This costs wall-clock time and nothing else for a
+**KVM was not used.** `/dev/kvm` does not exist on the build host and no `kvm`
+module is loaded. Loading one requires root and would mutate `desktop-jason`,
+which PLN-0001 does not authorize, so the boot ran under TCG instead.
+
+**Correction, 2026-08-10:** this record originally stated that the CPU reports
+`svm`. It does not. `/proc/cpuinfo` has no `svm` flag on this Ryzen 7 3700X
+running on bare metal, which means SVM is **disabled in firmware setup** --
+`modprobe kvm_amd` will load and then fail to enable. The original sentence
+would have sent someone chasing a module or a group permission instead of a
+firmware setting. See [RES-0013](../research/comparisons/vm-test-harness.md). This costs wall-clock time and nothing else for a
 boot witness, but a later task that measures timing must not use these numbers.
 
 The artifact itself was never opened for write. The VM ran against disposable

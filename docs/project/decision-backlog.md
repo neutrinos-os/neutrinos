@@ -55,7 +55,7 @@ ADR.
 | C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted: systemd credentials are the default service interface; custody, envelope, issuer, recovery, and exception mechanisms remain in review](reviews/0014-secret-and-credential-delivery-requirements.md) | C-001, S-005 |
 | W-001 | What are the supported identity, UID, sub-ID, and rootless-container semantics? | [Policy accepted: stable inventory-owned durable identity and explicit per-workload maps; exact allocations, classic accounts versus systemd-homed, runtime mappings, and migration remain in review](../designs/0012-unix-identity-and-rootless-containers/README.md) | S-002, C-001 |
 | W-002 | What is the microVM artifact, networking, storage, and lifecycle model? | Open | S-003, S-004, C-001 |
-| W-003 | Which software belongs in the OS, user environment, project, GUI sandbox, container, or VM? | Stated direction | S-002 |
+| W-003 | Which software belongs in the OS, user environment, project, GUI sandbox, container, or VM? | [Policy accepted: owner/lifecycle placement classes, release-owned role dependencies, effective-access boundaries, and independent update domains; exact mechanisms remain in review](../designs/0013-software-placement/README.md) | S-002, W-001 |
 | W-004 | When are role-specific kernels or no-initrd variants justified? | Open | P-004, S-004, L-002 |
 
 ## Wave 4: role designs

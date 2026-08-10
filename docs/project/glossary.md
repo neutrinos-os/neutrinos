@@ -111,6 +111,45 @@ that have not been established.
   and processes operate without initial-host-namespace root. Rootless operation
   narrows privilege but does not qualify its mounts, devices, sockets, secrets,
   code, or kernel attack surface.
+
+## Software placement and execution
+
+- **software component**: Executable code or executable-adjacent content made
+  available on a managed machine, including binaries, libraries, scripts,
+  plugins, runtimes, kernel modules, firmware, applications, workload images,
+  and guest artifacts.
+- **software placement class**: The semantic owner and lifecycle boundary by
+  which a software component is made available. The initial classes are
+  release, user baseline, project, desktop application, workload, guest, and
+  local exception. A package format does not determine the class.
+- **software placement record**: The authoritative statement joining a
+  component to its placement class, owner, exact source and realization,
+  consumers, execution boundary, host interfaces, configuration, credentials,
+  state, update, recovery, maintenance, evidence, and support effect.
+- **software realization**: One concrete installed or available instance of a
+  software component in a placement class. The same logical component may have
+  multiple realizations, but resolution must identify which one executes.
+- **execution boundary**: The effective isolation and host-integration contract
+  under which a component runs, described by actual users, namespaces, mounts,
+  portals, sockets, devices, capabilities, system calls, credentials, and
+  kernel boundary rather than a format label.
+- **update domain**: Components advanced and recovered by one owner through one
+  update protocol. Compatibility may join exact transitions across domains;
+  success or rollback in one domain does not imply the same in another.
+- **user baseline**: User-owned interactive software useful across projects but
+  not required for host policy, privileged or unattended services, role
+  availability, maintenance, or recovery.
+- **project environment**: Toolchain, runtime, dependency, task, and optional
+  container or guest inputs owned by an exact project revision. Encountering a
+  project environment does not by itself authorize executing its configuration.
+- **desktop application placement**: An independently installed interactive
+  application and runtime with explicit origin, installation authority,
+  effective permissions, user state, update, and support lifecycle. It is not
+  synonymous with Flatpak or with a proven sandbox.
+- **local software exception**: Software run under attributable administrator
+  or user authority without a fully accepted release, user, project,
+  application, workload, or guest contract. Its presence and support effect
+  remain visible rather than silently inheriting release qualification.
 - **provisioning**: Preparing initially blank or reset storage, trust roots,
   and machine identity. Provisioning is not routine OS configuration.
 - **installation**: Populating a target with a previously built deployment set

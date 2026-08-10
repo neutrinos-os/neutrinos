@@ -118,6 +118,18 @@ manager. Local host-bound storage, offline administrative envelopes, online
 issuance, workload identity, and recovery remain mechanism questions for
 EX-0013.
 
+Unix identity and rootless-container ownership policy is accepted in SYS-109
+through SYS-120. [DES-0012](../designs/0012-unix-identity-and-rootless-containers/README.md)
+remains in review for exact allocations, classic accounts versus systemd-homed,
+runtime mappings, migration, and operating cost.
+
+Software placement policy is now under review in
+[DES-0013](../designs/0013-software-placement/README.md). The working taxonomy
+separates release, user-baseline, project, desktop-application, workload, guest,
+and local-exception ownership. Native release packages, mise, Flatpak, exact
+OCI images, and guests are leading shapes for their respective classes; none of
+the concrete mechanisms is accepted before EX-0015.
+
 ## User preferences that must remain visible
 
 ### Systemd and UAPI
@@ -201,9 +213,11 @@ The transcript explored a useful separation:
   and
 - sysext should not become a random personal-software installation mechanism.
 
-This is a useful direction, not a final software-placement decision. Flatpak,
-AppImage, Nix profiles, Toolbx/Distrobox, and other mechanisms were compared but
-none was accepted merely by appearing in the transcript.
+This direction is now formalized with accepted policy boundaries in
+[DES-0013](../designs/0013-software-placement/README.md). Flatpak, mise,
+Toolbx/Distrobox, AppImage, Nix profiles, and other mechanisms remain candidates
+or exceptions rather than accepted defaults. SYS-121 through SYS-132 are
+accepted policy requirements.
 
 ### Rootless containers and identity
 
@@ -377,6 +391,9 @@ concrete custody, recipient, rotation, recovery, and service mechanisms.
 SYS-109 through SYS-120 accept Unix identity and rootless-container ownership
 policy; DES-0012 remains in review for exact allocations, account/home
 management, runtime mappings, migration, and measured operating cost.
+SYS-121 through SYS-132 accept software-placement and execution-boundary
+policy; DES-0013 remains in review for exact mechanisms, inventories,
+compatibility results, migrations, and measured operating cost.
 
 ## Restart checklist
 

@@ -35,3 +35,4 @@ Current designs:
 - [DES-0010: installation, provisioning, and machine enrollment](0010-installation-and-enrollment/README.md)
 - [DES-0011: secret custody and credential delivery](0011-secret-and-credential-delivery/README.md)
 - [DES-0012: Unix identity and rootless-container ownership](0012-unix-identity-and-rootless-containers/README.md)
+- [DES-0013: software placement and execution boundaries](0013-software-placement/README.md)

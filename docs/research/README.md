@@ -33,6 +33,8 @@ Initial research tracks:
 - [representative secret custody and credential flow](exercises/0013-representative-credential-flow.md)
 - [Unix identity, homed, and rootless-container comparison](comparisons/unix-identity-and-rootless-containers.md)
 - [Unix identity mapping, rootless bind, and restore exercise](exercises/0014-identity-mapping-and-restore.md)
+- [software placement mechanism comparison](comparisons/software-placement-mechanisms.md)
+- [representative software placement, shadowing, and rollback exercise](exercises/0015-software-placement-and-shadowing.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 38725e6
+source_snapshot_revision: c96fdbb
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -23,10 +23,10 @@ NeutrinOS source implementation is **not authorized**.
 
 PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
-scaffolding. Its one next action is the final EX-0016 Codex/Claude cold rerun at
-the revision containing this hard-bound route. If it passes, close PRE-012 and
-PRE-013; if Codex still exceeds the route, record the bounded client limitation
-without another routing iteration. PRE-014 layered test strategy follows.
+scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
+the owner-approved Codex/Claude set. Its one next action is PRE-014: define the
+layered test strategy and representative requirements-to-test trace. Copilot
+remains unverified and must not be relied on for autonomous repository work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -51,7 +51,8 @@ open either for a cold status report.
   (`docs/requirements/system.md`). Exact mechanisms remain open where no ADR
   accepts them.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
-  PRE-001, PRE-002, PRE-010, and PRE-011 are satisfied; PRE-018 and G1 are not.
+  PRE-001, PRE-002, PRE-010, PRE-011, PRE-012, and PRE-013 are satisfied;
+  PRE-018 and G1 are not.
 
 ## Leading but unaccepted fixtures
 
@@ -136,6 +137,8 @@ Update this file whenever any of the following changes:
 
 Set `source_snapshot_revision` to the source revision against which the summary
 was checked. This names its inputs, not this file's containing commit, and may
-therefore precede HEAD. PRE-012 and PRE-013 remain incomplete until EX-0016
+therefore precede HEAD. EX-0016
 (`docs/research/exercises/0016-agent-context-and-instruction-loading.md`) is
-dispositioned across the supported clients.
+complete for the owner-approved Codex/Claude set; rerun it before expanding the
+supported autonomous-client set or when instruction discovery materially
+changes.

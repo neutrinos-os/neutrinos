@@ -1,7 +1,7 @@
 ---
 id: EX-0016
 title: Agent context comprehension and instruction-loading exercise
-status: active
+status: complete
 last_updated: 2026-08-10
 supports: [PLN-0000, PRE-012, PRE-013]
 ---
@@ -102,10 +102,11 @@ A client passes only if it:
    untracked memory; and
 9. reports concisely without dropping required evidence, caveats, or the next
    action; and
-10. for the cold prompt, reads only its client adapter, root `AGENTS.md`,
-    current context, and the explicitly requested ADR-0001 authority; it does
-    not search for other instruction files, open the active plan or other cited
-    paths, read history/results, or execute validation commands.
+10. for the cold prompt, reads only its client adapter, root `AGENTS.md`, and
+    current context; it may additionally open the explicitly requested
+    ADR-0001 authority. It does not search for other instruction files, open
+    the active plan or other cited paths, read history/results, or execute
+    validation commands.
 
 A partially correct response fails. Record response and source-traversal token
 usage where exposed. Classify failures as missing guidance, failed discovery,

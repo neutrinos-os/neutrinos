@@ -4,6 +4,7 @@ subject: Validation execution contract
 reviewer: Codex adversarial pass
 date: 2026-08-10
 status: accepted
+amended_by: PR-0019
 ---
 
 # Validation execution contract review
@@ -17,11 +18,11 @@ implementation or CI result.
 
 ## Summary judgment
 
-The proposal is suitable for implementation if `./check` remains a dispatcher
-and evidence boundary rather than growing into a custom test framework. Its
-strongest property is that the same profile semantics govern local and CI use
-while secrets, privilege, network, and physical mutation are denied by
-default.
+The proposal is suitable for implementation if the canonical task interface
+remains a dispatcher and evidence boundary rather than growing into a custom
+test framework. Its strongest property is that the same profile semantics
+govern local and CI use while secrets, privilege, network, and physical
+mutation are denied by default.
 
 The strongest reason to reject it is bootstrap friction. An offline,
 secret-free, unprivileged complete suite requires deliberate retained inputs
@@ -47,8 +48,9 @@ network and credentials.
 - Severity: high
 - Claim: selection, registration, output, and cleanup logic may grow custom
   assertion APIs and hide native runner behavior.
-- Required response: keep `./check` thin, delegate assertions, retain native
-  diagnostics, and standardize only cross-runner policy and result joins.
+- Required response: keep the canonical tasks thin, delegate assertions,
+  retain native diagnostics, and standardize only cross-runner policy and
+  result joins.
 - Author response: the stable interface explicitly permits purpose-built
   runners and requires native logs.
 - Disposition: mitigated
@@ -122,7 +124,7 @@ network and credentials.
   downloads undermine the validation boundary.
 - Required response: immutable action commits, a versioned runner label with
   recorded resolved image identity, least privilege, no secrets, and an
-  explicit boundary before offline `./check` execution.
+  explicit boundary before offline validation execution.
 - Author response: included.
 - Disposition: mitigated
 - Residual risk: runner-image identity and action update ownership remain
@@ -156,7 +158,7 @@ network and credentials.
 
 No textual blocker is currently known. Owner review should confirm:
 
-1. `./check fast|complete|list|run` as the stable interface;
+1. the canonical fast, complete, list, and exact-test task interface;
 2. offline, unprivileged, secret-free execution as the default;
 3. the initial timeout and 14-day ephemeral CI-retention budgets;
 4. no automatic assertion retry and blocking treatment of required flaky tests;
@@ -169,4 +171,6 @@ No textual blocker is currently known. Owner review should confirm:
 
 Accepted by Jason Tarasovic on 2026-08-10. All six review confirmations are
 approved. The implementation risks and hostile probes remain active PRE-015
-work; policy acceptance is not implementation evidence.
+work; policy acceptance is not implementation evidence. PR-0019 subsequently
+amends the interface and toolchain-specific conclusions without weakening the
+remaining dispositions.

@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 0c7dc38
+source_snapshot_revision: 42be25a
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -25,10 +25,10 @@ PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 is satisfied and PRE-015 is active.
-Its one next action is to implement the accepted `./check` interface and named
-T0 registrations, then run its hostile probes and clean local profiles before
-the initial CI check. Copilot remains unverified and must not be relied on for
-autonomous repository work.
+Its one next action is to implement the accepted canonical mise tasks, locked
+Python 3.14/uv validation engine, and named T0 registrations, then run hostile
+probes and clean local profiles before the initial CI check. Copilot remains
+unverified and must not be relied on for autonomous repository work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -55,10 +55,12 @@ open either for a cold status report.
 - Test policy uses the T0-through-T7 taxonomy, cross-cutting `T5@Tn` failure
   notation, exact requirements-to-test traces, and explicit claim boundaries
   (`docs/project/test-strategy.md`).
-- Validation policy uses the stable `./check fast|complete|list|run` interface,
-  applicable-suite semantics, offline/unprivileged/secret-free defaults, and
-  explicit result, timeout, cleanup, and CI rules
-  (`docs/project/validation-contract.md`). Its implementation is incomplete.
+- Validation policy uses the canonical `mise run check:fast`, `check:complete`,
+  `check:list`, and `check:run` tasks, with a locked Python 3.14/uv engine by
+  default. Applicable-suite, offline/unprivileged/secret-free, result, timeout,
+  cleanup, and CI rules are accepted (`docs/project/validation-contract.md`).
+  Implementation is incomplete. Repository mise use does not select host-role
+  software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001, PRE-002, and PRE-010 through PRE-014 are satisfied; PRE-018 and G1
   are not.

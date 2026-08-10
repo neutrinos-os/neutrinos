@@ -3,6 +3,7 @@ status: accepted
 last_updated: 2026-08-10
 governing_plan: PLN-0000
 readiness_criterion: PRE-015
+amended_by: PR-0019
 ---
 
 # Validation execution contract
@@ -14,21 +15,21 @@ This policy defines the stable local and CI interface for running the accepted
 isolation, privileges, network and secrets, timeouts, flaky results, output,
 redaction, cleanup, retention, and the initial CI gate.
 
-It does not choose the implementation language or test framework used behind
-the interface, authorize product source implementation, acquire package or
-build inputs, run physical-host trials, or define long-term qualification-
-evidence storage. Repository layout and ignored local state remain PRE-016 and
-PRE-017 work.
+It selects the repository task interface and initial validation language and
+toolchain. It does not select an assertion framework, authorize product source
+implementation, acquire package or build inputs, run physical-host trials, or
+define long-term qualification-evidence storage. Repository layout and ignored
+local state remain PRE-016 and PRE-017 work.
 
 ## Stable entry points
 
-The repository root exposes one thin executable interface:
+The repository exposes these canonical mise tasks:
 
 ```text
-./check fast
-./check complete
-./check list
-./check run TEST-ID...
+mise run check:fast
+mise run check:complete
+mise run check:list
+mise run check:run TEST-ID...
 ```
 
 - `fast`: every registered T0 check plus applicable deterministic T1 and T2
@@ -41,15 +42,45 @@ The repository root exposes one thin executable interface:
 - `run`: developer selection of exact test IDs. It is never evidence that the
   `fast` or `complete` gate passed.
 
-The interface may delegate to several purpose-built runners. Callers and CI do
-not invoke those runners directly. Changes to implementation behind `./check`
-must preserve these meanings or revise this policy first.
+The tasks delegate to one validation engine and any purpose-built native
+runners. Mise owns task discovery and the locked tool environment; it does not
+own test registration, selection, assertions, timeout enforcement, cleanup, or
+result semantics. Callers and CI do not invoke the engine or native runners
+directly. Changes behind the canonical tasks must preserve these meanings or
+revise this policy first.
 
 “Complete” means the complete applicable suite declared by the repository at
 that revision. It never silently includes T7, a physical machine, production
 authority, an undefined role, or a deferred test. The run manifest lists every
 registered test as selected, not applicable, deferred, blocked, or excluded
 with its reason.
+
+## Toolchain and bootstrap boundary
+
+The repository toolchain is declared by `mise.toml` and resolved exactly for
+supported platforms by a committed `mise.lock`. It is not inferred from or
+pinned to the current development host. Mise tasks remain small dispatchers;
+substantial validation behavior lives in reviewable Python modules or the
+native tools responsible for each assertion.
+
+The initial validation engine uses the latest locked Python 3.14 patch release.
+Python packages are declared in `pyproject.toml`, resolved by a committed
+`uv.lock`, and executed with locked resolution. Mise owns Python, uv, and
+non-Python tool versions; uv alone owns Python package dependency resolution.
+The same dependency must not be independently pinned by both systems.
+
+A lower Python version is permitted only when a named required tool or
+dependency prohibits 3.14, supported by a reproducible failure or upstream
+compatibility statement. The exception must name its owner, affected checks,
+smallest viable fallback, and removal condition. Convenience, an older host
+interpreter, or an unexamined transitive constraint is not sufficient.
+
+Bootstrap is separate from validation. A local or CI bootstrap may install the
+pinned mise release and run `mise install --locked` plus locked uv dependency
+synchronization. Mise task auto-install is disabled: after bootstrap, a missing
+tool or stale lock fails preflight rather than downloading or resolving during
+validation. CI pins its mise bootstrap and third-party actions independently
+because mise cannot bootstrap its own executable.
 
 ## Test registration and selection
 
@@ -100,10 +131,10 @@ the default entry points.
 
 ## Network, dependencies, and secrets
 
-Validation is offline by default. `./check` must not download dependencies,
-resolve mutable package sources, contact publication or discovery services, or
-depend on current upstream state. Bootstrap, input acquisition, and cache
-population are separate attributable operations with pinned inputs.
+Validation is offline by default. Canonical check tasks must not download
+dependencies, resolve mutable package sources, contact publication or discovery
+services, or depend on current upstream state. Bootstrap, input acquisition,
+and cache population are separate attributable operations with pinned inputs.
 
 Tests receive an allowlisted environment and a temporary home. Agent tokens,
 SSH agents, GPG agents, cloud credentials, GitHub write tokens, production
@@ -111,11 +142,11 @@ keys, host enrollment, machine identity, recovery material, and user credential
 stores are absent. A required environment value is declared and synthetic; an
 undeclared credential-like value fails preflight.
 
-CI may use network access to check out the repository and obtain a pinned
-runner environment before `./check` starts. The validation process itself runs
-with no network unless a future accepted test trace names the exact endpoint,
-purpose, data exposure, and failure behavior. Such a test is excluded from
-`fast` and may not use production authority.
+CI may use network access to check out the repository and obtain the locked
+runner environment before a canonical check task starts. The validation
+process itself runs with no network unless a future accepted test trace names
+the exact endpoint, purpose, data exposure, and failure behavior. Such a test
+is excluded from `fast` and may not use production authority.
 
 ## Timeouts and flaky results
 
@@ -193,7 +224,8 @@ test that could reuse the leaked state.
 
 ## Initial CI contract
 
-The first CI workflow runs `./check fast` in a clean checkout. It must:
+The first CI workflow bootstraps the locked repository toolchain and then runs
+`mise run check:fast` in a clean checkout. It must:
 
 - use a versioned runner label rather than a floating `latest` label, record
   the resolved runner-image identity, and pin third-party actions by immutable
@@ -204,25 +236,26 @@ The first CI workflow runs `./check fast` in a clean checkout. It must:
 - upload the bounded run result on success and failure for 14 days; and
 - fail on any nonzero entry-point result or unexpected checkout mutation.
 
-`./check complete` is initially a required local pre-G1 check and a manual CI
-workflow. It becomes an automatic gate only when its retained inputs, cache,
-virtualization, runtime, and cost are deterministic enough that CI failure has
-a useful owner response. A CI badge, check mark, or workflow conclusion is
-non-authoritative; plan and gate status change only in repository records after
-owner review.
+`mise run check:complete` is initially a required local pre-G1 check and a
+manual CI workflow. It becomes an automatic gate only when its retained inputs,
+cache, virtualization, runtime, and cost are deterministic enough that CI
+failure has a useful owner response. A CI badge, check mark, or workflow
+conclusion is non-authoritative; plan and gate status change only in repository
+records after owner review.
 
 ## Implementation sequence and exit
 
 PRE-015 is satisfied when:
 
-1. this contract and [PR-0018](reviews/0018-validation-contract.md) are accepted;
-2. `./check fast`, `complete`, `list`, and `run` implement the contract for the
-   tests then present;
+1. this contract, [PR-0018](reviews/0018-validation-contract.md), and
+   [PR-0019](reviews/0019-mise-validation-interface.md) are accepted;
+2. the four canonical mise tasks implement the contract for the tests then
+   present using the locked Python 3.14 toolchain or an accepted exception;
 3. the temporary commands in [validation.md](validation.md) are registered as
    named T0 tests rather than duplicated policy;
 4. a clean local checkout passes both profiles and preserves repository state;
-5. the initial pinned, least-privilege CI workflow passes `./check fast` and
-   retains its bounded result; and
+5. the initial pinned, least-privilege CI workflow passes
+   `mise run check:fast` and retains its bounded result; and
 6. hostile preflight, timeout, interruption, output, and cleanup probes verify
    that the runner fails closed.
 
@@ -230,9 +263,11 @@ Acceptance of this document alone does not satisfy PRE-015.
 
 ## Decision
 
-Accepted by Jason Tarasovic on 2026-08-10. The `./check` interface, applicable-
-suite meaning of `complete`, offline/unprivileged/secret-free defaults, initial
-budgets, result and cleanup contract, flaky-test policy, ephemeral CI retention,
-and PR-0018 dispositions are project validation policy. PRE-015 remains active
-until the entry points, hostile probes, clean local runs, and initial CI result
-satisfy the implementation exit criteria above.
+Accepted by Jason Tarasovic on 2026-08-10 and amended through accepted PR-0019
+on the same date. The canonical mise task interface, locked Python 3.14 and uv
+toolchain policy, applicable-suite meaning of `complete`, offline/unprivileged/
+secret-free defaults, initial budgets, result and cleanup contract, flaky-test
+policy, ephemeral CI retention, and PR-0018/PR-0019 dispositions are project
+validation policy. PRE-015 remains active until the entry points, hostile
+probes, clean local runs, and initial CI result satisfy the implementation exit
+criteria above.

@@ -14,7 +14,29 @@ git diff --check
 ```
 
 ```sh
-perl -MFile::Basename=dirname -MFile::Spec -e 'for my $f (@ARGV) { open my $h, q{<}, $f or die qq{$f: $!\n}; my $code=0; while (<$h>) { if (/^\s*```/) { $code=!$code; next } next if $code; while (/\[[^\]]*\]\(([^)]+)\)/g) { my $p=$1; $p =~ s/#.*//; $p =~ s/^<|>$//g; next if $p eq q{} || $p =~ m{^(?:https?|mailto):}; my $x=File::Spec->rel2abs($p,dirname($f)); print qq{$f -> $1\n} unless -e $x } } }' $(rg --files --hidden -g '*.md' -g '!.git/**')
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+link = re.compile(r"\[[^]]*\]\(([^)]+)\)")
+for document in Path(".").rglob("*.md"):
+    if ".git" in document.parts:
+        continue
+    fenced = False
+    for line in document.read_text().splitlines():
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+            continue
+        if fenced:
+            continue
+        for match in link.finditer(line):
+            raw = match.group(1)
+            target = raw.split("#", 1)[0].removeprefix("<").removesuffix(">")
+            if not target or re.match(r"^(?:https?|mailto):", target):
+                continue
+            if not (document.parent / target).exists():
+                print(f"{document} -> {raw}")
+PY
 ```
 
 No output from either command is a pass. These are temporary entry points and

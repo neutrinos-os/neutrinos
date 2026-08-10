@@ -3,7 +3,7 @@ status: accepted
 last_updated: 2026-08-10
 governing_plan: PLN-0000
 readiness_criterion: PRE-015
-amended_by: PR-0021
+amended_by: PR-0021, PR-0024
 ---
 
 # Validation execution contract
@@ -78,9 +78,16 @@ interpreter, or an unexamined transitive constraint is not sufficient.
 Bootstrap is separate from validation. Mise is offline in repository context;
 a local or CI acquisition phase may explicitly set `MISE_OFFLINE=0` only while
 installing the pinned repository tools with `mise install --locked python uv`.
-Locked uv dependency synchronization may then allow only its declared package
-endpoints. Naming the repository-owned tools prevents an operator's unrelated
-global mise configuration from entering project bootstrap. Mise task and shim
+Locked uv dependency synchronization may then reach the network unfiltered:
+endpoint restriction is not enforceable on the locked platform, so bootstrap is
+bounded by pinned inputs — committed tool and package locks, hash-checked and
+failing closed on mismatch — rather than by reachable hosts. Bootstrap
+integrity therefore rests on the locks, and a lock change is a reviewable
+acquisition change. Naming the repository-owned tools prevents an operator's
+unrelated global mise configuration from entering project bootstrap. A future
+mise that enforces per-host filtering on the locked platform may reinstate an
+endpoint restriction; doing so requires review, not a silent tightening.
+Mise task and shim
 auto-install are disabled, and canonical dispatch resolves Python and uv
 through `mise which`: after bootstrap, a missing tool or stale lock fails
 preflight rather than downloading, resolving, or using an ambient same-named

@@ -17,9 +17,15 @@ environment, trust this repository after reviewing `mise.toml`, then run:
 
 ```sh
 MISE_OFFLINE=0 mise install --locked python uv
-mise exec --allow-net pypi.org --allow-net files.pythonhosted.org -- \
-  uv sync --locked --python "$(mise which python)"
+uv sync --locked --python "$(mise which python)"
 ```
+
+Bootstrap is an unfiltered acquisition phase. Per-host network filtering is not
+available: pinned mise rejects `--allow-net=<host>` on Linux, the only locked
+platform, so no endpoint restriction is enforced here. What bounds bootstrap is
+the pinned input set, not the network path: `mise.lock` fixes the tool
+versions, `uv.lock` with `--locked` fixes every package and hash, and a lock
+mismatch fails rather than resolving.
 
 Naming `python uv` prevents unrelated tools in a developer's global mise
 configuration from becoming repository bootstrap inputs. `MISE_OFFLINE=0` is

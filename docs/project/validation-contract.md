@@ -76,9 +76,11 @@ smallest viable fallback, and removal condition. Convenience, an older host
 interpreter, or an unexamined transitive constraint is not sufficient.
 
 Bootstrap is separate from validation. A local or CI bootstrap may install the
-pinned mise release and run `mise install --locked` plus locked uv dependency
-synchronization. Mise task auto-install is disabled: after bootstrap, a missing
-tool or stale lock fails preflight rather than downloading or resolving during
+pinned mise release and run `mise install --locked python uv` plus locked uv
+dependency synchronization. Naming the repository-owned tools prevents an
+operator's unrelated global mise configuration from entering project
+bootstrap. Mise task auto-install is disabled: after bootstrap, a missing tool
+or stale lock fails preflight rather than downloading or resolving during
 validation. CI pins its mise bootstrap and third-party actions independently
 because mise cannot bootstrap its own executable.
 

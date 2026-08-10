@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 42be25a
+source_snapshot_revision: 1288521
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -25,10 +25,12 @@ PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 is satisfied and PRE-015 is active.
-Its one next action is to implement the accepted canonical mise tasks, locked
-Python 3.14/uv validation engine, and named T0 registrations, then run hostile
-probes and clean local profiles before the initial CI check. Copilot remains
-unverified and must not be relied on for autonomous repository work.
+Its one next action is to finish hostile preflight, timeout, interruption,
+output, and cleanup probes around the initial mise/Python 3.14 runner, then run
+clean local profiles and the pinned least-privilege initial CI check. The four
+canonical tasks, Linux-x64 tool locks, and named T0 documentation checks are
+implemented but do not yet satisfy PRE-015. Copilot remains unverified and must
+not be relied on for autonomous repository work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -59,8 +61,9 @@ open either for a cold status report.
   `check:list`, and `check:run` tasks, with a locked Python 3.14/uv engine by
   default. Applicable-suite, offline/unprivileged/secret-free, result, timeout,
   cleanup, and CI rules are accepted (`docs/project/validation-contract.md`).
-  Implementation is incomplete. Repository mise use does not select host-role
-  software placement.
+  The initial Linux-x64 task/runner/T0 slice is implemented; hostile probes,
+  full fail-closed enforcement, clean evidence, and CI remain. Repository mise
+  use does not select host-role software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001, PRE-002, and PRE-010 through PRE-014 are satisfied; PRE-018 and G1
   are not.
@@ -118,9 +121,9 @@ Concurrent work requires explicit ownership and isolated worktrees under root
 `AGENTS.md`.
 
 Read-only task: do not run validation. Report only this requirement: after
-documentation edits, run `git diff --check` and the internal Markdown-link
-check; no output is a pass. Exact temporary commands:
-`docs/project/validation.md`. They do not satisfy PRE-015.
+edits, run `mise run check:fast`; a successful terminal result is a pass.
+Bootstrap and the additional canonical profiles are documented in
+`docs/project/validation.md`. Current passing runs do not satisfy PRE-015.
 
 ## Context path for a fresh task
 

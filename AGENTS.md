@@ -50,8 +50,9 @@
 ## Work
 
 - Before edits: `git status`; preserve unrelated tracked/untracked/staged work.
-- After edits, validate via the source named in current context. Report checks
-  run/not run.
+- After edits: `mise run check:fast`; run additional checks required by the
+  governing plan. Bootstrap/details: [validation](docs/project/validation.md).
+  Report checks run/not run.
 - Small coherent commits; only after user approval/request; no unrelated work.
 - Update source + affected indexes/context/work register together when their
   declared triggers fire.

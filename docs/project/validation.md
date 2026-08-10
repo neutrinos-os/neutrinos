@@ -1,43 +1,55 @@
 ---
 status: informative
 last_updated: 2026-08-10
-superseded_by: PRE-015
+governed_by: PRE-015
 ---
 
-# Temporary documentation validation
+# Repository validation usage
 
-Use only after documentation edits. Do not run these commands for a read-only
-status/orientation/report task. Report checks run and not run.
+The accepted behavior is defined by the
+[validation execution contract](validation-contract.md). This page records the
+current operator interface; it is not a second policy source.
+
+## Bootstrap
+
+Install mise using the independently pinned method for the execution
+environment, trust this repository after reviewing `mise.toml`, then run:
 
 ```sh
-git diff --check
+mise install --locked python uv
+mise exec -- uv sync --locked --python "$(mise which python)"
 ```
+
+Naming `python uv` prevents unrelated tools in a developer's global mise
+configuration from becoming repository bootstrap inputs. Bootstrap may use the
+network and tool caches. The canonical checks may not: they invoke uv with
+`--offline --locked --no-sync`, and mise task auto-install is disabled.
+
+## Checks
 
 ```sh
-python3 - <<'PY'
-from pathlib import Path
-import re
-
-link = re.compile(r"\[[^]]*\]\(([^)]+)\)")
-for document in Path(".").rglob("*.md"):
-    if ".git" in document.parts:
-        continue
-    fenced = False
-    for line in document.read_text().splitlines():
-        if line.lstrip().startswith("```"):
-            fenced = not fenced
-            continue
-        if fenced:
-            continue
-        for match in link.finditer(line):
-            raw = match.group(1)
-            target = raw.split("#", 1)[0].removeprefix("<").removesuffix(">")
-            if not target or re.match(r"^(?:https?|mailto):", target):
-                continue
-            if not (document.parent / target).exists():
-                print(f"{document} -> {raw}")
-PY
+mise run check:fast
+mise run check:complete
+mise run check:list
+mise run check:run T0-DOC-001 T0-DOC-002
 ```
 
-No output from either command is a pass. These are temporary entry points and
-do not satisfy PRE-015.
+`T0-DOC-001` is the former `git diff --check` validation.
+`T0-DOC-002` is the former internal Markdown-link validation. Do not duplicate
+their implementations in documentation or CI.
+
+Each execution writes `run.json`, `results.jsonl`, and bounded per-test logs to
+the printed temporary run directory outside the checkout. A dirty-checkout
+pass is development feedback only.
+
+## Current implementation boundary
+
+The initial Python 3.14 runner implements named registration and selection,
+per-test process groups and timeouts, an allowlisted child environment,
+machine-readable results, bounded output detection, and before/after identities
+covering Git, untracked, and ignored checkout state.
+
+PRE-015 remains active. Hostile probes, stronger network and secret preflight,
+interruption and live output-limit enforcement, cleanup-resource accounting,
+clean-checkout profile evidence, and the pinned least-privilege CI workflow
+remain required before the contract is satisfied.

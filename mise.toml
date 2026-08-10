@@ -1,0 +1,27 @@
+min_version = "2026.7.17"
+
+[tools]
+python = "3.14"
+uv = "0.12"
+
+[settings]
+lockfile = true
+lockfile_platforms = ["linux-x64"]
+task.run_auto_install = false
+
+[tasks."check:fast"]
+description = "Run the fast applicable validation profile"
+run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py profile fast"
+
+[tasks."check:complete"]
+description = "Run the complete applicable validation profile"
+run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py profile complete"
+
+[tasks."check:list"]
+description = "List registered validation tests"
+run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py list"
+
+[tasks."check:run"]
+description = "Run exact validation test IDs"
+raw_args = true
+run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py run"

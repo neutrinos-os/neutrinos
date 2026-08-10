@@ -26,6 +26,7 @@ purpose:
 | `pyproject.toml`, `uv.lock` | Validation engine deps and lock | PRE-015 |
 | `.github/` | Forge configuration | PRE-017 |
 | `README.md` | Repository entry point and status | PRE-017 |
+| `LICENSE` | Apache-2.0 grant; see P-007 | PRE-017 |
 | `.gitignore`, `.editorconfig` | Ignored local state; editor formatting | PRE-017 |
 | `.betterleaks.toml` | Secret-scanning rules and scoped exceptions | PRE-017 |
 | `.githooks/` | Opt-in Git hooks that dispatch canonical tasks | PRE-017 |

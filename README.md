@@ -16,10 +16,11 @@ Implementation is not authorized until the G1 gate is accepted.
 | Phase | Pre-implementation; `G0-complete`, preparing `G1` |
 | Active plan | [PLN-0000 pre-implementation readiness](docs/plans/0000-pre-implementation-readiness.md) |
 | Distribution | Personal fleet and reusable framework; not a public distribution |
-| License | Undecided — see [P-007](docs/project/decision-backlog.md) |
+| License | [Apache-2.0](LICENSE) |
 
-Until a license is chosen, no license is granted. The repository is readable
-where published, but nothing here is offered for reuse yet.
+Reuse is permitted under Apache-2.0. "Not a public distribution" limits
+support and compatibility promises, not source visibility: there is no
+warranty and no commitment to external users, hardware, or configurations.
 
 ## Where to start
 

@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 22b93ca
+source_snapshot_revision: 4bcb3c5
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -24,14 +24,16 @@ NeutrinOS source implementation is **not authorized**.
 PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
-the owner-approved Codex/Claude set. PRE-014 and PRE-015 are satisfied; the
-pinned least-privilege CI job is deferred to PRE-017. PRE-016 is active and its
-one next action is the repository hygiene contract plus an automated
-clean-clone check. The four canonical tasks, Linux-x64 tool locks, failed
-invocations, output-safety quarantine, named T0 checks, and registered hostile
-and empty-cache probes are implemented, with clean-clone profile evidence at
-`42f23b9`. Copilot remains unverified and must not be relied on for autonomous
-repository work.
+the owner-approved Codex/Claude set. PRE-014 and PRE-015 are satisfied.
+PRE-016 is active: the clean-clone check `T5-VAL-003` is implemented and
+passing, and the repository hygiene contract remains proposed and awaits owner
+acceptance. PRE-017 is active: the tracked baseline, licence, and secret
+scanning are committed, and its one next action is a passing CI run, which has
+never executed. The four canonical tasks, Linux-x64 tool locks, failed
+invocations, output-safety quarantine, named T0 checks, secret scanning, and
+registered hostile, empty-cache, and clean-clone probes are implemented.
+Copilot remains unverified and must not be relied on for autonomous repository
+work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -42,6 +44,10 @@ open either for a cold status report.
 - The project name is **NeutrinOS** in prose, **`neutrinos`** in machine-facing
   identifiers, and **`neutrinos-os`** for the GitHub organization
   (`docs/project/naming.md`).
+- The repository is licensed **Apache-2.0** and is **public**, resolving
+  `P-007` (`docs/project/scope.md`). Public visibility limits nothing in scope:
+  "not a public distribution" governs support and compatibility promises, not
+  source visibility.
 - NeutrinOS is systemd-first; an overlapping non-systemd mechanism carries a
   documented burden of proof (`docs/adrs/0001-systemd-first.md`, ADR-0001).
 - Routine, exceptional, machine, and data authorities remain separate, with an

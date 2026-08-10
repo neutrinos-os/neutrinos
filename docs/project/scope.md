@@ -1,6 +1,6 @@
 ---
 status: accepted
-last_updated: 2026-08-09
+last_updated: 2026-08-10
 ---
 
 # Scope
@@ -15,6 +15,22 @@ last_updated: 2026-08-09
   release cadence, or security-response time.
 - Reusability remains a design constraint to test, not a public support
   commitment.
+
+## Licensing and visibility
+
+Accepted by Jason Tarasovic on 2026-08-10, resolving `P-007`.
+
+- The repository is licensed [Apache-2.0](../../LICENSE) and is public.
+- Public visibility does not widen the scope above. "Not a public
+  distribution" limits support, compatibility, and response promises; it does
+  not mean the source is closed. The license carries the warranty disclaimer
+  that makes this explicit.
+- Apache-2.0 was chosen over a bare permissive license for its patent grant,
+  which matters for a project that touches boot, signing, and attestation, and
+  over copyleft because reusability is a constraint to test rather than a
+  restriction to impose on adopters.
+- Reusability cannot be tested if no one may legally reuse the work, so the
+  grant serves an accepted design constraint rather than a distribution goal.
 
 ## Initial target strategy
 

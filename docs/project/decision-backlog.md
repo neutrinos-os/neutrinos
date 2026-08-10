@@ -41,7 +41,7 @@ ADR.
 | L-001 | Which package ecosystem and snapshot policy supply OS inputs? | Open | P-002, S-001 |
 | L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | Open | L-001, S-005 |
 | L-003 | How is a machine installed and enrolled? | Open | S-001, S-004, S-006 |
-| L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [In research: direct systemd/UAPI composition leads under SYS-030; bootc remains the lifecycle challenger](../research/comparisons/bootc-vs-systemd-sysupdate.md) | S-001, S-004 |
+| L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [In research: both candidates mapped; direct systemd/UAPI leads under SYS-030 and bootc remains the lifecycle challenger](../research/comparisons/deployment-set-substrate-mapping.md) | S-001, S-004 |
 | L-005 | How does mutable state remain safe across upgrade and rollback? | [Requirements accepted; migration and recovery mechanisms remain in review](../designs/0002-state-ownership/README.md#update-and-migration-protocol) | S-002, L-004 |
 | L-006 | How are releases promoted, phased, paused, and withdrawn across a fleet? | Open | L-002, L-004 |
 | L-007 | What are the release cadence and security-response commitments? | [Accepted: single current line and best-effort response](maintenance-policy.md) | P-002, L-001, L-002 |

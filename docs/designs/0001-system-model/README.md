@@ -506,9 +506,12 @@ assigns inputs outside the immutable root explicit owners and status effects
 without extending release qualification to mutable code. The
 [representative-manifest tabletop](../../research/exercises/0005-representative-deployment-manifests.md)
 shows how VM, workstation, and router tuples can bind exact configuration while
-sharing unchanged content and evidence only at justified boundaries. DES-0002,
-DES-0003, and DES-0004 provide state, trust, and authority constraints
-incorporated here.
+sharing unchanged content and evidence only at justified boundaries. The
+[substrate mapping](../../research/comparisons/deployment-set-substrate-mapping.md)
+maps those semantics to one sysupdate host target or a flattened bootc OCI
+deployment, rejecting a custom updater while identifying two narrow evidence
+and status joins. DES-0002, DES-0003, and DES-0004 provide state, trust, and
+authority constraints incorporated here.
 
 The proposal is now in adversarial review. No artifact format, manifest schema,
 disk topology, updater, installer, or health implementation is selected, and no

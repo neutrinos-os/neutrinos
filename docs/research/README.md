@@ -8,6 +8,7 @@ Initial research tracks:
 
 - [whole-system comparison with existing atomic and declarative systems](comparisons/existing-systems.md)
 - [bootc versus systemd-sysupdate substrate comparison](comparisons/bootc-vs-systemd-sysupdate.md)
+- [deployment-set mapping to systemd/UAPI and bootc](comparisons/deployment-set-substrate-mapping.md)
 - [NixOS configuration and deployment operating retrospective](experience/nixconfig-retrospective.md)
 - [initial workstation, router, and server hardware/trust inventory](hardware/reference-host-inventory.md)
 - [authority loss and compromise tabletop](exercises/0001-authority-loss-tabletop.md)

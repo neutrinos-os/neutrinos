@@ -176,8 +176,13 @@ updater or object store.
   directly when it covers the full closure and evidence joins.
 - Author response: `deployment manifest` is a semantic role, not necessarily a
   new file format. A substrate-native object may fill it if it satisfies the
-  complete model.
-- Disposition: open pending symmetric substrate spikes.
+  complete model. RES-0004 maps a sysupdate host target and a bootc OCI digest
+  to that role, identifies their remaining closure gaps, and limits proposed
+  NeutrinOS ownership to a detached evidence envelope and read-only status/gate
+  join.
+- Disposition: mitigated at the documentation level through
+  [RES-0004](../../research/comparisons/deployment-set-substrate-mapping.md);
+  symmetric production-supported spikes must prove the joins remain thin.
 - Residual risk: policy metadata not native to either candidate may still force
   a small project-owned signed envelope.
 
@@ -219,8 +224,8 @@ updater or object store.
 
 ## Missing alternatives or evidence
 
-- A field-by-field mapping to production-supported bootc and direct
-  systemd/UAPI lifecycle objects.
+- Instantiated field-by-field mappings using literal production-supported bootc
+  and direct systemd/UAPI objects and observed machine behavior.
 - Concrete artifact and loader inventories confirming the EX-0004 paper model
   on both substrate candidates and all reference roles.
 - Instantiated workstation and router manifests using the literal objects and
@@ -241,8 +246,9 @@ updater or object store.
    workstation, and router manifests, configuration classifications, factoring
    alternatives, and qualification boundaries. Literal substrate manifests and
    measurements remain open evidence.
-4. **Open:** map the model to both substrate candidates without assuming a new
-   project-owned manifest format or update engine.
+4. **Complete at documentation level:** RES-0004 maps the model to both
+   candidates, rejects a custom updater/object store, and bounds the two
+   justified project joins. Symmetric production-supported spikes remain open.
 5. **Open:** review which candidate lifecycle requirements should become
    normative before the substrate ADR.
 

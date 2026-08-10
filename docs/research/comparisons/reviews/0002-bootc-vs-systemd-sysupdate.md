@@ -81,7 +81,10 @@ the systemd path can still fail on reliability, recovery, or owner effort.
   NeutrinOS builds adapters around them anyway.
 - Required response: identify the project-specific layer after state and trust
   designs; compare its size and clarity on both candidates.
-- Disposition: Open.
+- Disposition: Mitigated at the documentation level by
+  [RES-0004](../deployment-set-substrate-mapping.md), which bounds the shared
+  project surface to a detached evidence envelope and status/gate join. The
+  spike must prove those joins remain thin in operation.
 
 ### C-006: Documentation maturity is not operational reliability
 
@@ -90,8 +93,8 @@ the systemd path can still fail on reliability, recovery, or owner effort.
   interrupted updates, rollback, recovery, or comprehensible failures.
 - Failure or cost if true: the substrate decision becomes expensive to reverse
   after role configuration and release infrastructure depend on it.
-- Required response: execute the symmetric lifecycle scenarios in RES-0003
-  before the substrate ADR and preserve the raw evidence.
+- Required response: execute the symmetric lifecycle scenarios in RES-0003 and
+  RES-0004 before the substrate ADR and preserve the raw evidence.
 - Disposition: Open, correctly deferred until implementation spikes are
   authorized.
 
@@ -99,12 +102,14 @@ the systemd path can still fail on reliability, recovery, or owner effort.
 
 1. Complete the remaining trust and concrete state requirements relevant to the
    substrate.
-2. Specify exact, symmetric spike procedures and pass/fail thresholds.
+2. **Partially complete:** RES-0004 specifies symmetric procedures; define
+   numeric or falsifiable pass/fail thresholds before execution.
 3. Obtain independent human review of the candidate weighting.
 4. Run the spikes before accepting a substrate ADR.
 
 ## Recommendation
 
 Accept RES-0003 only as an **in-review burden-of-proof result**. Let bootc be
-the default candidate while the missing requirements are formalized. Do not
-convert that default into an architectural dependency or implementation plan.
+the lifecycle challenger while direct systemd/UAPI composition remains the
+default candidate under accepted SYS-030. Do not convert that default into an
+architectural dependency or implementation plan.

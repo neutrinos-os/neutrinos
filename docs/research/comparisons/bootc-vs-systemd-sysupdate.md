@@ -42,6 +42,12 @@ project-owned lifecycle product. NeutrinOS will not adopt bootc's experimental
 backend merely to satisfy the requirement. Production-supported, symmetric
 lifecycle spikes remain gates for the substrate ADR.
 
+The follow-up
+[deployment-set mapping](deployment-set-substrate-mapping.md) now maps every
+DES-0001 identity and lifecycle field onto both candidates. It rejects a custom
+updater or object store, but finds that both paths still need a bounded detached
+release-evidence envelope and a read-only status/gate join.
+
 ## Requirements applied
 
 Accepted requirements may disqualify a candidate. Candidate requirements guide
@@ -90,8 +96,8 @@ Important current limitations are documented upstream:
   bootloader updates are not automatic and systemd-boot is supported only by
   the composefs backend, not the production OSTree backend;
 - the [composefs backend](https://bootc.dev/bootc/experimental-composefs.html),
-  which supplies the sealed UKI path, is experimental and not considered
-  production-ready; and
+  which supplies the sealed UKI path, remains explicitly experimental despite
+  now being described upstream as close to stabilization; and
 - [boot-failure detection](https://bootc.dev/bootc/boot-failure-detection.html)
   differs by backend, with composefs boot counting and an equivalent
   boot-complete check still incomplete.

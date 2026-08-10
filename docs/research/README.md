@@ -31,6 +31,8 @@ Initial research tracks:
 - [first enrollment, installation, and replay tabletop](exercises/0012-first-enrollment-and-replay-tabletop.md)
 - [secret custody and credential delivery comparison](comparisons/secret-custody-and-delivery.md)
 - [representative secret custody and credential flow](exercises/0013-representative-credential-flow.md)
+- [Unix identity, homed, and rootless-container comparison](comparisons/unix-identity-and-rootless-containers.md)
+- [Unix identity mapping, rootless bind, and restore exercise](exercises/0014-identity-mapping-and-restore.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

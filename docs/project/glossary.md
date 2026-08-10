@@ -85,6 +85,32 @@ that have not been established.
 - **credential realization**: The outcome of attempting to deliver one
   credential instance to one exact consumer activation under its contract,
   recorded without the secret value.
+- **Unix identity**: A user or group as represented to Linux through a numeric
+  UID/GID and applicable NSS or userdb record. A Unix identity is not by itself
+  a NeutrinOS machine identity, human authentication proof, or workload identity.
+- **identity-allocation record**: Identity-bound intent assigning or reserving
+  Unix IDs and subordinate ranges to exact human, service, administrator,
+  workload, or transient classes with collision, persistence, migration, and
+  reuse policy.
+- **human identity**: The durable person-level subject to which local Unix user
+  records, authentication methods, state, and credentials may refer. Its local
+  UID is one binding, not the identity itself.
+- **service identity**: A Unix or cryptographic subject under which one service
+  executes or authenticates. A service name, fixed UID, `DynamicUser=`
+  allocation, and workload identity are distinct representations unless an
+  explicit contract joins them.
+- **subordinate-ID allocation**: A range of host UIDs/GIDs delegated to one
+  owner for creating user-namespace mappings. The range is authorization to map
+  numbers, not a set of ordinary login accounts.
+- **user-namespace mapping**: The explicit translation between IDs visible in a
+  Linux user namespace and IDs in its parent/host namespace.
+- **idmapped mount**: A mount whose VFS ownership view is translated through an
+  attached user-namespace mapping without changing the backing inode ownership.
+  It is a view, not a state owner or ownership migration.
+- **rootless workload**: A container or similar workload whose managing runtime
+  and processes operate without initial-host-namespace root. Rootless operation
+  narrows privilege but does not qualify its mounts, devices, sockets, secrets,
+  code, or kernel attack surface.
 - **provisioning**: Preparing initially blank or reset storage, trust roots,
   and machine identity. Provisioning is not routine OS configuration.
 - **installation**: Populating a target with a previously built deployment set

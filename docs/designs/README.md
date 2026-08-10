@@ -34,3 +34,4 @@ Current designs:
 - [DES-0009: fleet release promotion and rollout control](0009-fleet-release-rollout/README.md)
 - [DES-0010: installation, provisioning, and machine enrollment](0010-installation-and-enrollment/README.md)
 - [DES-0011: secret custody and credential delivery](0011-secret-and-credential-delivery/README.md)
+- [DES-0012: Unix identity and rootless-container ownership](0012-unix-identity-and-rootless-containers/README.md)

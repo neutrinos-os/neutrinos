@@ -30,6 +30,7 @@ verify its summary against the current ADRs, requirements, and active design.
 18. [Fleet release promotion and rollout control](designs/0009-fleet-release-rollout/README.md)
 19. [Installation, provisioning, and machine enrollment](designs/0010-installation-and-enrollment/README.md)
 20. [Secret custody and credential delivery](designs/0011-secret-and-credential-delivery/README.md)
+21. [Unix identity and rootless-container ownership](designs/0012-unix-identity-and-rootless-containers/README.md)
 
 The original conversation is preserved as [background material](background/2026-08-09-design-session-transcript.md).
 

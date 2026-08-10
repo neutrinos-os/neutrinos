@@ -35,8 +35,10 @@ These are user-supplied facts and motivations:
 - The starting workstation environment is minimal Arch Linux with UKIs, TPM
   PCR measurements, i3, greetd, and extensive use of systemd-networkd,
   systemd-boot, systemd-resolved, and systemd-oomd.
-- Jason previously tried systemd-homed and left it because Docker/Podman and
-  subordinate-identity behavior were practical blockers.
+- Jason used systemd-homed on `desktop-jason` roughly five years before this
+  design session and converted back to a classic account because rootless
+  Docker/Podman and subordinate-identity behavior were practical blockers. The
+  current UID/GID 60503 is retained homed-era identity state.
 - Jason operated CoreOS professionally for about five years. CoreOS's
   image/update model is valuable prior art, but rebuilding on its historical
   Gentoo-derived stack was experienced as too painful.
@@ -214,8 +216,15 @@ none was accepted merely by appearing in the transcript.
   demonstrably boring.
 - A normal Btrfs home remains the leading simple baseline from the transcript.
 
-This remains open under W-001 in the
-[decision backlog](../project/decision-backlog.md).
+This is now under adversarial review in
+[DES-0012](../designs/0012-unix-identity-and-rootless-containers/README.md).
+The current workstation account is a classic UID/GID 60503 account with
+matching subordinate ranges at 165536:65536, while checked-in `nixconfig`
+declares UID/GID 5001 for `router` and `misc`. The working design treats 5001 as
+the leading canonical candidate, keeps the current subordinate range as a
+candidate, and requires a scratch-copy migration exercise before changing any
+production ownership. Classic fixed accounts lead initially; systemd-homed is
+the mandatory current challenger rather than accepted or permanently rejected.
 
 ### Desktop
 
@@ -365,6 +374,9 @@ installation and first-enrollment policy boundaries; DES-0010 remains in review
 for concrete mechanisms and operating cost. SYS-098 through SYS-108 accept
 secret custody and credential-delivery policy; DES-0011 remains in review for
 concrete custody, recipient, rotation, recovery, and service mechanisms.
+SYS-109 through SYS-120 accept Unix identity and rootless-container ownership
+policy; DES-0012 remains in review for exact allocations, account/home
+management, runtime mappings, migration, and measured operating cost.
 
 ## Restart checklist
 

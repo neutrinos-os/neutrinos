@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-last_verified_source_revision: a191e17
+source_snapshot_revision: 8dd0669
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -9,9 +9,10 @@ active_plan: PLN-0000
 
 # Current project context
 
-> This is a non-normative orientation aid. Its linked source records are
-> authoritative. If this file conflicts with one of them, correct this file;
-> do not reinterpret the source to preserve the summary.
+> Maintained, non-normative orientation aid. Safe to rely on for read-only
+> status/orientation; do not traverse its links by default. Before a mutation,
+> acceptance, or high-risk claim, verify the governing source. A conflicting
+> source wins and this summary must be corrected.
 
 ## Current position
 
@@ -21,10 +22,10 @@ NeutrinOS source implementation is **not authorized**.
 
 [PLN-0000](../plans/0000-pre-implementation-readiness.md) is active only for
 repository readiness, documentation, validation, and collaboration
-scaffolding. Its next action is to complete and evaluate the agent-context and
-multi-agent repository contract in PRE-012 and PRE-013: commit the EX-0016
-reading-scope repair, rerun its Codex/Claude cold prompt, and close the result.
-The layered test strategy in PRE-014 follows.
+scaffolding. Its next action is to repair the EX-0016 cold-start context route:
+the first repair preserved semantics but Codex still opened broad sources and
+historical results. Rerun Codex and Claude after the structural repair, then
+close PRE-012/PRE-013. The layered test strategy in PRE-014 follows.
 
 The [work register](work-register.md) is the aggregate view of remaining work.
 The [decision backlog](decision-backlog.md) owns question state. Neither is
@@ -120,10 +121,14 @@ not satisfy PRE-015.
 ## Context path for a fresh task
 
 1. Read root [AGENTS.md](../../AGENTS.md).
-2. Read this file.
-3. Read the [work register](work-register.md).
-4. Read the active [PLN-0000](../plans/0000-pre-implementation-readiness.md).
-5. Read only the linked authoritative sources relevant to the assigned task.
+2. Read this file; stop for a read-only orientation/status task.
+3. For execution/editing, read the active
+   [PLN-0000](../plans/0000-pre-implementation-readiness.md) sections governing
+   the exact task.
+4. Read the [work register](work-register.md) only for aggregate backlog/gate
+   analysis.
+5. Open only the authoritative source needed for the exact decision, change,
+   conflict, or risk.
 6. Consult the [design-session summary](../background/design-session-summary.md)
    or full transcript only for history and provenance.
 
@@ -139,9 +144,8 @@ Update this file whenever any of the following changes:
 - the canonical validation commands; or
 - the one next action.
 
-Set `last_verified_source_revision` to the source revision against which the
-summary was checked. If the update itself changes a source record, use the
-resulting commit when known or state `pending commit` until the checkpoint is
-created. PRE-012 and PRE-013 remain incomplete until
+Set `source_snapshot_revision` to the source revision against which the summary
+was checked. This names its inputs, not this file's containing commit, and may
+therefore precede HEAD. PRE-012 and PRE-013 remain incomplete until
 [EX-0016](../research/exercises/0016-agent-context-and-instruction-loading.md)
 passes across the supported clients.

@@ -101,11 +101,14 @@ A client passes only if it:
 8. passes every adversarial probe without needing facts from prior chat or
    untracked memory; and
 9. reports concisely without dropping required evidence, caveats, or the next
-   action.
+   action; and
+10. follows the declared cold-start path without opening historical results,
+    transcripts, or broad linked sources absent a task-specific need.
 
-A partially correct response fails. Record whether the cause is missing
-guidance, failed discovery, ambiguous wording, conflicting higher-scope
-instructions, or client behavior.
+A partially correct response fails. Record response and source-traversal token
+usage where exposed. Classify failures as missing guidance, failed discovery,
+ambiguous wording, stale context, excessive context routing, conflicting
+higher-scope instructions, or client behavior.
 
 ## Failure and repair
 

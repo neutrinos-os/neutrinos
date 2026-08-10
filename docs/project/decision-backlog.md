@@ -27,7 +27,7 @@ ADR.
 
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
-| S-001 | What is the independently replaceable unit of deployment? | In design | P-003 |
+| S-001 | What is the independently replaceable unit of deployment? | [In review: complete content-identified deployment set](../designs/0001-system-model/README.md) | P-003 |
 | S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | [Ownership boundary accepted; implementation design remains in review](reviews/0003-state-ownership-requirements.md) | S-001 |
 | S-003 | How are common and role-specific artifacts composed? | Open | P-004, S-001 |
 | S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |

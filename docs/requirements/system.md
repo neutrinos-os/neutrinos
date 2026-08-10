@@ -13,10 +13,10 @@ satisfied it.
 | ID | Status | Requirement | Acceptance evidence |
 | --- | --- | --- | --- |
 | SYS-001 | Candidate | A release must be traceable to source revision, pinned inputs, build configuration, and test results. | Release manifest and provenance verification. |
-| SYS-002 | Candidate | Qualification must boot and test the same immutable artifact identity that is offered for deployment. | CI artifact hashes and boot-test record. |
+| SYS-002 | Candidate | Qualification must boot and test the same complete immutable deployment-set identity that is offered for deployment. | Deployment-manifest closure, artifact hashes, and boot-test record. |
 | SYS-003 | Candidate | A failed or interrupted OS update must have a documented, testable recovery path. | Failure-injection test matrix. |
 | SYS-004 | Candidate | The system must identify the owners and lifecycles of OS, machine, administrator, user, and workload state. | State inventory with upgrade, rollback, backup, and reset semantics. |
-| SYS-005 | Candidate | Role specialization must retain a common build, release, update, and recovery model. | Cross-role architecture trace. |
+| SYS-005 | Candidate | Role specialization must retain common deployment identity, release, update, status, and recovery semantics without requiring identical artifact shapes. | Cross-role architecture trace. |
 | SYS-006 | Candidate | Machine and role configuration must be reviewable in version control. | Configuration provenance and deployment test. |
 | SYS-007 | Candidate | Security mechanisms must state the assets, attackers, guarantees, and recovery behavior they address. | Threat-model traceability. |
 | SYS-008 | Candidate | The running machine must expose enough release identity to correlate it with its manifest and qualification results. | On-machine identity inspection test. |

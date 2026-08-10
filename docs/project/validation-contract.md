@@ -3,7 +3,7 @@ status: accepted
 last_updated: 2026-08-10
 governing_plan: PLN-0000
 readiness_criterion: PRE-015
-amended_by: PR-0019
+amended_by: PR-0021
 ---
 
 # Validation execution contract
@@ -186,7 +186,9 @@ not make the profile green.
 
 ## Result and artifact contract
 
-Every invocation creates one run directory outside the tracked checkout with:
+Every profile or exact-test execution invocation, including one rejected during
+argument validation, preflight, or selection, creates one run directory outside
+the tracked checkout with:
 
 - `run.json`: canonical JSON identifying repository revision and dirty-state
   identity, profile or selected IDs, registered-suite identity, environment,
@@ -197,6 +199,13 @@ Every invocation creates one run directory outside the tracked checkout with:
 - `logs/`: bounded native stdout, stderr, and tool diagnostics per test; and
 - `artifacts/`: only outputs declared by the test registration, with identities
   and size recorded in `run.json`.
+
+If no test begins, `results.jsonl` exists and is empty. `run.json` records the
+failure stage, bounded diagnostic, selected IDs (if any), and cleanup state.
+Rejected environment values and unvalidated command-line values are not
+retained. `check:list` is a read-only registration query, not an execution
+result or evidence-producing invocation; the runner-private per-test command is
+likewise represented by its parent result rather than a nested run directory.
 
 `run.json` records the resolved validation cache path and that it neither
 affects test selection nor belongs to retained evidence. Cache contents are

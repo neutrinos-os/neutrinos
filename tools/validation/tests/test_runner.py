@@ -1,16 +1,53 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
+import json
 import os
 from pathlib import Path
+import shutil
 import signal
 import socket
+import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Iterator
+from typing import Any
 
 import pytest
 
 from tools.validation import check
+
+
+@contextmanager
+def runner_invocation(
+    *arguments: str,
+    extra_environment: dict[str, str] | None = None,
+) -> Iterator[tuple[subprocess.CompletedProcess[str], Path, dict[str, Any]]]:
+    environment = {
+        name: value
+        for name, value in os.environ.items()
+        if name in check.ALLOWED_RUNNER_ENVIRONMENT
+    }
+    if extra_environment:
+        environment.update(extra_environment)
+    result = subprocess.run(
+        (sys.executable, str(Path(check.__file__).resolve()), *arguments),
+        cwd=check.ROOT,
+        env=environment,
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    run_lines = [line for line in result.stdout.splitlines() if line.startswith("run: ")]
+    assert len(run_lines) == 1, result
+    run_dir = Path(run_lines[0].removeprefix("run: "))
+    try:
+        manifest = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+        yield result, run_dir, manifest
+    finally:
+        shutil.rmtree(run_dir)
 
 
 def process_exists(process_id: int) -> bool:
@@ -81,6 +118,69 @@ def test_child_environment_is_allowlisted() -> None:
     }
     assert environment["HOME"] == str(home)
     assert environment[check.VALIDATION_CACHE_ROOT_ENV] == str(cache)
+
+
+def test_source_identification_environment_is_allowlisted() -> None:
+    environment = check.git_environment()
+    assert set(environment) == {
+        "GIT_CONFIG_GLOBAL",
+        "GIT_CONFIG_NOSYSTEM",
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "PATH",
+    }
+    assert "AWS_SECRET_ACCESS_KEY" not in environment
+
+
+def test_failed_preflight_writes_bounded_result_without_environment_value() -> None:
+    canary = "DO_NOT_RECORD_THIS_SYNTHETIC_VALUE"
+    with runner_invocation(
+        "profile",
+        "fast",
+        extra_environment={"AWS_SECRET_ACCESS_KEY": canary},
+    ) as (result, run_dir, manifest):
+        assert result.returncode == 2
+        assert manifest["failure_stage"] == "preflight"
+        assert manifest["final_result"] == "failing"
+        assert manifest["cleanup"]["repository_preserved"] is True
+        assert manifest["selected_ids"] == []
+        assert (run_dir / "results.jsonl").read_bytes() == b""
+        retained = b"".join(
+            path.read_bytes() for path in run_dir.rglob("*") if path.is_file()
+        )
+        assert canary.encode() not in retained
+        assert canary not in result.stdout
+        assert canary not in result.stderr
+        assert "AWS_SECRET_ACCESS_KEY" in manifest["error"]
+
+
+def test_invalid_selection_writes_bounded_result() -> None:
+    unknown = "X" * 20_000
+    with runner_invocation("run", unknown) as (result, run_dir, manifest):
+        assert result.returncode == 2
+        assert manifest["failure_stage"] == "selection"
+        assert manifest["profile"] == "selected"
+        assert manifest["selected_ids"] == []
+        assert manifest["error"] == "invalid test ID syntax (1 value(s))"
+        assert unknown not in result.stdout
+        assert unknown not in result.stderr
+        assert (run_dir / "results.jsonl").read_bytes() == b""
+
+
+def test_invalid_invocation_writes_result() -> None:
+    with runner_invocation("profile") as (result, run_dir, manifest):
+        assert result.returncode == 2
+        assert manifest["failure_stage"] == "invocation"
+        assert manifest["profile"] == "invalid"
+        assert manifest["selected_ids"] == []
+        assert (run_dir / "results.jsonl").read_bytes() == b""
+
+
+def test_error_details_are_bounded() -> None:
+    error = check.bounded_error("x" * (check.MAX_ERROR_BYTES * 2))
+    assert len(error.encode()) <= check.MAX_ERROR_BYTES
+    assert error.endswith("... [truncated]")
 
 
 def test_network_syscalls_are_denied() -> None:

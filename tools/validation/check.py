@@ -29,6 +29,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 MAX_OUTPUT_BYTES = 1_048_576
+MAX_ERROR_BYTES = 16_384
 VALIDATION_CACHE_ROOT_ENV = "NEUTRINOS_VALIDATION_CACHE_ROOT"
 ALLOWED_RUNNER_ENVIRONMENT = frozenset(
     {
@@ -118,15 +119,37 @@ def canonical_json(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
 
 
+def bounded_error(value: object) -> str:
+    encoded = str(value).encode("utf-8", errors="replace")
+    if len(encoded) <= MAX_ERROR_BYTES:
+        return encoded.decode("utf-8", errors="replace")
+    suffix = b"... [truncated]"
+    return (encoded[: MAX_ERROR_BYTES - len(suffix)] + suffix).decode(
+        "utf-8", errors="replace"
+    )
+
+
 def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ("git", *args),
         cwd=ROOT,
+        env=git_environment(),
         check=check,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
     )
+
+
+def git_environment() -> dict[str, str]:
+    return {
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "HOME": os.environ.get("HOME", os.devnull),
+        "LANG": "C.UTF-8",
+        "LC_ALL": "C.UTF-8",
+        "PATH": os.environ["PATH"],
+    }
 
 
 def repository_snapshot() -> dict[str, str]:
@@ -434,85 +457,144 @@ def tool_version(command: str, *args: str) -> str | None:
     executable = shutil.which(command)
     if executable is None:
         return None
-    result = subprocess.run(
-        (executable, *args),
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            (executable, *args),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+    except OSError:
+        return None
     return result.stdout.strip() or None
 
 
 def select_tests(mode: str, values: Sequence[str]) -> tuple[str, list[Test]]:
     if mode == "profile":
+        if len(values) != 1 or values[0] not in {"fast", "complete"}:
+            raise ValueError("unknown validation profile")
         profile = values[0]
         return profile, [test for test in TESTS if profile in test.profiles]
     unknown = sorted(set(values) - TEST_BY_ID.keys())
     if unknown:
-        raise ValueError(f"unknown test ID(s): {', '.join(unknown)}")
+        safe = [value for value in unknown if re.fullmatch(r"[A-Z][A-Z0-9-]{0,63}", value)]
+        if len(safe) == len(unknown):
+            raise ValueError(f"unknown test ID(s): {', '.join(safe)}")
+        raise ValueError(f"invalid test ID syntax ({len(unknown)} value(s))")
     return "selected", [TEST_BY_ID[value] for value in values]
 
 
-def run(mode: str, values: Sequence[str]) -> int:
-    errors = preflight_errors()
-    if errors:
-        print("\n".join(errors), file=sys.stderr)
-        return 2
-
-    try:
-        profile, selected = select_tests(mode, values)
-    except ValueError as error:
-        print(error, file=sys.stderr)
-        return 2
-
-    cache_root = validation_cache_root()
-
+def run(
+    mode: str,
+    values: Sequence[str],
+    *,
+    invocation_error: str | None = None,
+) -> int:
     started = utc_now()
-    before = repository_snapshot()
     run_dir = Path(tempfile.mkdtemp(prefix="neutrinos-validation-"))
     (run_dir / "artifacts").mkdir()
     (run_dir / "logs").mkdir()
     home = run_dir / "home"
     home.mkdir()
     results_path = run_dir / "results.jsonl"
+    results_path.touch()
+
+    before: dict[str, str] | None = None
+    after: dict[str, str] | None = None
+    cache_root: Path | None = None
+    if invocation_error is not None:
+        profile = "invalid"
+    elif mode == "run":
+        profile = "selected"
+    elif mode == "profile" and values:
+        profile = values[0]
+    else:
+        profile = mode
+    selected: list[Test] = []
     results: list[dict[str, Any]] = []
     runner_error: str | None = None
+    failure_stage: str | None = None
 
     try:
-        with results_path.open("a", encoding="utf-8") as stream:
-            for test in selected:
-                result = execute_test(test, run_dir, home, cache_root)
-                results.append(result)
-                stream.write(canonical_json(result) + "\n")
-                stream.flush()
+        before = repository_snapshot()
     except BaseException as error:
-        runner_error = f"{type(error).__name__}: {error}"
+        runner_error = bounded_error(f"{type(error).__name__}: {error}")
+        failure_stage = "source_snapshot"
 
-    after = repository_snapshot()
-    cleanup_ok = before == after
-    if not cleanup_ok and runner_error is None:
-        runner_error = "validation changed repository state"
+    if runner_error is None:
+        errors = preflight_errors()
+        if errors:
+            runner_error = bounded_error("; ".join(errors))
+            failure_stage = "preflight"
+        else:
+            cache_root = validation_cache_root()
+
+    if runner_error is None and invocation_error is not None:
+        runner_error = bounded_error(invocation_error)
+        failure_stage = "invocation"
+
+    if runner_error is None:
+        try:
+            profile, selected = select_tests(mode, values)
+        except ValueError as error:
+            runner_error = bounded_error(error)
+            failure_stage = "selection"
+
+    if runner_error is None:
+        assert cache_root is not None
+        try:
+            with results_path.open("a", encoding="utf-8") as stream:
+                for test in selected:
+                    result = execute_test(test, run_dir, home, cache_root)
+                    results.append(result)
+                    stream.write(canonical_json(result) + "\n")
+                    stream.flush()
+        except BaseException as error:
+            runner_error = bounded_error(f"{type(error).__name__}: {error}")
+            failure_stage = "execution"
+
+    if before is not None:
+        try:
+            after = repository_snapshot()
+        except BaseException as error:
+            if runner_error is None:
+                runner_error = bounded_error(f"{type(error).__name__}: {error}")
+                failure_stage = "cleanup_verification"
+
+    cleanup_ok = before is not None and after is not None and before == after
+    if before is not None and after is not None and not cleanup_ok:
+        if runner_error is None:
+            runner_error = "validation changed repository state"
+            failure_stage = "cleanup_verification"
 
     counts = {name: 0 for name in ("passing", "failing", "blocked", "skipped", "not_applicable", "deferred")}
     for result in results:
         counts[result["result"]] += 1
     success = runner_error is None and len(results) == len(selected) and counts["failing"] == 0
-    revision = git("rev-parse", "HEAD").stdout.strip()
-    status = git("status", "--porcelain=v2", "--untracked-files=all").stdout
+    revision: str | None = None
+    dirty: bool | None = None
+    if before is not None:
+        try:
+            revision = git("rev-parse", "HEAD").stdout.strip()
+            status = git("status", "--porcelain=v2", "--untracked-files=all").stdout
+            dirty = bool(status)
+        except (OSError, subprocess.SubprocessError):
+            pass
     manifest = {
         "cleanup": {"repository_preserved": cleanup_ok},
         "cache": {
             "affects_selection": False,
-            "path": str(cache_root),
+            "path": str(cache_root) if cache_root is not None else None,
             "retained_as_evidence": False,
         },
         "counts": counts,
-        "dirty": bool(status),
-        "dirty_identity": before["git_identity"],
+        "dirty": dirty,
+        "dirty_identity": before["git_identity"] if before is not None else None,
         "ended_at": utc_now(),
         "environment": {"platform": sys.platform, "python": sys.version.split()[0]},
         "error": runner_error,
+        "failure_stage": failure_stage,
         "final_result": "passing" if success else "failing",
         "omissions": [
             {"id": test.id, "reason": "not selected by invocation"}
@@ -531,7 +613,7 @@ def run(mode: str, values: Sequence[str]) -> int:
             "python": tool_version("python", "--version"),
             "uv": tool_version("uv", "--version"),
         },
-        "worktree_identity": before["tree_identity"],
+        "worktree_identity": before["tree_identity"] if before is not None else None,
     }
     (run_dir / "run.json").write_text(canonical_json(manifest) + "\n", encoding="utf-8")
 
@@ -539,7 +621,9 @@ def run(mode: str, values: Sequence[str]) -> int:
     print(" ".join(f"{name}={count}" for name, count in counts.items()))
     if runner_error:
         print(runner_error, file=sys.stderr)
-    return 0 if success else 1
+    if success:
+        return 0
+    return 2 if failure_stage in {"invocation", "preflight", "selection"} else 1
 
 
 def list_tests() -> int:
@@ -560,11 +644,17 @@ def list_tests() -> int:
     return 0
 
 
+class InvocationArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        del message
+        raise ValueError("invalid command-line invocation")
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser()
+    parser = InvocationArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
     profile = subparsers.add_parser("profile")
-    profile.add_argument("name", choices=("fast", "complete"))
+    profile.add_argument("name")
     exact = subparsers.add_parser("run")
     exact.add_argument("ids", nargs="+")
     subparsers.add_parser("list")
@@ -574,7 +664,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
-    arguments = parse_args()
+    try:
+        arguments = parse_args()
+    except ValueError as error:
+        return run("invalid", (), invocation_error=bounded_error(error))
     if arguments.command == "list":
         return list_tests()
     if arguments.command == "profile":

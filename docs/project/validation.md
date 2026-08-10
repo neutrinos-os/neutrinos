@@ -46,6 +46,12 @@ Each execution writes `run.json`, `results.jsonl`, and bounded per-test logs to
 the printed temporary run directory outside the checkout. A dirty-checkout
 pass is development feedback only.
 
+Argument-validation, preflight, and selection failures also write a run
+directory and report their failure stage. When no test began, `results.jsonl`
+is present and empty. Diagnostics retain rejected environment names but never
+their values, and arbitrary malformed argument values are not echoed. The
+read-only `check:list` query does not create an execution result.
+
 Pytest metadata persists at
 `${XDG_CACHE_HOME:-$HOME/.cache}/neutrinos/validation/pytest`. Canonical
 profiles never use `--last-failed`, `--failed-first`, or other cache-dependent
@@ -67,8 +73,7 @@ and ignored checkout state. Mise blocks inherited environment and network
 syscalls around the complete task and prevents acquisition before task launch.
 `T5-VAL-001` exercises these failure boundaries with synthetic processes.
 
-PRE-015 remains active. Preflight and invalid-invocation failures still need to
-produce the full run-result record; synthetic canary scanning and unsafe-output
-handling need implementation; the empty-cache acquisition probe needs a
-repeatable retained form; and clean-checkout profile evidence plus the pinned
+PRE-015 remains active. Synthetic canary scanning and unsafe-output handling
+need implementation; the empty-cache acquisition probe needs a repeatable
+retained form; and clean-checkout profile evidence plus the pinned
 least-privilege CI workflow remain required.

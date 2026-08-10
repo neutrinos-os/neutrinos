@@ -25,9 +25,12 @@ PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 and PRE-015 are satisfied.
-PRE-016 is satisfied. PRE-017 is active: the tracked baseline, licence, and
-secret scanning are committed, and it needs a passing CI run, which has never
-executed. PRE-003 through PRE-009 are satisfied by owner acceptance of `PLN-0001`
+PRE-016 is satisfied. PRE-017 is satisfied on 2026-08-10 following PR-0028:
+the tracked baseline, licence, and secret scanning are committed, the remote
+was force-pushed over an unrelated 2022 history and moved to a ruleset
+requiring the `canonical profiles` check, and both profiles passed on a hosted
+runner at `d0a2cc5`. PRE-018 is the only unsatisfied criterion. PRE-003 through
+PRE-009 are satisfied by owner acceptance of `PLN-0001`
 (`docs/plans/0001-reference-vm-slice.md`) on 2026-08-10. That plan is
 **active** and is the sole active implementation slice. NeutrinOS source
 implementation remains **unauthorized**: PLN-0000 permits repository
@@ -78,11 +81,13 @@ open either for a cold status report.
   retained empty-cache acquisition-boundary probe. Bootstrap is an unfiltered
   acquisition phase bounded by pinned hash-checked locks, not by endpoint
   restriction, which the locked platform cannot enforce. Clean-clone profiles
-  pass; the CI job is deferred to PRE-017. Repository mise use does not select
+  pass, and the pinned least-privilege CI job runs both profiles on a hosted
+  runner. Executables resolved from `PATH` rather than declared inputs are a
+  known defect class: one such dependency passed locally only by accident and
+  failed in CI. Repository mise use does not select
   host-role software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
-  PRE-001, PRE-002, and PRE-010 through PRE-015 are satisfied; PRE-016,
-  PRE-017, PRE-018, and G1 are not.
+  PRE-001 through PRE-017 are satisfied; PRE-018 and G1 are not.
 
 ## Leading but unaccepted fixtures
 

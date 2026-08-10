@@ -60,7 +60,7 @@ that the installed capacity is 62 GB. The design inventory uses the owner's
 | TPM | TPM 2.0 advertised through ACPI (`MSFT0101`) and sysfs | The tool session is containerized and cannot access a TPM device node, so commands, PCR behavior, ownership, and sealing remain unverified |
 | Current root filesystem | ext4 | Direct block-topology observation |
 | Current boot filesystem | vfat mounted at `/boot` | The active bootloader and exact ESP layout were not available through `bootctl` in this environment |
-| Current storage encryption | No LUKS/dm-crypt layer visible in the observed block topology | Requires host-level confirmation before being treated as a definitive absence |
+| Current storage encryption | No LUKS/dm-crypt mapping visible in the observed block topology | Requires host-level confirmation before being treated as a definitive absence |
 | Local recovery | Not yet inventoried | Firmware UI, removable boot, key enrollment, and console recovery must be exercised physically |
 
 The current machine is capable enough to investigate SYS-030, but it does not
@@ -85,7 +85,7 @@ configuration at private repository revision `198f797` establish:
 - an approximately 1 TB disk split between ext4 `/home` and `/nix`, plus an
   approximately 16 GB system disk containing swap, an ext4 root, and vfat
   `/boot`;
-- no LUKS or dm-crypt layer visible in the live block topology;
+- no LUKS or dm-crypt mapping visible in the live block topology;
 - IPMI visible through both sysfs and `/dev/ipmi0`;
 - a three-minute runtime watchdog and ten-minute reboot watchdog;
 - no serial console argument in the running kernel command line and the
@@ -129,7 +129,7 @@ The same read-only collection and repository revision establish:
 - Secure Boot disabled and firmware setup mode enabled;
 - no TPM exposed through sysfs or a TPM resource-manager device;
 - one approximately 256 GB disk containing ext4 root and `/nix`, swap, and a
-  vfat `/boot`, with no visible LUKS or dm-crypt layer;
+  vfat `/boot`, with no visible LUKS or dm-crypt mapping;
 - no IPMI interface, no serial console argument, and the `ttyS0` serial getty
   disabled; and
 - a server archetype with additional controller responsibilities.
@@ -164,7 +164,7 @@ version-controlled NixOS intent but not confirmed on the running machine.
 | Owner-controlled platform keys | Not currently enrolled; capability untested | Not currently enrolled; capability untested | Not currently enrolled; capability untested |
 | TPM capability | TPM 2.0 advertised; operation untested | No firmware TPM evidence; compatible discrete TPM 2.0 modules documented but not observed | Intel PTT documented; not exposed to Linux and version/operation unverified |
 | Authenticated immutable root | Not present or demonstrated | Not configured or demonstrated | Not configured or demonstrated |
-| Storage encryption | Not visible; confirmation needed | No LUKS/dm-crypt layer observed | No LUKS/dm-crypt layer observed |
+| Storage encryption | Not visible; confirmation needed | No LUKS/dm-crypt mapping observed | No LUKS/dm-crypt mapping observed |
 | Unattended reboot | Not yet a stated workstation requirement | Required in principle; mechanism unverified | Unknown |
 | Independent local recovery | Not yet exercised | IPMI device and watchdog observed; access untested | Not yet inventoried; no IPMI observed |
 

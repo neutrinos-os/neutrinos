@@ -19,12 +19,13 @@ Yes. The objection is not simply unfamiliar syntax or a preference for another
 package manager. The source of truth intended to describe machines became a
 substantial program in Nix, the module abstraction did not expose all required
 upstream behavior, and deployment required a separate Nix-based orchestration
-layer. This is directly contrary to the desired operator model for NeutrinOS.
+framework. This is directly contrary to the desired operator model for
+NeutrinOS.
 
 A NixOS image appliance could improve artifact delivery, but it would not
 remove Nix evaluation and the NixOS module system from the human-authored
 machine model. Adopting NixOS while hiding it behind a new NeutrinOS DSL would
-recreate the abstraction and maintenance problem one layer higher.
+recreate the abstraction and maintenance problem at another boundary.
 
 This experience was sufficient to propose rejecting NixOS as NeutrinOS's
 primary configuration and deployment framework. SYS-014 through SYS-018 were
@@ -78,7 +79,7 @@ Representative commits include:
 | `4524683` | `feat: add deployment` | Deployment introduced another flake input and integration surface. |
 | `35b50c8` | `feat: fix up deploys` | Deployment immediately required structural rework across nine files. |
 | `8e7d428` | `fix: remove netbootxyz so systems will boot properly` | A valid-looking composition still produced an unusable system. |
-| `5b5e857` | `feat: modularize network` | Network intent led to a custom module layer spanning eleven changed files. |
+| `5b5e857` | `feat: modularize network` | Network intent led to a custom module abstraction spanning eleven changed files. |
 | `899cb11` | `feat: modularize router lan iface config` | Router LAN behavior required another substantial local abstraction. |
 | `ede6dbe` | `fix: use correct propogation syntax` | Correctness depended on framework-specific expression details. |
 | `adcb326` | `fix: quote property to bring team online` | A quoting detail in generated configuration affected network availability. |
@@ -159,15 +160,15 @@ merges.
 
 ### Deployment consumes qualified artifacts
 
-The deployment operation should select and activate a previously built and
-qualified release artifact. It should not turn a target machine into the place
+The deployment operation should select and boot a previously built and
+qualified deployment set. It should not turn a machine into the place
 where an arbitrary configuration program is evaluated or where an
 unqualified equivalent system is reconstructed.
 
 ### Failure must be attributable
 
 Validation and deployment errors should identify the responsible input,
-machine or role layer, generated output, and lifecycle stage. A user should not
+configuration scope, generated output, and lifecycle stage. A user should not
 need specialist knowledge of the composition engine to locate an ordinary
 configuration error.
 

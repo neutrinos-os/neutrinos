@@ -54,7 +54,7 @@ the systemd path can still fail on reliability, recovery, or owner effort.
 - Claim: a collection of layered Containerfiles and `RUN` scripts is another
   Turing-complete machine configuration repository.
 - Failure or cost if true: the project recreates the Nix experience with shell
-  and container layers while claiming compliance because the output is OCI.
+  and OCI layers while claiming compliance because the output is OCI.
 - Required response: make the role and machine source of truth satisfy
   SYS-014–SYS-016 and classify any Containerfile as generated output or
   separately owned build implementation.
@@ -79,7 +79,7 @@ the systemd path can still fail on reliability, recovery, or owner effort.
   glue.
 - Failure or cost if true: bootc's existing opinions become constraints, and
   NeutrinOS builds adapters around them anyway.
-- Required response: identify the project-specific layer after state and trust
+- Required response: identify the project-specific surface after state and trust
   designs; compare its size and clarity on both candidates.
 - Disposition: Mitigated at the documentation level by
   [RES-0004](../deployment-set-substrate-mapping.md), which bounds the shared

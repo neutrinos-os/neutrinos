@@ -130,12 +130,12 @@ Ratings mean:
 | Release-owned extensions | `composed/test`: DDIs, sysext/confext, and sysupdate transfers exist, but exact host membership and discovery must be proven | Flatten into host OCI image initially; logically bound images are inadequate for privileged trusted-base closure today | Do not treat compatible or co-retained content as exact set membership |
 | Exact normal configuration | Preferred immutable confext is `composed/test`; safest first mapping is config flattened into the root | Flatten into derived OCI image and use transient `/etc`; separately signed configuration remains future-facing | EX-0005's shared-config target is conditional, not yet a substrate fact |
 | Resolved build/config inputs | mkosi manifests, checksums, and project build evidence; `thin join` | OCI configuration/labels and project build evidence; `thin join` | Neither substrate replaces provenance or resolved-config evidence |
-| Role/platform scope | Transfer paths/patterns and image metadata can encode variants; `thin join` for authorization scope | OCI references/labels can encode variants; `thin join` for authorization scope | Mutable paths and labels remain discovery, never authority |
+| Role authorization scope and platform compatibility | Transfer paths/patterns and image metadata can encode variants; `thin join` for authorization scope | OCI references/labels can encode variants; `thin join` for authorization scope | Mutable paths and labels remain discovery, never authority |
 | State-contract identifiers | `thin join` in release evidence and image content | `thin join` in OCI content/metadata | Both need NeutrinOS state gates before selection and blessing |
 | Health-policy identifier | `thin join`; systemd supplies boot counting and blessing mechanics | `thin join`; bootc has backend-specific failure detection but no complete NeutrinOS role-health join | Role health and evidence remain project policy |
 | Manifest interpretation/schema | Transfer definitions and upstream versioned APIs are native; deployment evidence schema is project-owned | OCI and bootc status schemas are native; deployment evidence schema is project-owned | Prefer a detached bounded envelope over a second update manifest |
 | Literal-artifact qualification join | `thin join` keyed by complete deployment identity | `thin join` keyed by OCI digest plus final boot closure | Neither tool owns qualification policy |
-| Detached release authorization | Signed checksum manifests authenticate transfer but do not natively bind qualification, target scope, compatibility, or freshness; `thin join` | Container signature policy authenticates images but does not natively bind all NeutrinOS promotion claims; `thin join` | One small signed release-evidence envelope is justified on both paths |
+| Detached release authorization | Signed checksum manifests authenticate transfer but do not natively bind qualification, authorization scope, compatibility, or freshness; `thin join` | Container signature policy authenticates images but does not natively bind all NeutrinOS promotion claims; `thin join` | One small signed release-evidence envelope is justified on both paths |
 | Inert partial staging | `native/test`: incomplete versions/resources are recognized and `acquire` separates fetch from installation | `native/test`: download-only and staged deployments isolate the running root | Fault injection remains mandatory |
 | Complete-set selection | `native/test` for one sysupdate target with common version; external extension discovery is the hard case | `native/test` for flattened OCI deployment | Prove one old/new/stop outcome at every boundary |
 | Boot-time binding of actual bytes | UKI-to-Verity root is strong; exact external config/extension tuple is a `gap/test` | Production boot path is a `gap` for SYS-030; sealed composefs is experimental | This is the critical discriminator for multi-artifact composition |
@@ -310,7 +310,7 @@ objects, commands, failures, and operator-owned glue.
 5. Substitute one valid artifact from another deployment and attempt boot.
 6. Boot, report identity, fail health, exhaust attempt count, and return to an
    eligible compatible normal deployment.
-7. Cross a state-compatibility barrier and verify automatic rollback is removed.
+7. Cross a state-compatibility barrier and verify automatic fallback is removed.
 8. Remove the network/registry/publication source and repeat retained boot,
    fallback, status, and deliberate recovery.
 9. Retain two deployments sharing content, garbage-collect another, and verify

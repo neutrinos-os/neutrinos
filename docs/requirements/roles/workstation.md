@@ -18,7 +18,7 @@ the [reference-host inventory](../../research/hardware/reference-host-inventory.
 - UEFI firmware with Secure Boot currently disabled and setup mode enabled
 - TPM 2.0 advertised but not yet exercised from a host environment
 - approximately 512 GB system NVMe and 1 TB `/home` NVMe
-- current ext4 root and home with no observed block-encryption layer
+- current ext4 root and home with no observed block-encryption mapping
 
 ## Candidate capability areas
 

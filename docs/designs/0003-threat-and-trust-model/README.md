@@ -101,7 +101,7 @@ The following properties must never be collapsed into one “trusted” boolean:
 | --- | --- |
 | Identified | Which exact artifact and configuration inputs are present? |
 | Authorized | Did an accepted authority approve this identity for the stated role/channel? |
-| Integrity-verified | Did activation or boot authenticate the bytes against that identity? |
+| Integrity-verified | Did staging or boot verify the bytes against that identity? |
 | Provenanced | Can the output be traced to source, inputs, builder, and build process? |
 | Qualified | Did this literal identity pass the required tests? |
 | Current | Is it the current release under the maintenance policy? |
@@ -118,8 +118,8 @@ itself, prove any other row.
 - Every deployable release has an immutable identity and a signed authorization
   that binds its complete artifact set, role applicability, configuration
   identity or compatibility, and freshness metadata.
-- The target verifies authorization and content identity before the candidate
-  can replace or outrank the current deployment.
+- The machine verifies authorization and content identity before the candidate
+  can replace or outrank the currently selected deployment.
 - Mutable registry tags, filenames, version strings, and HTTPS endpoints are
   discovery hints rather than release identity.
 - Interrupted or failed verification leaves the current deployment selected and
@@ -318,8 +318,7 @@ Before accepting the eventual architecture, tests must demonstrate:
 
 1. registry, mirror, DNS, and network substitution cannot authorize different
    bytes under the same release identity;
-2. modifying each release-owned boot/root component prevents normal trusted
-   activation;
+2. modifying each release-owned boot/root component prevents normal boot;
 3. running status reports identity, authorization, integrity verification,
    qualification, freshness, currentness, and support independently;
 4. the literal signed identity is the literal qualified identity;

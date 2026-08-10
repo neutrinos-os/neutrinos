@@ -284,8 +284,8 @@ a second operator would change the project scope and custody model.
 
 ### P-010: Two independent routine compartments are compromised
 
-**Event:** The attacker compromises both signers or a lower hardware layer shared
-by them.
+**Event:** The attacker compromises both signers or a lower-level hardware
+dependency shared by them.
 
 **Expected containment:** Pause rollout, invoke offline revocation and
 replacement, classify the exposure interval, and recover affected machines.

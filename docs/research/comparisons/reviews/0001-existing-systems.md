@@ -101,7 +101,7 @@ conflict.
 - Required response: explicitly identify the reusable policy artifact the
   project will produce, or accept that NeutrinOS may remain a repository for a
   personal deployment rather than a distinct architecture.
-- Author response: the proposed project layer is narrowed to role schemas,
+- Author response: the proposed project surface is narrowed to role schemas,
   state contracts, evidence, qualification, and fleet policy. Whether that
   deserves a reusable framework remains open.
 - Disposition: Open.

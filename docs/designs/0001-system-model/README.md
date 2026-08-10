@@ -62,7 +62,7 @@ mechanisms without changing its guarantees silently.
 The deployment model is constrained by existing project policy:
 
 - SYS-017 requires deployment to select previously built and qualified bytes
-  rather than evaluate or reconstruct an equivalent OS on the target.
+  rather than evaluate or reconstruct an equivalent OS on the machine.
 - SYS-019 through SYS-026 and
   [DES-0002](../0002-state-ownership/README.md) keep persistent state, identity,
   migrations, and diagnostics outside undifferentiated OS replacement.
@@ -83,21 +83,26 @@ them.
 
 ## Terminology
 
+The [project glossary](../../project/glossary.md) is canonical. This table
+restates the terms central to this design.
+
 | Term | Meaning |
 | --- | --- |
-| Artifact | Immutable bytes with a stable content identity. An artifact may be a boot executable, filesystem image, extension, configuration image, manifest, or another independently transferred object. |
-| Deployment manifest | Immutable metadata binding the complete release-owned artifact set and its role, platform, configuration, and compatibility declarations. Its content identity is the deployment identity. |
-| Deployment set | The deployment manifest and every exact artifact it names. This is the independently selectable and replaceable unit. |
+| Artifact | Immutable bytes identified by a cryptographic digest. An artifact may be a boot executable, root image, extension image, configuration artifact, metadata artifact, or another independently transferred object. |
+| Deployment manifest | Immutable metadata binding the complete release-owned deployment closure and its role, platform, configuration, and compatibility declarations. |
+| Deployment identity | The digest of the deployment manifest. |
+| Deployment set | The deployment manifest and its complete deployment closure. This is the independently selectable and replaceable unit. |
 | Deployment variant | One deployment set built for a declared role, platform class, and resolved normal configuration. |
 | Qualification record | Attributable evidence produced by testing one literal deployment identity under a named policy and environment. |
-| Release authorization | A signed authorization joining a deployment identity to its qualification record, allowed target scope, compatibility, and policy metadata. |
+| Release authorization | A signed authorization joining a deployment identity to its qualification record, allowed authorization scope, compatibility, and policy metadata. |
 | Release | A promoted collection of one or more independently identified deployment variants and their authorizations. A human version or release name is not an artifact identity. |
 | Machine realization | One deployment set running with the machine's accepted late-bound values, state contracts, policy epoch, identity, and declared local modifications. It is reported as a tuple of evidence, not mislabeled as immutable release bytes. |
 | State | Data with a lifecycle that crosses deployment replacement, as governed by DES-0002. |
 
-The word `deployment` may describe an installed instance in ordinary prose.
-Where identity matters, this design uses `deployment set`, `deployment
-identity`, or `machine realization` explicitly.
+The word `deployment` may be used generically in ordinary prose. Where identity
+or lifecycle state matters, this design uses `deployment set`, `deployment
+identity`, `selected deployment`, `booted deployment`, or `machine
+realization` explicitly.
 
 ## Proposed decision
 
@@ -110,10 +115,10 @@ The deployment set is the unit of:
 - qualification;
 - release authorization;
 - publication eligibility;
-- target staging and verification;
+- staging and verification;
 - boot selection and attempt accounting;
 - blessing;
-- retention as a normal rollback target; and
+- retention for normal fallback or deliberate rollback; and
 - withdrawal from normal use.
 
 It need not be one file, filesystem, partition, disk image, or OCI object.
@@ -156,8 +161,8 @@ Platform signing occurs before the manifest and literal qualification because
 it changes boot-artifact bytes. The deployment manifest contains artifact and
 input identities but not its later qualification result, avoiding a circular
 identity. The qualification record binds the manifest and literal artifacts;
-release authorization then binds both identities and target policy as required
-by DES-0004.
+release authorization then binds both identities and authorization policy as
+required by DES-0004.
 
 Mutable discovery names, tags, filenames, version strings, repository paths,
 and URLs may locate a deployment set but never identify or authorize it.
@@ -218,7 +223,7 @@ beside a generic OS image. It either determines the built variant or becomes an
 exact immutable artifact named by that variant. Late binding is reserved for
 values whose lifecycle genuinely belongs to the machine, user, workload, or
 environment; it is not an escape hatch for reconstructing a different OS on the
-target.
+machine.
 
 ## Variants, roles, and releases
 
@@ -234,7 +239,7 @@ declared collection. It does not mean:
 - one variant's tests qualify another;
 - every role must ship at the same moment;
 - all machines update atomically; or
-- an absent role variant may be reconstructed on the target.
+- an absent role variant may be reconstructed on the machine.
 
 If two variants must interoperate—for example, workstation administration of a
 router—the release records the interface or fleet compatibility being claimed
@@ -243,7 +248,7 @@ supported deployment or becomes stale according to policy; a shared version
 label does not fabricate support.
 
 Machine-specific variants are allowed for the initial fleet because exact
-checked-in machine configuration is part of the qualification target. Shared
+checked-in machine configuration is part of the qualification subject. Shared
 role and platform inputs must still be visibly factored so that per-machine
 builds do not become unrelated hand-maintained operating systems. Variant count
 and qualification cost are explicit lifecycle metrics and review triggers.
@@ -254,11 +259,12 @@ and qualification cost are explicit lifecycle metrics and review triggers.
 written in one storage operation.
 
 1. Discovery yields an immutable deployment identity and release authorization.
-2. The target verifies authorization, role/platform scope, supported manifest
-   schema, and required policy before the candidate can affect selection.
+2. The machine verifies authorization scope, platform compatibility, supported
+   manifest schema, and required policy before the candidate can affect
+   selection.
 3. Every artifact is fetched into inactive storage. Partial or corrupt content
    remains an ineligible staging object.
-4. The target verifies the complete artifact closure and applicable state-
+4. The machine verifies the complete artifact closure and applicable state-
    compatibility preconditions.
 5. Only then may one selection operation make the complete deployment identity
    a trial boot candidate. The previously selected deployment remains intact.
@@ -298,7 +304,7 @@ evidence. In particular:
 - signed does not mean qualified;
 - booted does not mean blessed;
 - blessed does not mean current or uncompromised;
-- retained does not mean eligible for automatic rollback; and
+- retained does not mean eligible for automatic fallback; and
 - the base deployment may remain exact while mutable executable state makes the
   machine realization locally modified or unsupported.
 
@@ -308,11 +314,11 @@ Deployment rollback means reselecting an already retained immutable deployment
 set. It does not roll back persistent state. DES-0002's compatibility and
 migration contracts decide whether automatic reselection is safe.
 
-Before a candidate becomes selectable, the target verifies that it can consume
-the current state and that every advertised automatic fallback can consume the
-state expected after the candidate runs. A forward-only commit barrier removes
-incompatible deployments from automatic rollback eligibility even if their
-bytes remain mechanically retained.
+Before a candidate becomes selectable, the machine verifies that it can
+consume the machine's state and that every advertised automatic fallback can
+consume the state expected after the candidate runs. A forward-only commit
+barrier removes incompatible deployments from automatic fallback eligibility
+even if their bytes remain mechanically retained.
 
 Failed normal boot automation may choose only another eligible normal
 deployment. It may stop and request recovery, but it never selects a recovery-
@@ -376,7 +382,7 @@ binding, and recoverability rather than the shape alone.
 - Exact non-secret network and service policy is resolved into or named by the
   deployment set; long-lived credentials remain machine state.
 - Health includes externally observed forwarding and critical network services,
-  not merely reaching a local target.
+  not merely reaching a local service state.
 - Retained boot, fallback, and deliberate recovery remain usable without WAN,
   DNS, registry, or the normal routed data plane.
 
@@ -390,7 +396,7 @@ binding, and recoverability rather than the shape alone.
 | Power fails while recording the next selection | Boot resolves either the previous complete selection or the new complete selection, or stops with attributable diagnostics; it never constructs a hybrid. |
 | Boot loads a mismatched kernel, root, extension, or configuration artifact | Normal trust verification fails before the set is treated as the selected qualified deployment. |
 | Candidate boots but health fails | Do not bless; fall back only to a compatible, authorized normal set and preserve diagnostics. |
-| Candidate crosses a forward-only state barrier | Remove incompatible old sets from automatic rollback eligibility while retaining their bytes only under declared recovery or forensic policy. |
+| Candidate crosses a forward-only state barrier | Remove incompatible old sets from automatic fallback eligibility while retaining their bytes only under declared recovery or forensic policy. |
 | Machine-specific late-bound value is missing or invalid | Fail at its declared lifecycle stage and report the input class; do not synthesize a different configuration or rebuild the OS. |
 | Local executable override persists across OS rollback | Report the base deployment and effective modification separately; use compromise recovery when trust is in doubt. |
 | Publication and normal network disappear | Continue booting and assessing retained sets under offline policy; updates wait. |
@@ -419,7 +425,7 @@ privileged userspace substitutable and conflicts with accepted SYS-030.
 ### Desired package or configuration set
 
 Rejected as the deployment identity. Re-evaluating or converging packages on
-the target can produce bytes different from qualification and conflicts with
+the machine can produce bytes different from qualification and conflicts with
 SYS-017. Package metadata and configuration remain build inputs.
 
 ### One universal artifact for every role and machine
@@ -461,7 +467,7 @@ The design is viable when tests demonstrate:
    deployment identity, whether by changing another release artifact or a
    separately stored immutable configuration artifact named by the manifest;
 7. secrets and actual hardware values remain late-bound without permitting the
-   target to reconstruct a different OS;
+   machine to reconstruct a different OS;
 8. workstation and router variants use the same lifecycle states and evidence
    while retaining their required artifact and health differences;
 9. rollback reselects only a complete, authorized, state-compatible normal set;
@@ -496,7 +502,7 @@ The design is viable when tests demonstrate:
 ## Evidence and review disposition
 
 The [existing-system comparison](../../research/comparisons/existing-systems.md)
-supports a thin NeutrinOS policy and evidence layer over upstream lifecycle
+supports a thin NeutrinOS policy and evidence surface over upstream lifecycle
 components rather than a new image or update engine. The
 [bootc comparison](../../research/comparisons/bootc-vs-systemd-sysupdate.md)
 keeps both substrate candidates accountable to the same complete-set identity

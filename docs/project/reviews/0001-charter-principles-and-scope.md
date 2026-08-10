@@ -34,7 +34,7 @@ the workstation and router.
 - Required response: Separate applicable declarative inputs from late-bound
   values and specify what qualification covers for each.
 - Disposition: Mitigated in the invariant and Principle 2. Later designs must
-  define configuration layers and their tests.
+  define configuration scopes, composition, and their tests.
 - Residual risk: Untested interactions can still occur only on physical
   hardware.
 

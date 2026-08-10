@@ -138,8 +138,8 @@ destroying data-recovery authority.
 
 ## Release signing and promotion flow
 
-1. An unprivileged builder produces candidate artifacts, an immutable artifact
-   manifest, provenance, and configuration identity.
+1. An unprivileged builder produces candidate artifacts, an immutable
+   build-output manifest, provenance, and configuration identity.
 2. The normal-platform signing compartment signs the exact candidate boot
    artifact. Signing changes its identity, so it occurs before literal-artifact
    qualification.
@@ -206,7 +206,7 @@ Recovery proceeds through separately authorized capability transitions:
 Before requesting sensitive input, recovery must expose its literal identity,
 authorization, and recovery-only status through evidence that ordinary mutable
 state cannot rewrite. A recovery session records its identity, activation path,
-reason, operations, state scopes, installed artifacts, identity changes,
+reason, operations, state scopes, selected artifacts, identity changes,
 result, and unresolved quarantine or enrollment obligations without secrets.
 When the target disk is unavailable or untrusted, an operator-controlled medium
 or independent out-of-band sink retains the record; the target disk cannot be
@@ -263,7 +263,7 @@ contract.
 
 Authority metadata schemas must be forward-readable across the retained normal
 and recovery environments needed to rotate or revoke them. A release that
-cannot interpret the current policy epoch is not an automatic rollback target.
+cannot interpret the current policy epoch is not an automatic fallback candidate.
 
 ## Failure and recovery exercises
 

@@ -84,7 +84,7 @@ only examples; one path such as `/var` can contain items from several classes.
 | Machine identity and enrollment | Individual machine | machine identity, host keys, device certificates, TPM-bound enrollment records | Persists across OS replacement; rotated, revoked, re-enrolled, or deliberately destroyed rather than rolled back with the OS. |
 | Administrator override | Local administrator | emergency service drop-in, temporary kernel argument, break-glass policy | Explicit, attributable, time-bounded where possible, and marks the machine locally modified until removed or incorporated into declared configuration. |
 | User | User or user-profile system | home data, user credentials, desktop settings, per-user application state | Persists independently of OS rollback; has separate backup, restore, quota, and reset policy. |
-| Workload | Workload or service owner | databases, container writable layers and volumes, VM disks, application queues | Persists independently; every schema and migration is governed by the workload contract. |
+| Workload | Workload or service owner | databases, container writable filesystems and volumes, VM disks, application queues | Persists independently; every schema and migration is governed by the workload contract. |
 | Operational evidence | Machine or fleet operations | journals, update records, health results, crash data, audit records | Survives failed boots according to retention and sensitivity policy; is not restored by OS rollback. |
 | Ephemeral | Producing component | `/run`, disposable caches, temporary build or download state | May be discarded on reboot, retry, recovery, or space pressure without loss of authoritative data. |
 
@@ -107,7 +107,8 @@ database. The normal boot constructs the effective view from ordered inputs:
 5. explicit administrator overrides.
 
 The exact resolved inputs and rendered native files are inspectable under
-SYS-016. Layers may use upstream-native configuration directly. The ordering
+SYS-016. Any configuration scope may use upstream-native configuration
+directly. The ordering
 does not imply that every file is templated or that NeutrinOS must model every
 upstream setting.
 
@@ -172,8 +173,8 @@ For every state contract touched by a candidate release:
    reversible/checkpointed migration path.
 3. **Stage:** prepare the release and any migration material without changing
    authoritative state where practical.
-4. **Activate:** boot or select the candidate, then run migrations at their
-   declared lifecycle boundary.
+4. **Select and boot:** select and boot the candidate, then run migrations at
+   their declared lifecycle boundary.
 5. **Assess:** include migrated-state and role-service health in the boot
    success decision.
 6. **Bless:** mark the release successful only after its required state owners
@@ -205,7 +206,7 @@ one of the following owner-specific strategies:
 A forward-only destructive migration is an explicit maintenance operation. It
 must not silently retain the normal rollback claim. The release must instead
 state the commit barrier, required backup, recovery procedure, expected outage,
-and point after which the old deployment is no longer a safe automatic target.
+and point after which the old deployment is no longer a safe fallback candidate.
 
 Filesystem snapshots may implement an owner-specific checkpoint, but they do
 not create application consistency, backup independence, or rollback safety by
@@ -290,10 +291,10 @@ delegation would make the system-level rollback claim unverifiable.
 
 | Failure | Required behavior |
 | --- | --- |
-| Rendering or validation fails | Do not stage or activate; identify the input and output involved. |
+| Rendering or validation fails | Do not stage or select; identify the input and output involved. |
 | Migration is interrupted | Detect partial progress and follow the declared retry, restore, or recovery transition. |
-| Candidate boots but state health fails | Do not bless; automatically roll back only if the recorded compatibility contract permits it. |
-| Previous release cannot consume current state | Refuse automatic rollback and enter the declared recovery path; record a violated contract as a release defect. |
+| Candidate boots but state health fails | Do not bless; perform automatic fallback only if the recorded compatibility contract permits it. |
+| Previous release cannot consume current state | Refuse automatic fallback and enter the declared recovery path; record a violated contract as a release defect. |
 | Local override breaks boot | Expose and disable the override from recovery without modifying declared source. |
 | Machine credential is lost or revoked | Re-enroll through an independent authority or recovery credential; OS rollback must not resurrect revoked identity. |
 | Backup is corrupt or incomplete | Restore verification fails before destructive replacement where possible; preserve original state for further recovery. |

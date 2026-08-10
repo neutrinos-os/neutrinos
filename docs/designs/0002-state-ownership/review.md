@@ -40,7 +40,7 @@ cannot maintain.
 - Claim: schema, compatibility, backup, reset, sensitivity, and health metadata
   for every state item could become an enormous custom DSL and maintenance
   burden.
-- Failure or cost if true: NeutrinOS repeats the Nix failure one layer lower,
+- Failure or cost if true: NeutrinOS repeats the Nix failure one abstraction level lower,
   spending more time describing metadata than operating machines.
 - Required response or experiment: begin with lifecycle-significant namespaces,
   allow direct native contracts, measure required metadata for workstation and

@@ -25,7 +25,7 @@ There is no justification for building a new image, update, boot, or rollback
 substrate.
 
 The project boundary remains a thin NeutrinOS role, configuration,
-qualification, release, and fleet-policy layer over existing lifecycle
+qualification, release, and fleet-policy surface over existing lifecycle
 components. The follow-up
 [bootc versus systemd-sysupdate comparison](bootc-vs-systemd-sysupdate.md)
 makes a direct systemd/UAPI and mkosi composition the default substrate
@@ -64,7 +64,7 @@ same six obligations.
 | Release identity | A deployment names an immutable or content-addressed whole-system artifact, not merely a desired package set. |
 | Literal-artifact qualification | The artifact offered to machines can be the artifact that passed boot and role acceptance tests. |
 | Common multi-role model | Workstation and router roles can share source, lifecycle semantics, and evidence while retaining explicit differences. |
-| Transaction and recovery | Staging, activation, health assessment, rollback, and offline recovery have explicit mechanisms. |
+| Transaction and recovery | Staging, selection, boot, health assessment, rollback, and offline recovery have explicit mechanisms. |
 | State and configuration | OS, machine configuration, secrets, user data, and workload state have separable ownership and update semantics. |
 | Sustainable adoption | The project can consume the system without inheriting an unjustified packaging fork or an unbounded compatibility surface. |
 
@@ -123,8 +123,8 @@ configuration, not a Turing-complete operator-facing module program.
 Constraining NixOS to an externally updated appliance could improve deployment
 identity, but it does not remove Nix and the NixOS module system from
 configuration authorship. Hiding them behind a new data schema would require
-NeutrinOS to maintain another mediation layer and repeat the same capability-
-lag problem.
+NeutrinOS to maintain another mediation abstraction and repeat the same
+capability-lag problem.
 
 #### Conclusion
 
@@ -165,7 +165,8 @@ bootc already meets much of the release-identity, transactional update, and
 rollback requirement with a stable interface and a familiar container
 distribution path. It does not inherently provide NeutrinOS's role schema,
 literal-artifact evidence join, state-owner contracts, or fleet policy—but
-those are layers the project would also need on a systemd-native substrate.
+those are capabilities the project would also need on a systemd-native
+substrate.
 
 Choosing a direct `systemd-sysupdate` composition instead of bootc requires more
 than ADR-0001. Accepted SYS-030 now supplies that reason: the production bootc
@@ -210,8 +211,8 @@ The surrounding specifications and documentation form a coherent substrate:
 
 ParticleOS is close to the architecture NeutrinOS was independently describing.
 That is evidence to narrow this project, not evidence to reproduce ParticleOS
-under another name. The plausible NeutrinOS contribution is the layer it does
-not claim to be: heterogeneous role definitions, configuration/state
+under another name. The plausible NeutrinOS contribution is the surface it does
+not claim to provide: heterogeneous role definitions, configuration/state
 contracts, qualification evidence, release promotion, and fleet policy for
 this project's requirements.
 
@@ -320,7 +321,7 @@ a package-input candidate; do not create a downstream Arch packaging fork.
 If the remaining challenges are resolved in favor of the systemd-native path,
 the boundary should be:
 
-| Layer | Default owner |
+| Responsibility | Default owner |
 | --- | --- |
 | DDI/UKI layout, boot discovery, boot assessment, extension format, update and install mechanisms | systemd and UAPI specifications/implementations |
 | Image assembly and VM boot tooling | mkosi |
@@ -359,4 +360,4 @@ insufficient and what long-term maintenance obligation the project accepts.
 **Keep open.** The research supports abandoning a greenfield substrate,
 narrows the possible project contribution, and documents why NixOS's operator
 model is a poor fit. It does not yet demonstrate that the proposed
-systemd-native NeutrinOS layer is preferable to a bootc solution.
+systemd-native NeutrinOS surface is preferable to a bootc solution.

@@ -21,7 +21,7 @@ In particular, acceptance means:
 - the normal effective `/etc` is reconstructible from identified inputs, with
   individually governed persistent exceptions;
 - an OS rollback does not claim to roll back durable non-OS state;
-- automatic rollback is offered only across compatible or reversibly
+- automatic fallback is offered only across compatible or reversibly
   checkpointed state transitions;
 - forward-only destructive migration has a visible commit barrier and a
   maintenance/recovery contract;

@@ -134,8 +134,8 @@ avoid.
 
 ## Logical factoring model
 
-The exercise uses four logical layers without requiring four physical
-artifacts:
+The exercise distinguishes configuration inputs, derived content, and artifact
+bindings without requiring each logical factor to become a physical artifact:
 
 ```text
 common source and package inputs
@@ -312,7 +312,7 @@ The three examples can reuse content while preserving literal identities:
 | Reuse candidate | Likely relationship | Qualification consequence |
 | --- | --- | --- |
 | Common source/package inputs | Shared provenance input | Input review may be reused; final artifacts still have literal identities. |
-| Common base filesystem content | Shared build layer, deduplicated object, or flattened output | Common tests can attach to the exact shared artifact, but each manifest tuple still gets selection and integration tests. |
+| Common base filesystem content | Shared build output, deduplicated object, or flattened output | Common tests can attach to the exact shared artifact, but each manifest tuple still gets selection and integration tests. |
 | Generic initial kernel | Potentially shared workstation/router input | Final boot artifacts may differ because initrd, command line, root binding, signing, or platform policy differs. |
 | Role content | Shared by machines with identical role needs | Machine configuration differences still create distinct deployment identities. |
 | Machine configuration artifact | Shared only when resolved normal configuration is literally identical | Machine identity and secrets can differ without forcing another deployment when their declared late-bound contracts are identical. |

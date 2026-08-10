@@ -61,7 +61,7 @@ the comparison but cannot decide it until ratified.
 | SYS-008, SYS-011 | Candidate | The running system needs stable, machine-readable release and deployment state. |
 | SYS-014–SYS-016 | Accepted | Neither Containerfiles nor transfer definitions may become an open-ended operator-facing machine language; resolved inputs and generated configuration must remain inspectable. |
 | SYS-017 | Accepted | Deployment must name the already qualified OCI digest or complete resource-set identity, not merely a mutable tag or version string. |
-| SYS-018 | Accepted | The project must preserve provenance across build, publication, fetch, staging, activation, health, and rollback. |
+| SYS-018 | Accepted | The project must preserve provenance across build, publication, acquisition, staging, selection, boot, health assessment, and rollback. |
 | SYS-019–SYS-026 | Accepted | State ownership, reconstructed `/etc`, migration compatibility, recovery preservation, identity, and diagnostics must retain their declared contracts across the substrate lifecycle. |
 | SYS-030 | Accepted | Normal production boot must authenticate the complete release-owned boot and immutable-root chain from the configured platform trust anchor. |
 

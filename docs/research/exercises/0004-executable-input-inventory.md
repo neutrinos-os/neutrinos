@@ -158,7 +158,7 @@ does not qualify the result or prove it safe.
 | --- | --- | --- |
 | User services, desktop autostart, shell profiles, scripts, plugins, per-user applications | User-owned outside base | Separate user status; can compromise a session while base deployment remains exact |
 | Development tools and code in `/home` | User or project-workload owned | Not base-qualified; privileged use can also create an admin modification |
-| Rootless containers, images, writable layers, volumes, definitions | User/workload owned unless a service is explicitly promoted to release ownership | Separate workload identity, status, and rollback; floating tags are inadequate evidence |
+| Rootless containers, images, writable filesystems, volumes, definitions | User/workload owned unless a service is explicitly promoted to release ownership | Separate workload identity, status, and rollback; floating tags are inadequate evidence |
 | Privileged application containers or VMs | Workload owned with explicit admin attachment authority unless promoted into base role | Separate workload status; host records privileged attachment and may be degraded or unsupported |
 | VM firmware, disks, cloud-init or equivalent inputs | VM-workload owned; guest has its own platform/deployment/state model | Guest identity and health are independent of host base identity |
 | Databases, queues, uploaded code, templates, workload policy | Workload owned under a state contract | Separate health, compromise, backup, and rollback; OS fallback does not revert them |

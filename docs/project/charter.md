@@ -83,7 +83,7 @@ outside users.
 | ID | Criterion | Evidence |
 | --- | --- | --- |
 | CH-001 | The project either demonstrates that its distinguishing invariant cannot be met by reasonably adapting an existing system, or adopts that system instead of duplicating it. | Completed adopt/build/borrow comparison with a documented conclusion. |
-| CH-002 | Every release can be traced to source revision, pinned inputs, build configuration, produced artifacts, and qualification results. | Verifiable release manifest and provenance record. |
+| CH-002 | Every release can be traced to source revision, pinned inputs, build configuration, produced artifacts, and qualification results. | Verifiable deployment manifest, release authorization, and provenance record. |
 | CH-003 | The literal artifact offered for deployment passes the reference-platform gate and all applicable role-specific gates. | Artifact identities joined to test records. |
 | CH-004 | Interrupted staging, failed boot, failed health checks, and an unusable new deployment each have exercised recovery paths. | Failure-injection results and recovery records. |
 | CH-005 | OS, machine, administrator, user, and workload state have explicit ownership, migration, backup, rollback, and reset semantics. | Accepted state model traced to tests. |

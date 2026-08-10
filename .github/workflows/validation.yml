@@ -86,6 +86,18 @@ jobs:
         # that check requires.
         run: mise run check:complete
 
+      - name: Report failing checks
+        # Run directories live outside the checkout and are discarded with the
+        # runner, so a failing profile otherwise reports only a count. This
+        # surfaces the per-check reason. The runner has already scanned and
+        # quarantined unsafe output by the time these files exist, so what is
+        # printed here has passed the same output-safety path as any other
+        # retained evidence.
+        if: failure()
+        run: |
+          set -uo pipefail
+          "$(mise which python)" tools/validation/report_failures.py "${TMPDIR:-/tmp}"
+
       - name: Assert the checkout is unmodified
         if: always()
         run: |

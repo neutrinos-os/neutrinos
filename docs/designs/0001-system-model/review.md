@@ -100,8 +100,12 @@ updater or object store.
 - Author response: machine variants are permitted, not required to duplicate
   every artifact. Content sharing and separately bound immutable configuration
   artifacts may preserve exact identity without pretending configuration is
-  late-bound state.
-- Disposition: open pending representative manifests and lifecycle cost.
+  late-bound state. EX-0005 demonstrates flattened and shared-artifact
+  workstation/router manifests and limits evidence reuse to exact tested
+  artifacts and claims.
+- Disposition: mitigated at the paper level through
+  [EX-0005](../../research/exercises/0005-representative-deployment-manifests.md);
+  measured build, transfer, retention, and qualification cost remains open.
 - Residual risk: a personal fleet may hide costs that become prohibitive for the
   intended reusable framework.
 
@@ -219,8 +223,8 @@ updater or object store.
   systemd/UAPI lifecycle objects.
 - Concrete artifact and loader inventories confirming the EX-0004 paper model
   on both substrate candidates and all reference roles.
-- Representative workstation and router deployment manifests and configuration
-  classifications.
+- Instantiated workstation and router manifests using the literal objects and
+  native configuration outputs from both substrate candidates.
 - Power-loss injection across multi-resource staging and boot selection.
 - A delayed or withdrawn role variant within one release collection.
 - Role-specific external health and boot-success definitions.
@@ -233,8 +237,10 @@ updater or object store.
 2. **Complete at policy level:** EX-0004 inventories executable inputs and
    disposes of C-003 without claiming that immutable base identity covers
    mutable code. Concrete substrate and role inventories remain open evidence.
-3. **Open:** produce representative workstation and router deployment manifests
-   or a paper exercise that classifies every artifact and configuration input.
+3. **Complete at paper level:** EX-0005 provides representative VM,
+   workstation, and router manifests, configuration classifications, factoring
+   alternatives, and qualification boundaries. Literal substrate manifests and
+   measurements remain open evidence.
 4. **Open:** map the model to both substrate candidates without assuming a new
    project-owned manifest format or update engine.
 5. **Open:** review which candidate lifecycle requirements should become

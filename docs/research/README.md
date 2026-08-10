@@ -14,6 +14,7 @@ Initial research tracks:
 - [promotion substitution and signer-compromise tabletop](exercises/0002-promotion-substitution-tabletop.md)
 - [recovery capability and abuse tabletop](exercises/0003-recovery-capability-tabletop.md)
 - [executable-input ownership and deployment-boundary tabletop](exercises/0004-executable-input-inventory.md)
+- [representative deployment manifests and composition tabletop](exercises/0005-representative-deployment-manifests.md)
 - package-source release and security-maintenance models
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration

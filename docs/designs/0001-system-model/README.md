@@ -503,8 +503,12 @@ keeps both substrate candidates accountable to the same complete-set identity
 and failure boundaries. The
 [executable-input tabletop](../../research/exercises/0004-executable-input-inventory.md)
 assigns inputs outside the immutable root explicit owners and status effects
-without extending release qualification to mutable code. DES-0002, DES-0003,
-and DES-0004 provide state, trust, and authority constraints incorporated here.
+without extending release qualification to mutable code. The
+[representative-manifest tabletop](../../research/exercises/0005-representative-deployment-manifests.md)
+shows how VM, workstation, and router tuples can bind exact configuration while
+sharing unchanged content and evidence only at justified boundaries. DES-0002,
+DES-0003, and DES-0004 provide state, trust, and authority constraints
+incorporated here.
 
 The proposal is now in adversarial review. No artifact format, manifest schema,
 disk topology, updater, installer, or health implementation is selected, and no

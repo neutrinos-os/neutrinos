@@ -107,6 +107,15 @@ enrollment, and a replay-safe first-boot handoff. Newly upstreamed
 `systemd-sysinstall` leads as installer candidate; direct systemd composition,
 Ignition, and bootc install remain challengers. Cloud-init is compatibility-only.
 
+Secret custody and credential delivery are now under review in
+[DES-0011](../designs/0011-secret-and-credential-delivery/README.md). The
+working model makes the credential contract identity-bound, keeps values and
+rotation late-bound, and prefers systemd credentials as the last-mile service
+interface. It does not treat systemd credentials as an issuer or secret
+manager. Local host-bound storage, offline administrative envelopes, online
+issuance, workload identity, and recovery remain mechanism questions for
+EX-0013.
+
 ## User preferences that must remain visible
 
 ### Systemd and UAPI
@@ -353,7 +362,9 @@ review for concrete formats, mechanisms, and costs. SYS-075 through SYS-085
 accept the fleet rollout policy boundaries; DES-0009 remains in review for
 records, mechanisms, and operating cost. SYS-086 through SYS-097 accept the
 installation and first-enrollment policy boundaries; DES-0010 remains in review
-for concrete mechanisms and operating cost.
+for concrete mechanisms and operating cost. SYS-098 through SYS-108 accept
+secret custody and credential-delivery policy; DES-0011 remains in review for
+concrete custody, recipient, rotation, recovery, and service mechanisms.
 
 ## Restart checklist
 

@@ -52,7 +52,7 @@ ADR.
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
 | C-001 | What is the source of truth and representation for machine and role configuration? | [Accepted: TOML records, JSON Schema structural validation, literal native sources, and generated canonical JSON evidence](../adrs/0003-bounded-fleet-intent-representation.md) | S-002, S-003 |
-| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted: identity-bound configuration and late-bound contracts; concrete delivery and exception mechanisms remain open](reviews/0008-fleet-intent-and-configuration-requirements.md#sys-046-late-bound-contracts) | C-001, S-005 |
+| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted: systemd credentials are the default service interface; custody, envelope, issuer, recovery, and exception mechanisms remain in review](reviews/0014-secret-and-credential-delivery-requirements.md) | C-001, S-005 |
 | W-001 | What are the supported identity, UID, sub-ID, and rootless-container semantics? | Open | S-002, C-001 |
 | W-002 | What is the microVM artifact, networking, storage, and lifecycle model? | Open | S-003, S-004, C-001 |
 | W-003 | Which software belongs in the OS, user environment, project, GUI sandbox, container, or VM? | Stated direction | S-002 |

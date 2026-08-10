@@ -33,3 +33,4 @@ Current designs:
 - [DES-0008: supply-chain evidence, reproducibility, and vulnerability assessment](0008-supply-chain-evidence-and-vulnerability/README.md)
 - [DES-0009: fleet release promotion and rollout control](0009-fleet-release-rollout/README.md)
 - [DES-0010: installation, provisioning, and machine enrollment](0010-installation-and-enrollment/README.md)
+- [DES-0011: secret custody and credential delivery](0011-secret-and-credential-delivery/README.md)

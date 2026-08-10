@@ -29,6 +29,8 @@ Initial research tracks:
 - [representative personal-fleet rollout tabletop](exercises/0011-personal-fleet-rollout-tabletop.md)
 - [installation and first-boot provisioning comparison](comparisons/installation-and-provisioning.md)
 - [first enrollment, installation, and replay tabletop](exercises/0012-first-enrollment-and-replay-tabletop.md)
+- [secret custody and credential delivery comparison](comparisons/secret-custody-and-delivery.md)
+- [representative secret custody and credential flow](exercises/0013-representative-credential-flow.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

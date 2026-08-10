@@ -56,8 +56,35 @@ that have not been established.
 - **late-bound input**: A value supplied after deployment identity is
   established under an explicit contract. It does not silently change
   deployment membership.
-- **credential**: A late-bound datum delivered through the systemd credentials
-  mechanism. A credential may be secret or non-secret.
+- **secret**: A value whose confidentiality must be protected from at least one
+  actor in the applicable threat model. A private key, password, or bearer token
+  is normally a secret; a public certificate normally is not.
+- **credential**: Data or a cryptographic capability used by a subject to prove
+  identity, obtain authorization, or configure an authenticated relationship.
+  A credential may contain secret and non-secret parts and is not necessarily a
+  systemd credential.
+- **systemd credential**: An immutable binary datum passed to a systemd-managed
+  service activation through the upstream systemd credentials mechanism. It
+  may be secret or non-secret; the mechanism does not make its contents an
+  authorization decision or an allowed late-bound semantic effect.
+- **credential contract**: Identity-bound configuration declaring the exact
+  owner, authority, subject, consumer, name, schema and semantic effects,
+  delivery, validity, failure, rotation, offline, evidence, and recovery policy
+  for a class of late-bound credential instances.
+- **credential grant**: An attributable authorization for one exact subject and
+  consumer to receive or obtain a credential instance under a credential
+  contract. Enrollment identifies the subject but does not itself create every
+  credential grant.
+- **credential instance**: One versioned and scoped value or proof supplied
+  under a credential contract, with explicit issuer, subject, validity, and
+  currentness. Its value may be secret even when its identifying metadata is
+  not.
+- **secret envelope**: A protected representation of secret material addressed
+  to declared recipient capability and context. An envelope's encryption does
+  not establish authorization, correct consumption, or recoverability.
+- **credential realization**: The outcome of attempting to deliver one
+  credential instance to one exact consumer activation under its contract,
+  recorded without the secret value.
 - **provisioning**: Preparing initially blank or reset storage, trust roots,
   and machine identity. Provisioning is not routine OS configuration.
 - **installation**: Populating a target with a previously built deployment set

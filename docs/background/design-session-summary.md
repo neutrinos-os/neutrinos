@@ -99,6 +99,14 @@ eligibility, update transport, and reboot availability. Minimal immutable
 records lead for the personal-fleet exercise; Omaha/Nebraska and
 Cincinnati-derived semantics remain explicit challengers.
 
+Installation and first enrollment are now under review in
+[DES-0010](../designs/0010-installation-and-enrollment/README.md). The working
+model uses authenticated one-operation provisioning intent, exact deployment
+installation, locally generated machine identity, independently approved
+enrollment, and a replay-safe first-boot handoff. Newly upstreamed
+`systemd-sysinstall` leads as installer candidate; direct systemd composition,
+Ignition, and bootc install remain challengers. Cloud-init is compatibility-only.
+
 ## User preferences that must remain visible
 
 ### Systemd and UAPI
@@ -343,7 +351,9 @@ selection remain in review pending EX-0009. SYS-065 through SYS-074 accept the
 supply-chain evidence and vulnerability policy boundaries; DES-0008 remains in
 review for concrete formats, mechanisms, and costs. SYS-075 through SYS-085
 accept the fleet rollout policy boundaries; DES-0009 remains in review for
-records, mechanisms, and operating cost.
+records, mechanisms, and operating cost. SYS-086 through SYS-097 accept the
+installation and first-enrollment policy boundaries; DES-0010 remains in review
+for concrete mechanisms and operating cost.
 
 ## Restart checklist
 

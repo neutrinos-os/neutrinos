@@ -2,7 +2,7 @@
 id: RES-0003
 status: in-review
 last_updated: 2026-08-10
-evidence_cutoff: 2026-08-09
+evidence_cutoff: 2026-08-10
 decision_gates: [P-001, S-001, L-004]
 review: reviews/0002-bootc-vs-systemd-sysupdate.md
 ---
@@ -18,8 +18,11 @@ should bootc be the default substrate candidate?
 This comparison treats the candidates at their actual product boundaries.
 bootc is an opinionated installation and host-update system. `systemd-sysupdate`
 is a generic atomic resource-transfer mechanism that must be combined with an
-image builder, partition layout, installer, boot policy, state model, release
-publisher, and fleet policy.
+image builder, partition layout, boot policy, state model, release publisher,
+and fleet policy. Current systemd now supplies
+[`systemd-sysinstall`](https://github.com/systemd/systemd/blob/main/man/systemd-sysinstall.xml)
+as an adjacent installer, but NeutrinOS still owns its enrollment and exact
+deployment-set integration.
 
 ## Summary judgment
 
@@ -126,10 +129,13 @@ coordinate resources that must advance together; separate components and
 optional features can have independent lifecycles.
 
 `systemd-sysupdate` does not create the target partitions it updates. Its own
-documentation directs image authors to `systemd-repart`. Installation, image
-construction, release publication, state layout, and fleet orchestration
-therefore remain integration responsibilities. The surrounding systemd stack
-does provide strong building blocks: the
+documentation directs image authors to `systemd-repart`. Current upstream
+`systemd-sysinstall` now composes target selection, confirmation, repart,
+system-credential handoff, UKI linking, and systemd-boot installation. Exact
+multi-resource finalization, preservation, enrollment, image construction,
+release publication, state policy, and fleet orchestration remain integration
+responsibilities under DES-0010. The surrounding systemd stack also provides
+strong building blocks: the
 [automatic boot assessment model](https://systemd.io/AUTOMATIC_BOOT_ASSESSMENT/)
 connects boot counting, health gates, blessing, and fallback, while
 [mkosi](https://github.com/systemd/mkosi) builds package-based disk images,
@@ -144,7 +150,7 @@ operational interface that bootc already supplies.
 | Dimension | bootc production path | systemd-sysupdate composition |
 | --- | --- | --- |
 | Release transport | OCI registry and digest; established container distribution and policy ecosystem | HTTP or local resource sets with signed checksum manifests; publication convention is project-owned |
-| Install/update surface | Integrated install, fetch, stage, apply, switch, status, and rollback | Atomic acquire/update primitive; install and lifecycle orchestration are composed from adjacent tools |
+| Install/update surface | Integrated install, fetch, stage, apply, switch, status, and rollback | Atomic acquire/update plus adjacent `systemd-sysinstall`, repart, boot, and assessment components; NeutrinOS still joins their product boundary |
 | On-machine identity | Structured booted/staged image status and install provenance | Versioned resources are inspectable; NeutrinOS must define a joined release identity and status contract |
 | Production maturity | Stable surface over production OSTree backend | Shipped systemd component, but the complete distro lifecycle is a project integration rather than one promised product surface |
 | Boot recovery | Explicit rollback; automatic failure handling varies by backend and is incomplete for composefs | Native boot counting and extensible health/blessing model, but correct end-to-end integration is the image author's responsibility |

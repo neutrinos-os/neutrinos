@@ -60,11 +60,47 @@ that have not been established.
   mechanism. A credential may be secret or non-secret.
 - **provisioning**: Preparing initially blank or reset storage, trust roots,
   and machine identity. Provisioning is not routine OS configuration.
+- **installation**: Populating a target with a previously built deployment set
+  and the storage/boot structures required to select it. Installation does not
+  itself enroll the machine or authorize the deployment.
+- **installer artifact**: The exact bootable or executable environment used to
+  perform installation. Its destructive capability does not grant release,
+  recovery, enrollment, platform-owner, or data-recovery authority.
+- **provisioning intent**: An authenticated, versioned, time-bounded record for
+  one install, reinstall, disk replacement, identity rotation, reprovision, or
+  factory-reset operation. It binds target constraints, permitted mutation,
+  preservation, deployment scope, authority steps, and completion behavior.
 - **bootstrap hint**: Untrusted or separately authenticated metadata used to
   locate provisioning intent before enrollment. A bootstrap hint does not
   assign a role or authorize a deployment.
 - **enrollment**: Binding a machine identity to NeutrinOS administrative
   authority and fleet inventory.
+- **enrollment voucher**: A short-lived, authority-effectively single-use
+  authorization to submit one enrollment request within an exact machine-record
+  and operation scope. A voucher is not a machine credential or approved
+  binding.
+- **enrollment request**: A fresh proposal containing the voucher, locally
+  generated public key, proof of possession, nonce, requested machine record,
+  and applicable observations.
+- **enrollment approval**: An enrollment-authority decision accepting one exact
+  request and assigning its machine identity epoch.
+- **enrollment binding**: The current authority-approved association of one
+  machine identity key and epoch with one machine record.
+- **identity epoch**: An ordered generation of a machine's enrollment identity.
+  Rotation or re-enrollment creates a new epoch; rollback cannot restore a
+  revoked older epoch.
+- **provisioning record**: Attributable evidence of one provisioning intent,
+  target, tool and authority actions, installed outputs, failures, and result.
+- **provisioning completion**: The joined state showing that installation,
+  enrollment, exact normal trial boot, and required handoff checks completed.
+  It is not a single magic marker whose absence authorizes replay.
+- **reinstall**: Replacement of release-owned deployment artifacts while
+  retaining only explicitly selected compatible state and identity semantics.
+- **reprovision**: Deliberate execution of a new authenticated provisioning
+  intent on a previously provisioned machine.
+- **factory reset**: Deliberate destruction of declared machine,
+  administrator, user, workload, identity, and secret scopes that returns the
+  target to unprovisioned state. It does not enroll a new identity.
 
 The normal composition flow is:
 

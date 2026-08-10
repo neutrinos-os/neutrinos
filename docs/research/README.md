@@ -27,6 +27,8 @@ Initial research tracks:
 - [representative supply-chain evidence graph](exercises/0010-representative-evidence-graph.md)
 - [fleet rollout and reboot-coordination prior art](comparisons/fleet-rollout-coordination.md)
 - [representative personal-fleet rollout tabletop](exercises/0011-personal-fleet-rollout-tabletop.md)
+- [installation and first-boot provisioning comparison](comparisons/installation-and-provisioning.md)
+- [first enrollment, installation, and replay tabletop](exercises/0012-first-enrollment-and-replay-tabletop.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

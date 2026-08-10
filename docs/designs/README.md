@@ -32,3 +32,4 @@ Current designs:
 - [DES-0007: package inputs and snapshot policy](0007-package-inputs-and-snapshot-policy/README.md)
 - [DES-0008: supply-chain evidence, reproducibility, and vulnerability assessment](0008-supply-chain-evidence-and-vulnerability/README.md)
 - [DES-0009: fleet release promotion and rollout control](0009-fleet-release-rollout/README.md)
+- [DES-0010: installation, provisioning, and machine enrollment](0010-installation-and-enrollment/README.md)

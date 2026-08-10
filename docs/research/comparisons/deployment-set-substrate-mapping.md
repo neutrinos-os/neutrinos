@@ -58,7 +58,7 @@ The surrounding objects are:
 | Boot/root discovery | systemd-boot, UKI/systemd-stub, DPS/DDI discovery, dm-verity |
 | Boot attempt and blessing | Boot Loader Specification counting plus `systemd-bless-boot.service` |
 | Update inspection/API | `systemd-sysupdate list`, `pending`, JSON output, and `org.freedesktop.sysupdate1` |
-| Initial layout | `systemd-repart` and image-defined partition policy; installation orchestration remains separate |
+| Initial layout and install | `systemd-sysinstall` orchestrates target selection, confirmation, `systemd-repart`, UKI linking, and systemd-boot installation; NeutrinOS enrollment and complete-set finalization remain separate |
 
 `systemd-sysupdate` transfers whole files, directories, subvolumes, or
 partitions and keeps at least two resource versions. It syncs newly downloaded
@@ -146,7 +146,7 @@ Ratings mean:
 | Offline retained boot/fallback | `composed/test`; installed resources and boot entries need no update source | `native/test`; deployed OSTree content and boot entries need no registry | Router data-plane-loss test remains required |
 | Complete-closure retention/GC | `composed/test`: instance retention and protected versions apply to resources; closure reachability must align | `native` for bootc deployments and logically bound image retention; project recovery/state artifacts remain separate | Exercise shared objects and retained recovery explicitly |
 | Machine-readable deployment status | Native version/resource JSON and sysupdate D-Bus; `thin join` for all DES status dimensions | Native stable booted/staged/rollback JSON/YAML; `thin join` for all DES status dimensions | One read-only NeutrinOS status aggregator is justified |
-| Installation/provisioning | `composed`: repart/image policy plus an installer or image wrapper | `native` for simple install; external installer required for richer storage; provenance file is useful | Installation remains separate from long-term deployment identity |
+| Installation/provisioning | `native/composed`: new `systemd-sysinstall` orchestrates repart and boot installation, but exact multi-resource finalization, preservation, and enrollment require DES-0010 evidence | `native` for simple install; external installer required for richer storage; provenance file is useful | Installation remains separate from long-term deployment identity and enrollment |
 
 ## The two justified NeutrinOS-owned joins
 

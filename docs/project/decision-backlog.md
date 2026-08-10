@@ -40,7 +40,7 @@ ADR.
 | --- | --- | --- | --- |
 | L-001 | Which package ecosystem and snapshot policy supply OS inputs? | Open | P-002, S-001 |
 | L-002 | What reproducibility, provenance, SBOM, and vulnerability guarantees are required? | Open | L-001, S-005 |
-| L-003 | How is a machine installed and enrolled? | [Boundary proposed: provisioning may bootstrap storage and enrollment but cannot become normal role or configuration authority; concrete mechanism remains open](../designs/0005-fleet-intent-and-configuration/README.md#provisioning-and-bootstrap-boundary) | S-001, S-004, S-006 |
+| L-003 | How is a machine installed and enrolled? | [Boundary accepted: provisioning may bootstrap storage and enrollment but cannot become normal role or configuration authority; concrete mechanism remains open](reviews/0008-fleet-intent-and-configuration-requirements.md#sys-047-provisioning-lifecycle) | S-001, S-004, S-006 |
 | L-004 | How are releases discovered, staged, booted, blessed, and rolled back? | [Requirements accepted; substrate conformance remains in research, with direct systemd/UAPI leading under SYS-030](reviews/0007-deployment-lifecycle-requirements.md) | S-001, S-004 |
 | L-005 | How does mutable state remain safe across upgrade and rollback? | [Requirements accepted; migration and recovery mechanisms remain in review](../designs/0002-state-ownership/README.md#update-and-migration-protocol) | S-002, L-004 |
 | L-006 | How are releases promoted, phased, paused, and withdrawn across a fleet? | Open | L-002, L-004 |
@@ -51,8 +51,8 @@ ADR.
 
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
-| C-001 | What is the source of truth and representation for machine and role configuration? | [Proposed: versioned fleet inventory, bounded inputs plus native configuration, fixed precedence, and immutable composition records](../designs/0005-fleet-intent-and-configuration/README.md) | S-002, S-003 |
-| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted; DES-0005 proposes identity-bound configuration and late-bound contracts, while concrete delivery and exception mechanisms remain open](../designs/0005-fleet-intent-and-configuration/README.md#identity-bound-and-late-bound-inputs) | C-001, S-005 |
+| C-001 | What is the source of truth and representation for machine and role configuration? | [Requirements accepted: versioned fleet inventory, bounded inputs plus native configuration, fixed precedence, and immutable composition records; concrete representation remains in review](reviews/0008-fleet-intent-and-configuration-requirements.md) | S-002, S-003 |
+| C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted: identity-bound configuration and late-bound contracts; concrete delivery and exception mechanisms remain open](reviews/0008-fleet-intent-and-configuration-requirements.md#sys-046-late-bound-contracts) | C-001, S-005 |
 | W-001 | What are the supported identity, UID, sub-ID, and rootless-container semantics? | Open | S-002, C-001 |
 | W-002 | What is the microVM artifact, networking, storage, and lifecycle model? | Open | S-003, S-004, C-001 |
 | W-003 | Which software belongs in the OS, user environment, project, GUI sandbox, container, or VM? | Stated direction | S-002 |

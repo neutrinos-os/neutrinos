@@ -69,7 +69,8 @@ attribution, validation, selection, status, or recovery.
 - Author response: EX-0006 classifies the initial functions as one primary role,
   release-owned role services, or independently owned workloads without using
   multi-role inheritance.
-- Disposition: mitigated for the initial fleet; owner review remains open.
+- Disposition: mitigated and accepted for the initial fleet; multi-role
+  composition remains a review trigger.
 - Residual risk: arbitrary multi-role inheritance would recreate the graph the
   design is trying to avoid.
 
@@ -155,7 +156,7 @@ attribution, validation, selection, status, or recovery.
   configuration.
 - Required response or experiment: define completion state, replay protection,
   evidence retention, source removal, and behavior when the input reappears.
-- Disposition: mitigated by SYS-047 as proposed; mechanism remains open.
+- Disposition: mitigated by accepted SYS-047; mechanism remains open.
 - Residual risk: some environments continuously expose instance metadata and
   make true source removal impossible.
 
@@ -190,10 +191,13 @@ attribution, validation, selection, status, or recovery.
    enforcement and exception representation remain open.
 4. **Complete on paper:** EX-0006 classifies representative late-bound inputs
    and their permitted semantic power.
-5. **Open:** owner review of one primary role plus services/workloads for the
-   initial fleet.
-6. **Open:** review SYS-042 through SYS-047 for acceptance, revision, or
-   rejection.
+5. **Complete:**
+   [PR-0008](../../project/reviews/0008-fleet-intent-and-configuration-requirements.md)
+   accepts one primary role plus services/workloads for the initial fleet, with
+   multi-role composition retained as a review trigger.
+6. **Complete at requirement level:** PR-0008 accepts SYS-042 through SYS-047
+   with explicit minimal-metadata, native-composition, semantic-power, and
+   provisioning guardrails. Implementation evidence remains open.
 
 ## Review disposition
 

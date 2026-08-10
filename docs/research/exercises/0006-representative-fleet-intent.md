@@ -532,9 +532,13 @@ EX-0006 resolves DES-0005 review challenges C-001, C-004, and C-005 at the
 paper-model level and materially mitigates C-002, C-003, and C-007. C-008 and
 C-009 remain open pending the provisioning and enrollment design.
 
-The exercise supports advancing DES-0005 to `in-review`. It does not ratify
-SYS-042 through SYS-047, select serialization or tooling, or prove that the
-model remains lightweight when instantiated with real native configuration.
+The exercise supports advancing DES-0005 to `in-review`. It did not itself
+ratify SYS-042 through SYS-047; those requirements were subsequently accepted
+through
+[PR-0008](../../project/reviews/0008-fleet-intent-and-configuration-requirements.md).
+Neither the exercise nor that review selects serialization or tooling or proves
+that the model remains lightweight when instantiated with real native
+configuration.
 
 ## Follow-up work
 

@@ -492,9 +492,10 @@ demonstrate:
 10. one configuration change traced through composition, deployment identity,
     qualification, selection, runtime status, and deliberate rollback.
 
-## Candidate requirements
+## Accepted requirements
 
-This design proposes the following requirements for adversarial review:
+The following requirements were accepted through
+[PR-0008](../../project/reviews/0008-fleet-intent-and-configuration-requirements.md):
 
 - SYS-042: The authoritative fleet inventory must version machine records,
   role assignments, platform constraints, and exact configuration-source
@@ -540,6 +541,7 @@ An adversarial review is open in [review.md](review.md).
 [EX-0006](../../research/exercises/0006-representative-fleet-intent.md)
 provides candidate machine records, a field-authority table, non-overridable
 invariants, representative late-bound contracts, and scope-composition
-fixtures. The design is in review pending owner decisions and candidate-
-requirement disposition; concrete provisioning and first-enrollment mechanisms
-remain open follow-on work.
+fixtures. PR-0008 accepts the configuration and provisioning authority
+boundaries. The design remains in review pending representative native inputs
+and serialization evidence; concrete provisioning and first-enrollment
+mechanisms remain open follow-on work.

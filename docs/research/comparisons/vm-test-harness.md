@@ -142,8 +142,17 @@ unnecessary for reachability.** The literal artifact can be given a console,
 first-boot answers, a hostname, and an unlocked root account entirely from
 outside, leaving the artifact byte-identical.
 
-That does not automatically mean the amendment should be reverted, and this
-document does not recommend it. A physical host has no harness to inject
+**Owner decision 2026-08-10: revert, but not yet -- wait for KVM.** Dropping
+`Autologin=` leaves a `login:` prompt that a human can use and a script cannot,
+and the intended replacement is ssh over vsock with ephemeral keys, which is
+untested and untestable while this host has no KVM. Reverting now would buy a
+clean artifact at the cost of a harness that cannot drive its guest. Doing both
+in one motion after SVM is enabled costs one re-run of PLN-0001-04 instead of
+two. The revert is verifiable when it happens: the UKI must hash back to
+`575c847d...` and the initrd to `e7061e25...`, the digests recorded before the
+amendment.
+
+Reverting does not by itself settle where first-boot configuration belongs. A physical host has no harness to inject
 SMBIOS strings, so something must still own first-boot configuration --
 the installer, the enrollment record, or the image. That is `L-003` and
 `C-002`, and it should be decided on its own terms. What has changed is that

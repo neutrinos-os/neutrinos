@@ -101,10 +101,24 @@ inside the machine contradicts it. Nothing observed suggests it is wrong; the
 point is that the machine offers no independent check, and SYS-058's "retained
 closure" is satisfied by the builder's record alone.
 
-Whether a deployment should be able to attest its own contents is an open
-question this slice does not answer, and it should be asked before a substrate
-mechanism is selected: it is exactly the kind of property that distinguishes
-direct composition from bootc.
+**This is discharged by accepted policy, not a new gap.** SYS-068 already
+requires each deployment SBOM to *bind exact deployment or artifact subjects*,
+and SYS-073 requires policy-referenced evidence to remain *queryable without
+mutable upstream services*. So the intended answer is that a deployment
+identifies itself and the SBOM enumerates it, rather than the deployment
+carrying a package database.
+
+The machine-side half of that chain is already demonstrated here: the guest
+computed the SHA-256 of its own UKI, using tools present in the image, and it
+matched the composed artifact exactly. A machine can therefore establish which
+deployment it is without external help, which is the key an SBOM is bound to.
+
+Two consequences follow rather than one gap. Vulnerability questions about a
+running machine must be answered out of band against retained evidence -- there
+is no `rpm -qa` path and there is not meant to be. And SYS-073's retention
+requirement carries the real risk: a machine that can name its deployment but
+whose evidence set has been lost is unanswerable, and nothing on the machine
+will reveal that until someone asks.
 
 **Correction to the composition record.** `CleanPackageMetadata=auto` skips
 cleaning entirely for `directory` and `tar` output

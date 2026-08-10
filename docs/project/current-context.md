@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 8dd0669
+source_snapshot_revision: e3be851
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -22,10 +22,12 @@ NeutrinOS source implementation is **not authorized**.
 
 [PLN-0000](../plans/0000-pre-implementation-readiness.md) is active only for
 repository readiness, documentation, validation, and collaboration
-scaffolding. Its next action is to repair the EX-0016 cold-start context route:
-the first repair preserved semantics but Codex still opened broad sources and
-historical results. Rerun Codex and Claude after the structural repair, then
-close PRE-012/PRE-013. The layered test strategy in PRE-014 follows.
+scaffolding. Its next action is to disposition the failed EX-0016 rerun at
+`e3be851`: Claude followed the bounded route, while Codex avoided history but
+still opened most of PLN-0000 and ran unnecessary validation. Decide whether
+to reshape this file into a hard-bounded, self-contained cold-context artifact
+or record a bounded Codex client exception before any further paid rerun. The
+layered test strategy in PRE-014 follows after PRE-012/PRE-013 close.
 
 The [work register](work-register.md) is the aggregate view of remaining work.
 The [decision backlog](decision-backlog.md) owns question state. Neither is

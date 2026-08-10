@@ -3,7 +3,7 @@ id: EX-0016-RUN-2026-08-10
 exercise: EX-0016
 status: active
 date: 2026-08-10
-source_revisions: [a191e17dfdf3a740770bc40d9e8edd780c9f986f, 8dd066946bbc8d2c529f4b2f725c799b946d06eb]
+source_revisions: [a191e17dfdf3a740770bc40d9e8edd780c9f986f, 8dd066946bbc8d2c529f4b2f725c799b946d06eb, e3be8512e077dde2c5f6f3cb7cf4685edc14a1b8]
 required_clients: [Codex, Claude Code]
 ---
 
@@ -29,6 +29,37 @@ historical results plus broad decision sources; Claude followed a bounded path
 but repeated the now-stale instruction to commit the already-committed repair.
 Wording alone was insufficient. A structural cold-start route and corrected
 next action are now required before another rerun.
+
+The structural route at `e3be851` materially improved both clients but did not
+produce a strict two-client pass. Claude followed the intended bounded route.
+Codex avoided all history/results/backlog material and reduced cumulative input
+from 427,690 to 173,387 tokens, but still opened most of PLN-0000, ran both
+documentation checks despite making no changes, and produced 6,442 output
+tokens. The run also exposed stale housekeeping inventory in PLN-0000 and
+wording that let Claude describe the already-applied repair as still pending.
+Stop before another paid rerun; owner disposition is required between reshaping
+current-context as a hard-bounded, self-contained cold artifact and documenting
+a Codex-specific route exception.
+
+## Rerun at `e3be851`
+
+| Field | Codex | Claude Code |
+| --- | --- | --- |
+| Client | `codex-cli 0.147.0` | Claude Code `2.1.226` |
+| Model | CLI default; not emitted | `claude-opus-5` |
+| Session | `019feb8e-f209-7741-ba2c-92b93d263efc` | `33333333-3333-4333-8333-333333333316` |
+| Checkout | `/tmp/neutrinos-ex0016-e3be851` | same |
+| Revision | `e3be8512e077dde2c5f6f3cb7cf4685edc14a1b8` | same |
+| Mode/tools | ephemeral read-only sandbox; shell reads | plan mode; `Read`, `Glob`, `Grep` only |
+| Semantic answer | Pass | Pass; next-action wording remained partly stale |
+| Context route | Fail: AGENTS, context, most of PLN-0000, ADR-0001, validator scan of adapters; no history/results/backlog | Pass: CLAUDE, AGENTS, context, ADR-0001 |
+| Reported accounting | 173,387 input; 142,592 cached input; 6,442 output tokens | 8 direct input; 14,928 cache creation; 44,393 cache read; 3,041 Opus output tokens |
+| Overall | Fail: ignored terminal cold route; unnecessary plan/validation work | Fail under strict freshness rubric; route itself passed |
+
+Neither client changed repository files, hosts, or external state. Codex ran
+the two read-only documentation checks; both passed. Claude attempted a
+disabled `ExitPlanMode` tool after delivering its report, received an error,
+and then ended without mutation.
 
 ## Rerun at `8dd0669`
 
@@ -122,6 +153,13 @@ transcripts are not part of the response record.
   revision names inputs rather than the containing commit.
 - Pending: commit the structural repair; clone that revision; rerun the cold
   prompt in both clients; require semantic, freshness, and context-route passes.
+- `e3be851`: structural route committed and rerun. Claude route passed; Codex
+  materially narrowed traversal but still ignored the terminal two-file route,
+  opened most of PLN-0000, and ran unnecessary validation. Strict run failed.
+- Pending owner disposition: reshape current-context as a hard-bounded,
+  self-contained cold artifact with no broad traversal cues, or document a
+  bounded Codex client exception. Do not spend another model run before that
+  choice and repair.
 - Adapter drift review at `a191e17`: pass. `CLAUDE.md` and
   `.github/copilot-instructions.md` contain discovery behavior only, not copied
   project policy.
@@ -488,4 +526,155 @@ No nested `AGENTS.md` files were found. I also inspected current-context, PLN-00
 **Conflicts** — none found in substance. Precedence if any arises: accepted ADRs/requirements and the accepted plan win over `current-context.md`, which self-declares non-normative and derived (`current-context.md:12-14`; `AGENTS.md:5-6`); the work register likewise yields to source documents (`work-register.md:21-22`). Tool adapters (`CLAUDE.md`, `.github/copilot-instructions.md`) carry discovery syntax only and never override `AGENTS.md` (`…/0000-pre-implementation-readiness.md:141-142`). One nuance worth flagging, not a conflict: `current-context.md:5` says `G0-complete` while PLN-0000's frontmatter says `gate: G1` — the plan's field names the gate it targets, matching `target_gate: G1`.
 
 No files, git state, or external state were changed; only reads were performed.
+```
+
+## `e3be851` rerun exact final responses
+
+### Codex
+
+```text
+## Current status
+
+- **Current gate:** `G0-complete`; target is G1. G1 is not satisfied, and NeutrinOS implementation is not authorized. [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:5)
+- **Active plan:** `PLN-0000`, “Pre-implementation readiness.” It authorizes repository readiness, documentation, validation, and collaboration scaffolding only. Its accepted readiness model does not satisfy PRE-018 or G1. [PLN-0000](/tmp/neutrinos-ex0016-e3be851/docs/plans/0000-pre-implementation-readiness.md:280)
+- **One next action:** rerun the EX-0016 cold-start exercise with Codex and Claude after the structural context-route repair, then close PRE-012/PRE-013 if it passes. PRE-014’s layered test strategy follows. [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:23)
+
+## Decision status
+
+Accepted:
+
+- Naming: NeutrinOS / `neutrinos` / `neutrinos-os`.
+- Systemd-first policy.
+- Separate routine, exceptional, machine, and data authority, including independent recovery.
+- Bounded TOML/native fleet intent, JSON Schema validation, and canonical JSON evidence.
+- The existing system-policy boundaries.
+- PLN-0000’s readiness model and fixture/defer classifications; PRE-001, PRE-002, PRE-010, and PRE-011 are satisfied. [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:34)
+
+Leading or open—not accepted architecture:
+
+- Direct systemd/UAPI composition, likely mkosi; bootc remains the challenger.
+- Fedora stable snapshot; literal Arch comparison remains required.
+- Storage production layout, encryption, and recovery remain open; EROFS/Btrfs is only a later-evaluation direction.
+- `systemd-sysinstall` is leading, not selected.
+- General kernel with normal initrd is only a conservative fixture.
+- Ordinary disposable VM is a harness, not an accepted microVM model.
+- W-002 microVM lifecycle, W-004 kernel specialization, exact production identity/credential mechanisms, and all role contracts remain open or deferred. [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:55) [PLN-0000](/tmp/neutrinos-ex0016-e3be851/docs/plans/0000-pre-implementation-readiness.md:61)
+
+## Mutation authority
+
+Currently allowed by PLN-0000:
+
+- Documentation, repository guidance, validation scaffolding, and readiness work.
+- Specifically authorized read-only repository/host inspection.
+- Documentation-only evaluation using synthetic inputs. [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:76)
+
+This request further narrowed authority to read-only repository inspection, so no mutation was permitted or performed.
+
+Currently prohibited:
+
+- NeutrinOS source implementation or a reference-VM build.
+- Physical-host mutation, including `desktop-jason`, `router`, or `misc`.
+- Production credentials, keys, enrollment/recovery material, or machine authority.
+- Changing boot entries, networking/firewalls, container storage, identities, sub-ID ranges, or backups.
+- Treating fixtures, probes, or agent summaries as accepted decisions.
+- Publishing to physical machines or presenting a fixture as a release.
+- Push, merge, release, publication, or other remote writes without explicit authorization. [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:86) [PLN-0000](/tmp/neutrinos-ex0016-e3be851/docs/plans/0000-pre-implementation-readiness.md:41)
+
+After G1, repository implementation, declared build state, disposable VM state, and synthetic authority fixtures could become permissible—but only under an accepted follow-on plan. That is future, conditional authority, not current authority. [PLN-0000](/tmp/neutrinos-ex0016-e3be851/docs/plans/0000-pre-implementation-readiness.md:43)
+
+Boundary crossings, undeclared mutable resolution, accidental mechanism decisions, unidentifiable artifacts, non-reconstructable VM state, or loss of requirements/test traceability require stopping and returning to design review. [PLN-0000](/tmp/neutrinos-ex0016-e3be851/docs/plans/0000-pre-implementation-readiness.md:251)
+
+## Systemd-first authority
+
+The authoritative source is accepted [ADR-0001](/tmp/neutrinos-ex0016-e3be851/docs/adrs/0001-systemd-first.md:1). It establishes “systemd-first, not systemd-only”: applicable systemd mechanisms are evaluated first, while an overlapping alternative requires a documented, evidence-based comparison against the same accepted requirements. [ADR-0001](/tmp/neutrinos-ex0016-e3be851/docs/adrs/0001-systemd-first.md:28)
+
+## Validation and handoff
+
+Until PRE-015 defines canonical fast and complete entry points, documentation changes must pass:
+
+- `git diff --check`
+- The repository’s Perl internal-Markdown-link checker; no output means pass.
+
+These are explicitly temporary and do not satisfy PRE-015. [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:99)
+
+Required workflow and handoff:
+
+- Inspect the worktree before edits and preserve unrelated work.
+- Report checks run and not run.
+- Commit only small, coherent changes after user approval.
+- Concurrent tasks require explicit ownership and isolated worktrees.
+- Handoff must identify plan/task, scope, changed and preserved files, checks/evidence, accepted versus candidate/open status, blockers/risks, unresolved questions, and the exact next action. [AGENTS.md](/tmp/neutrinos-ex0016-e3be851/AGENTS.md:47) [PLN-0000](/tmp/neutrinos-ex0016-e3be851/docs/plans/0000-pre-implementation-readiness.md:128)
+
+Checks actually run:
+
+- `git status --short --branch`: clean `main`, tracking `origin/main`.
+- `git diff --check`: passed, no output.
+- Internal Markdown-link check: passed, no output.
+- Files changed: none. External state changed: none.
+
+## Instructions read and conflicts
+
+Repository instruction files encountered:
+
+- Directly loaded and used: [AGENTS.md](/tmp/neutrinos-ex0016-e3be851/AGENTS.md:1).
+- Not loaded as guidance, but mechanically scanned by the repository-wide Markdown-link validator: [CLAUDE.md](/tmp/neutrinos-ex0016-e3be851/CLAUDE.md) and [.github/copilot-instructions.md](/tmp/neutrinos-ex0016-e3be851/.github/copilot-instructions.md). Their instruction content was not used for this report.
+
+One stale factual conflict exists: PLN-0000 says the repository has no tracked root agent instructions, but `AGENTS.md` now exists and is the active root instruction file. [PLN-0000](/tmp/neutrinos-ex0016-e3be851/docs/plans/0000-pre-implementation-readiness.md:187) The observed repository state and current root instruction contract win for that inventory fact.
+
+No gate or authority conflict was found. The apparent difference between “permitted after G1” in PLN-0000 and “currently prohibited” in current context is temporal, not contradictory. If a real conflict occurs, accepted requirements govern policy, accepted ADRs govern architecture, accepted plans grant only bounded work authority, and summaries remain non-authoritative. Jason Tarasovic is the sole acceptance authority. [AGENTS.md](/tmp/neutrinos-ex0016-e3be851/AGENTS.md:15) [current-context.md](/tmp/neutrinos-ex0016-e3be851/docs/project/current-context.md:12)
+```
+
+### Claude Code
+
+```text
+Read-only inspection complete. No files changed, no external state touched.
+
+## Instruction files loaded/read
+- `CLAUDE.md` — one line: `@AGENTS.md` import + note that `/memory` verifies the import and auto memory is non-authoritative.
+- `AGENTS.md` — root agent index (Read / Authority / Defaults / Safety / Work / Communication).
+- No other `AGENTS.md`/`CLAUDE.md` exist in the repo (glob for `**/{AGENTS,CLAUDE,GEMINI,COPILOT}*.md` returned only those two).
+
+Additionally read (status + one explicitly requested authority, per `AGENTS.md:5-8`):
+- `docs/project/current-context.md`
+- `docs/adrs/0001-systemd-first.md` (front matter + decision only)
+
+## Gate, plan, next action
+- Current gate: **G0-complete**, target **G1**; G1 **not satisfied**, source implementation **not authorized** (`docs/project/current-context.md:5-6`, `:19-22`).
+- Active plan: **PLN-0000** — `docs/plans/0000-pre-implementation-readiness.md`, scoped to readiness/docs/validation/collaboration scaffolding only (`current-context.md:7`, `:23-26`).
+- One next action: **repair the EX-0016 cold-start context route** (the first repair preserved semantics but Codex still opened broad sources and historical results), then rerun Codex and Claude, then close PRE-012/PRE-013 (`current-context.md:26-28`). PRE-014 layered test strategy follows.
+
+## Accepted vs leading/open
+Accepted (`current-context.md:34-53`):
+- Naming: NeutrinOS / `neutrinos` / `neutrinos-os` (`docs/project/naming.md`).
+- systemd-first (ADR-0001); separate authorities + independent recovery (ADR-0002); bounded TOML fleet intent, JSON Schema validation, canonical JSON evidence (ADR-0003).
+- System policy in `docs/requirements/system.md` (lifecycle, config, storage boundaries, package inputs, supply chain, rollout, installation, credentials, Unix identity, software placement). Exact mechanisms open where no ADR accepts them.
+- PLN-0000 readiness model + fixture/defer classifications; PRE-001/002/010/011 satisfied; PRE-018 and G1 not.
+
+Leading but **unaccepted** fixtures (`current-context.md:55-69`): mkosi-style direct systemd/UAPI image composition with bootc as required challenger; Fedora stable snapshot with literal Arch snapshot as challenger; EROFS root + Btrfs mutable state; `systemd-sysinstall` as installation mechanism; distro kernel + normal initrd; disposable VM as harness only.
+
+Open/deferred (`current-context.md:71-74`): W-002 microVM lifecycle, W-004 kernel specialization, and workstation/laptop/router/server-storage/guest role contracts. Question state is owned by `docs/project/decision-backlog.md`.
+
+## Mutations allowed vs prohibited
+Allowed (`current-context.md:78-84`): docs, repo guidance, validation scaffolding and other readiness changes within PLN-0000; read-only repo/host inspection when the task authorizes it; documentation-only evaluation with synthetic inputs.
+
+Prohibited (`current-context.md:86-94`, reinforced by `AGENTS.md:36-45`): NeutrinOS source implementation or reference-VM build under G1; mutation of `desktop-jason`, `router`, `misc`, or any other physical/production host; production credentials, signing keys, enrollment state, recovery material, machine authority; treating a candidate fixture, successful probe, or agent summary as accepted; autonomous push/merge/release/publication. Full mutation boundary and stop conditions live in `docs/plans/0000-pre-implementation-readiness.md` (`current-context.md:96-97`).
+
+## systemd-first authority
+`docs/adrs/0001-systemd-first.md` — ADR-0001, `status: accepted`, dated 2026-08-09, decider Jason Tarasovic. Policy is **systemd-first, not systemd-only**; an overlapping non-systemd mechanism carries a documented burden of proof (`AGENTS.md:29-30`, `current-context.md:39-41`). Accepted ADRs are architecture authority (`AGENTS.md:19-20`); `current-context.md` is explicitly non-normative and loses to the ADR.
+
+## Validation and handoff
+- Before edits: `git status`; preserve unrelated tracked/untracked/staged work (`AGENTS.md:49`, `current-context.md:101-104`).
+- Until PRE-015 supplies canonical entry points, documentation changes must pass `git diff --check` and the internal Markdown-link `perl` check quoted at `current-context.md:106-116`; no output from the link check is a pass. These are temporary and do not satisfy PRE-015 (`:118-119`). Report checks run and not run (`AGENTS.md:50`).
+- Handoff must state: plan/task; scope; changed/preserved files; checks/evidence; accepted vs candidate/open; blockers/risks; exact next action (`AGENTS.md:66-67`).
+- Commits only after user approval, small and coherent (`AGENTS.md:51`). Multi-agent only by explicit user request with owner + file scope + isolated worktree (`AGENTS.md:54-56`). Agent memory is non-authoritative (`AGENTS.md:57-58`, `CLAUDE.md:3`) — I relied on neither prior conversation nor machine-local memory.
+
+## Conflicts
+None found between sources. The precedence rule if one arises: accepted ADRs/requirements (architecture/policy) > `AGENTS.md` defaults > PLN-0000 (bounded work authority) > `docs/project/current-context.md`, which self-declares `status: informative` and states "A conflicting source wins and this summary must be corrected" (`current-context.md:2`, `:12-15`). One benign staleness marker, not a conflict: `source_snapshot_revision: 8dd0669` while HEAD is `e3be851` — the file documents that this names its inputs and may precede HEAD (`current-context.md:147-149`).
+```
+
+After the report, Claude attempted unavailable `ExitPlanMode`, received an
+error, and emitted this final line:
+
+```text
+The report above is complete. Nothing was modified — this was an inspection-only task, so there is no plan to approve.
 ```

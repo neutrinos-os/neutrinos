@@ -25,11 +25,13 @@ PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 and PRE-015 are satisfied.
-PRE-016 is active: the clean-clone check `T5-VAL-003` is implemented and
-passing, and the repository hygiene contract remains proposed and awaits owner
-acceptance. PRE-017 is active: the tracked baseline, licence, and secret
-scanning are committed, and its one next action is a passing CI run, which has
-never executed. The four canonical tasks, Linux-x64 tool locks, failed
+PRE-016 is satisfied. PRE-017 is active: the tracked baseline, licence, and
+secret scanning are committed, and it needs a passing CI run, which has never
+executed. PRE-003 through PRE-009 and PRE-018 all wait on `PLN-0001`
+(`docs/plans/0001-reference-vm-slice.md`), the reference-VM evidence slice,
+which is now **proposed** and awaits owner acceptance. Accepting it would
+authorize NeutrinOS source implementation for the first time, bounded to that
+slice; it is not accepted, so implementation remains **unauthorized**. The four canonical tasks, Linux-x64 tool locks, failed
 invocations, output-safety quarantine, named T0 checks, secret scanning, and
 registered hostile, empty-cache, and clean-clone probes are implemented.
 Copilot remains unverified and must not be relied on for autonomous repository

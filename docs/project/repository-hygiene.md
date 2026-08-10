@@ -1,13 +1,14 @@
 ---
-status: proposed
+status: accepted
 last_updated: 2026-08-10
 governed_by: PRE-016
 ---
 
 # Repository hygiene contract
 
-Drafted for PRE-016. Not accepted; the owner accepts or rejects it, and the
-numeric bounds below are proposals rather than decisions. The document layout
+Accepted by Jason Tarasovic on 2026-08-10 following
+[PR-0026](reviews/0026-repository-hygiene-contract.md). This is policy: the
+bounds below are decisions, not proposals. The document layout
 and authority table in [docs README](../README.md) remain the source for
 documentation structure; this contract governs the repository around them.
 
@@ -83,9 +84,10 @@ Both gaps recorded during PRE-016 are now closed under PRE-017:
 
 ## Artifact size and external retention
 
-Proposed bounds: no tracked file above 1 MiB, and no tracked binary artifact
-at all. The largest tracked file today is 69 KB, so these bind nothing
-currently and exist to fail before the first image or VM disk is committed.
+No tracked file exceeds 1 MiB, and no tracked binary artifact is permitted at
+all. The largest tracked file today is 69 KB, so these bind nothing currently
+and exist to fail before the first image or VM disk is committed. Neither bound
+is enforced by a check yet; both are policy a reviewer applies.
 
 Images, VM disks, large evidence bundles, and retained validation output live
 outside the repository. A document that depends on such an artifact records

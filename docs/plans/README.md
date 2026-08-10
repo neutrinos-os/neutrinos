@@ -63,5 +63,6 @@ linked follow-up.
 ## Current plans
 
 - [PLN-0000: pre-implementation readiness](0000-pre-implementation-readiness.md)
+- [PLN-0001: reference-VM evidence slice](0001-reference-vm-slice.md)
 
 Start new plans from the [plan template](template.md).

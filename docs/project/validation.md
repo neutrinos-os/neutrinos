@@ -13,12 +13,32 @@ current operator interface; it is not a second policy source.
 ## Bootstrap
 
 Install mise using the independently pinned method for the execution
-environment, trust this repository after reviewing `mise.toml`, then run:
+environment, then run the following from the repository root after reviewing
+`mise.toml`:
 
 ```sh
+mise trust "$PWD/mise.toml"
+export MISE_GLOBAL_CONFIG_FILE=/dev/null
+export MISE_SYSTEM_CONFIG_DIR="$PWD/.mise-no-system-config"
+export MISE_CEILING_PATHS="$(dirname "$PWD")"
 MISE_OFFLINE=0 mise install --locked python uv
 uv sync --locked --python "$(mise which python)"
 ```
+
+The three exported variables exclude the operator's global mise configuration,
+any system configuration, and every config file above the repository, so only
+this checkout's `mise.toml` selects bootstrap inputs. They are the config-only
+subset of the isolation `T5-VAL-002` constructs; bootstrap deliberately does
+not isolate the data, installs, or cache directories, because it must populate
+the operator's real tool store. Without them, tools declared in a developer's
+global configuration enter version resolution. Equivalent `mise.toml` settings
+do not work: `ceiling_paths` is read from a config file that mise has already
+discovered, so it cannot prevent that discovery, and no repository-level
+setting can exclude the global config.
+
+Trust is required before the first command: an untrusted `mise.toml` makes
+`mise which python` fail, and `uv sync --python ""` then silently selects an
+interpreter other than the locked one.
 
 Bootstrap is an unfiltered acquisition phase. Per-host network filtering is not
 available: pinned mise rejects `--allow-net=<host>` on Linux, the only locked
@@ -112,4 +132,9 @@ PRE-015 remains active. The empty-cache and bootstrap-boundary increments are
 accepted. Clean-checkout profile evidence is obtained: a fresh clone at
 `42f23b9`, bootstrapped exactly as documented above, passed `check:fast` and
 `check:complete` at `passing=4 failing=0` and left the checkout clean. The
-pinned least-privilege CI workflow remains required.
+pinned least-privilege CI workflow remains required, and must set the
+bootstrap configuration variables above for canonical invocation too:
+config-discovery isolation cannot be declared in `mise.toml`, so canonical
+local runs still admit ancestor and global configuration. That boundary is
+proposed in
+[PR-0025](reviews/0025-config-discovery-boundary.md) and awaits review.

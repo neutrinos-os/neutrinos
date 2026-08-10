@@ -94,8 +94,25 @@ capability gating and `blocked` results, which it had no way to express. Two
 consequences: `jsonschema` is now the repository's only runtime dependency, and
 **`check:complete` fails with `blocked=1` unless `NEUTRINOS_SLICE_ARTIFACT_DIR`
 names a composed artifact**, because composition needs the network and
-canonical validation is offline. `check:fast` needs no artifact. PLN-0001-06 is
-next.
+canonical validation is offline. `check:fast` needs no artifact.
+
+PLN-0001-06 is complete and produced the slice's first negative result. Seven
+faults were injected, each into its own copy of `src/slice`; six failed closed
+and named their responsible input, with the diagnostics recorded verbatim in the
+[failure evidence](slice-failure-evidence.md). **The seventh did not fail.**
+Replacing `LocalMirror=` with `Mirror=` in the composition fixture admitted
+Fedora's `updates` repository -- which the declaration deliberately excludes as
+inexact -- and built a complete artifact with 45 of its 104 packages from it.
+`T3-SLICE-001` passed on that artifact. Two causes: no check asserts the
+`LocalMirror=` construction is still present, and the retained manifest carries
+no per-package repository attribution, so no check could verify sourcing even if
+one wanted to. **SYS-059 is downgraded from demonstrated to partial and SYS-018
+from demonstrated to partial; both downgrades are drafted in PLN-0001 and await
+owner acceptance.** A second finding: the two mixed-branch faults fail closed on
+Fedora's per-release GPG keys, not on anything in `src/slice` comparing an input
+against its declaration -- an inherited guarantee, not an enforced one, and one
+that does not survive a change of distribution. Two mitigations are proposed in
+the evidence record and neither is accepted. PLN-0001-07 is next.
 
 **Open and unresolved: this makes the CI `check:complete` job fail.** The
 workflow runs both profiles, and a hosted runner has no composed artifact, so

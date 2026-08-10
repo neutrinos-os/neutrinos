@@ -217,10 +217,13 @@ def test_tool_install_paths_must_be_existing_absolute_external_directories(
         check.tool_install_path(name, {name: str(check.ROOT)})
 
 
-def test_child_environment_is_allowlisted() -> None:
+def test_child_environment_is_allowlisted(monkeypatch: pytest.MonkeyPatch) -> None:
     home = Path("/synthetic/home")
     cache = Path("/synthetic/cache")
     canary = check.make_synthetic_canary()
+    # The slice artifact declaration is optional and must reach the child only
+    # when the operator set it, so the closed set below is the unset case.
+    monkeypatch.delenv(check.SLICE_ARTIFACT_ENV, raising=False)
     environment = check.child_environment(home, cache, canary)
     assert set(environment) == {
         "GIT_CONFIG_GLOBAL",
@@ -238,6 +241,10 @@ def test_child_environment_is_allowlisted() -> None:
         "PYTHONIOENCODING",
         check.SYNTHETIC_CANARY_ENV,
     }
+    monkeypatch.setenv(check.SLICE_ARTIFACT_ENV, "/synthetic/artifact")
+    declared = check.child_environment(home, cache, canary)
+    assert declared[check.SLICE_ARTIFACT_ENV] == "/synthetic/artifact"
+    assert set(declared) - set(environment) == {check.SLICE_ARTIFACT_ENV}
     assert environment["HOME"] == str(home)
     assert environment[check.VALIDATION_CACHE_ROOT_ENV] == str(cache)
     assert environment[check.SYNTHETIC_CANARY_ENV] == canary

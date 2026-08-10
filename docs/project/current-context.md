@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 2dec09a
+source_snapshot_revision: 251899f
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0001
@@ -78,9 +78,31 @@ vTPM, because the tss2 runtime libraries are missing from the closure (systemd
 itself is built `+TPM2`). A correction to PLN-0001-02's method is
 recorded: `CleanPackageMetadata=auto` skips `directory` output, so the two
 directory builds compared a tree that is not the shipped tree. See the
-[identity report](slice-identity-report.md). PLN-0001-05 is next. mkosi and
+[identity report](slice-identity-report.md). mkosi and
 Fedora remain candidate fixtures; one boot under emulation is not
 qualification.
+
+PLN-0001-05 is complete. Three slice tests are registered in the existing
+runner: `T2-SLICE-001` validates the declared input set against its own schema
+and reproduces the nine constructed rejections, closing the gap PLN-0001-01
+recorded; `T3-SLICE-001` inspects the composed artifact and asserts the UKI on
+the ESP is byte-identical to the composed UKI, which until now was a hand-made
+claim; `T4-SLICE-001` boots the literal artifact under `snapshot=on` to a login
+prompt whose hostname the harness supplied, with no failed units and the
+artifact byte-identical afterwards, in 72 seconds under TCG. The runner gained
+capability gating and `blocked` results, which it had no way to express. Two
+consequences: `jsonschema` is now the repository's only runtime dependency, and
+**`check:complete` fails with `blocked=1` unless `NEUTRINOS_SLICE_ARTIFACT_DIR`
+names a composed artifact**, because composition needs the network and
+canonical validation is offline. `check:fast` needs no artifact. PLN-0001-06 is
+next.
+
+**Open and unresolved: this makes the CI `check:complete` job fail.** The
+workflow runs both profiles, and a hosted runner has no composed artifact, so
+the three-way choice is CI composing the slice itself, CI running `fast` only
+with `complete` becoming a local qualification profile, or accepting a red
+`complete` in CI. Nothing has been pushed, so nothing is currently broken. The
+choice is the owner's and belongs with `P-008`.
 
 `P-009` is newly open and blocks nothing under G1: QEMU became the VM harness in
 PLN-0001-03 without a comparison, so [RES-0013](../research/comparisons/vm-test-harness.md)
@@ -94,8 +116,10 @@ under TCG against the literal pre-amendment artifact: `snapshot=on` leaves it
 byte-identical, and SMBIOS credentials plus
 `io.systemd.stub.kernel-cmdline-extra` take it from a blocking prompt to a
 login prompt without changing a byte. **All three PLN-0001-04 composition
-amendments are therefore unnecessary for reachability**; whether to revert them
-is an open `C-002`/`L-003` question, because a physical host has no harness. **KVM does not work on
+amendments are therefore unnecessary for reachability**. **Owner decision
+2026-08-10: revert them, but not until KVM works**, so the revert and the move
+to vsock ssh happen in one motion; where first-boot configuration belongs on a
+physical host, which has no harness, remains an open `C-002`/`L-003` question. **KVM does not work on
 `desktop-jason` because SVM is disabled in firmware**, not because a module or
 group is missing; TCG is the only option until that changes, and it rules out
 both alternative runners. `W-002` now blocks `P-009`.

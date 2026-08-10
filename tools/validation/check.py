@@ -237,6 +237,26 @@ TESTS = (
         function="check_slice_artifact",
     ),
     Test(
+        id="T4-SLICE-001",
+        level="T4",
+        profiles=("complete",),
+        # The contract's T4 default is 15 minutes. A TCG boot of this artifact
+        # takes about half a minute of guest time and several minutes of wall
+        # clock; KVM, once available, makes the budget generous rather than
+        # tight.
+        timeout_seconds=900,
+        traces=("PLN-0001/PLN-0001-05", "SYS-002", "SYS-008", "SYS-017", "SYS-012"),
+        capabilities=("declared slice artifact", "user-owned disposable VM"),
+        fixtures=(
+            "composed disk image",
+            "software TPM",
+            "disposable firmware variable store",
+            "synthetic first-boot credentials",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_boot",
+    ),
+    Test(
         id="T5-VAL-001",
         level="T5@T1",
         profiles=("fast", "complete"),
@@ -921,9 +941,18 @@ def check_slice_artifact() -> int:
     return check_artifact()
 
 
+def check_slice_boot() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_boot import check_boot
+
+    return check_boot()
+
+
 CHECKS: dict[str, Callable[[], int]] = {
     "check_slice_input_set": check_slice_input_set,
     "check_slice_artifact": check_slice_artifact,
+    "check_slice_boot": check_slice_boot,
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
     "check_runner_hostile_probes": check_runner_hostile_probes,

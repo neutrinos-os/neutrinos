@@ -103,6 +103,20 @@ follows the contract: a required test that cannot run is blocked, not skipped,
 and blocked fails the profile. A complete run that reported green while
 silently omitting its artifact evidence would be worse than one that fails.
 `check:fast` is unaffected and needs no artifact.
+`T4-SLICE-001` boots that artifact in a disposable VM and asserts three things:
+it reaches a login prompt under a hostname the **harness** supplied, so the
+first-boot configuration demonstrably arrived from outside the image; no unit
+failed on the way, read from the serial log; and the artifact is byte-identical
+afterwards. It is booted directly under `snapshot=on` with no copy made, so a
+mutation would be a real defect rather than an artefact of the harness. First
+boot configuration and the kernel command line are supplied as SMBIOS Type 11
+credentials, so nothing is baked into the image to make this pass. QEMU is
+asked for `accel=kvm:tcg`: KVM where the host offers it, TCG where it does not,
+with the same evidence either way. Measured at 72 seconds wall clock under TCG.
+
+Guest-driven readiness over a notify vsock is the intended replacement for
+waiting on a serial marker and is deliberately absent while this build host has
+no KVM; see [RES-0013](../research/comparisons/vm-test-harness.md).
 `T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
 with an isolated empty mise cache and runs the registered `check:list` task
 using only the already-installed locked Python and uv inputs. `T5-VAL-003`

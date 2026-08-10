@@ -38,6 +38,7 @@ PYTHON_INSTALL_ENV = "NEUTRINOS_VALIDATION_PYTHON_INSTALL"
 UV_INSTALL_ENV = "NEUTRINOS_VALIDATION_UV_INSTALL"
 UV_CACHE_ENV = "NEUTRINOS_VALIDATION_UV_CACHE"
 BETTERLEAKS_ENV = "NEUTRINOS_VALIDATION_BETTERLEAKS"
+SLICE_ARTIFACT_ENV = "NEUTRINOS_SLICE_ARTIFACT_DIR"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -69,6 +70,10 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         UV_INSTALL_ENV,
         UV_CACHE_ENV,
         BETTERLEAKS_ENV,
+        # Optional. Its absence blocks the tests that declare it rather than
+        # failing preflight, so a checkout with no composed artifact still runs
+        # every test that does not need one.
+        SLICE_ARTIFACT_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -877,6 +882,103 @@ CHECKS: dict[str, Callable[[], int]] = {
 }
 
 
+SLICE_ARTIFACT_MEMBERS = (
+    "neutrinos-slice.raw",
+    "neutrinos-slice.efi",
+    "neutrinos-slice.manifest",
+)
+OVMF_CODE_CANDIDATES = (
+    "/usr/share/edk2/x64/OVMF_CODE.4m.fd",
+    "/usr/share/edk2/ovmf/OVMF_CODE.fd",
+    "/usr/share/OVMF/OVMF_CODE.fd",
+    "/usr/share/edk2-ovmf/x64/OVMF_CODE.fd",
+)
+
+
+def capability_slice_artifact(
+    environment: Mapping[str, str] = os.environ,
+) -> str | None:
+    """A composed slice artifact, declared outside the checkout.
+
+    Composition needs the network and a package repository, so it is not part
+    of offline canonical validation. The artifact is therefore an input the
+    operator declares, exactly as the locked tool installations are, and its
+    absence blocks the tests that inspect or boot it.
+    """
+    if not environment.get(SLICE_ARTIFACT_ENV):
+        return f"{SLICE_ARTIFACT_ENV} is not set"
+    try:
+        directory = declared_directory(SLICE_ARTIFACT_ENV, environment)
+    except ValueError as error:
+        return str(error)
+    missing = [name for name in SLICE_ARTIFACT_MEMBERS if not (directory / name).is_file()]
+    if missing:
+        return f"declared slice artifact is missing {', '.join(missing)}"
+    return None
+
+
+def capability_virtualization() -> str | None:
+    """A user-owned disposable VM, with no host-global mutation.
+
+    `/dev/kvm` is deliberately not required: the contract permits user-owned
+    KVM when a test declares it, and TCG is slower but produces the same
+    evidence. What is required is a VMM, a software TPM, and firmware the
+    harness can copy, because a test that silently used host firmware
+    variables would violate the execution boundary rather than fail.
+    """
+    missing = [name for name in ("qemu-system-x86_64", "swtpm") if shutil.which(name) is None]
+    if missing:
+        return f"executables unavailable on PATH: {', '.join(missing)}"
+    if not any(Path(candidate).is_file() for candidate in OVMF_CODE_CANDIDATES):
+        return "no OVMF firmware found at any known path"
+    return None
+
+
+# Capabilities with no probe are established by preflight, which fails the
+# whole run when they are absent. Only capabilities that may legitimately be
+# missing from an otherwise valid checkout are probed here.
+CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
+    "declared slice artifact": capability_slice_artifact,
+    "user-owned disposable VM": capability_virtualization,
+}
+
+
+def blocking_reason(test: Test) -> str | None:
+    for capability in test.capabilities:
+        probe = CAPABILITY_PROBES.get(capability)
+        if probe is None:
+            continue
+        reason = probe()
+        if reason is not None:
+            return f"{capability}: {reason}"
+    return None
+
+
+def blocked_result(test: Test, reason: str) -> dict[str, Any]:
+    """A declared capability was absent, so the test did not run.
+
+    Per the validation execution contract this is `blocked` rather than
+    `skipped`, and it fails the profile. A profile that reported green while
+    silently omitting its VM evidence would be worse than one that fails.
+    """
+    now = utc_now()
+    return {
+        "assertions": [],
+        "cleanup": {"process_group_absent": True},
+        "diagnostics": {},
+        "detail": reason,
+        "duration_seconds": 0.0,
+        "ended_at": now,
+        "id": test.id,
+        "level": test.level,
+        "output_bytes": 0,
+        "result": "blocked",
+        "started_at": now,
+        "subjects": list(test.fixtures),
+        "traces": list(test.traces),
+    }
+
+
 def declared_executable(
     name: str, environment: Mapping[str, str] = os.environ
 ) -> Path:
@@ -945,6 +1047,8 @@ def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, st
         UV_CACHE_ENV: os.environ[UV_CACHE_ENV],
         BETTERLEAKS_ENV: os.environ[BETTERLEAKS_ENV],
     }
+    if SLICE_ARTIFACT_ENV in os.environ:
+        environment[SLICE_ARTIFACT_ENV] = os.environ[SLICE_ARTIFACT_ENV]
     if "SYSTEMROOT" in os.environ:
         environment["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
     return environment
@@ -1241,9 +1345,13 @@ def run(
             with results_path.open("a", encoding="utf-8") as stream:
                 for test in selected:
                     finding_start = len(output_safety.findings)
-                    result = execute_test(test, run_dir, home, cache_root, canary)
-                    for path in test_output_paths(test, run_dir):
-                        output_safety.inspect_file(path, run_dir)
+                    reason = blocking_reason(test)
+                    if reason is not None:
+                        result = blocked_result(test, reason)
+                    else:
+                        result = execute_test(test, run_dir, home, cache_root, canary)
+                        for path in test_output_paths(test, run_dir):
+                            output_safety.inspect_file(path, run_dir)
                     new_findings = output_safety.findings[finding_start:]
                     if new_findings:
                         result = sanitized_unsafe_result(test, result, new_findings)
@@ -1311,6 +1419,9 @@ def run(
         runner_error is None
         and len(results) == len(selected)
         and counts["failing"] == 0
+        # Contract: a required selected test that cannot run is blocked, and
+        # blocked fails the profile.
+        and counts["blocked"] == 0
     )
     revision: str | None = None
     dirty: bool | None = None

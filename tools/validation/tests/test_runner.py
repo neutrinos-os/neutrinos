@@ -144,6 +144,47 @@ def test_preflight_rejects_root_and_undeclared_environment() -> None:
     ) == ["undeclared environment variables: AWS_SECRET_ACCESS_KEY"]
 
 
+def test_absent_slice_artifact_blocks_rather_than_passing(tmp_path: Path) -> None:
+    """An undeclared or incomplete artifact must block, never quietly pass."""
+    assert check.capability_slice_artifact({}) == (
+        f"{check.SLICE_ARTIFACT_ENV} is not set"
+    )
+    partial = tmp_path / "artifact"
+    partial.mkdir()
+    (partial / "neutrinos-slice.raw").write_bytes(b"")
+    reason = check.capability_slice_artifact(
+        {check.SLICE_ARTIFACT_ENV: str(partial)}
+    )
+    assert reason is not None
+    assert "neutrinos-slice.efi" in reason and "neutrinos-slice.manifest" in reason
+    for name in check.SLICE_ARTIFACT_MEMBERS:
+        (partial / name).write_bytes(b"")
+    assert check.capability_slice_artifact({check.SLICE_ARTIFACT_ENV: str(partial)}) is None
+
+
+def test_blocked_capability_is_reported_and_fails_the_profile(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv(check.SLICE_ARTIFACT_ENV, raising=False)
+    test = check.Test(
+        id="T4-SYNTHETIC-001",
+        level="T4",
+        profiles=("complete",),
+        timeout_seconds=60,
+        traces=("PLN-0001/PLN-0001-05",),
+        capabilities=("declared slice artifact",),
+        fixtures=("synthetic",),
+        cleanup_owner="validation runner",
+        function="check_git_diff",
+    )
+    reason = check.blocking_reason(test)
+    assert reason is not None and reason.startswith("declared slice artifact: ")
+    result = check.blocked_result(test, reason)
+    assert result["result"] == "blocked"
+    assert result["assertions"] == []
+    assert result["detail"] == reason
+
+
 def test_cache_root_must_be_absolute_and_external() -> None:
     name = check.VALIDATION_CACHE_ROOT_ENV
     environment = preflight_environment("/synthetic/cache")

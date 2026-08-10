@@ -1,7 +1,7 @@
 ---
 id: EX-0016
 title: Agent context comprehension and instruction-loading exercise
-status: proposed
+status: active
 last_updated: 2026-08-10
 supports: [PLN-0000, PRE-012, PRE-013]
 ---
@@ -122,8 +122,8 @@ instructions, or client behavior.
 
 ## Acceptance evidence
 
-EX-0016 completes only when all three clients pass at the same repository
-revision and the retained record includes:
+EX-0016 completes only when every client in the run's owner-approved supported
+set passes at the same repository revision and the retained record includes:
 
 1. the controlled-setup metadata;
 2. exact prompts and responses;
@@ -132,6 +132,9 @@ revision and the retained record includes:
 5. every repair and rerun; and
 6. a drift review showing the adapters contain no duplicated project policy.
 
-If a client is unavailable, PRE-012/PRE-013 remain incomplete unless Jason
-explicitly reduces the supported-client set or accepts a named later-gate
-deferral.
+For the initial G1 run, Jason reduced the required set to Codex and Claude Code
+on 2026-08-10. The Copilot adapter remains best-effort and unverified; validate
+it before relying on Copilot for autonomous repository work. A later run may
+expand the required set without invalidating the initial two-client result.
+
+Run evidence: [EX-0016 results](../results/0016-agent-context-and-instruction-loading.md).

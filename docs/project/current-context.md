@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-last_verified_source_revision: f71014a
+last_verified_source_revision: a191e17
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -22,8 +22,9 @@ NeutrinOS source implementation is **not authorized**.
 [PLN-0000](../plans/0000-pre-implementation-readiness.md) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. Its next action is to complete and evaluate the agent-context and
-multi-agent repository contract in PRE-012 and PRE-013. The layered test
-strategy in PRE-014 follows.
+multi-agent repository contract in PRE-012 and PRE-013: commit the EX-0016
+reading-scope repair, rerun its Codex/Claude cold prompt, and close the result.
+The layered test strategy in PRE-014 follows.
 
 The [work register](work-register.md) is the aggregate view of remaining work.
 The [decision backlog](decision-backlog.md) owns question state. Neither is
@@ -110,7 +111,7 @@ git diff --check
 and the existing internal Markdown-link check:
 
 ```sh
-perl -MFile::Basename=dirname -MFile::Spec -e 'for my $f (@ARGV) { open my $h, q{<}, $f or die qq{$f: $!\n}; while (<$h>) { while (/\[[^\]]*\]\(([^)]+)\)/g) { my $p=$1; $p =~ s/#.*//; $p =~ s/^<|>$//g; next if $p eq q{} || $p =~ m{^(?:https?|mailto):}; my $x=File::Spec->rel2abs($p,dirname($f)); print qq{$f -> $1\n} unless -e $x } } }' $(rg --files --hidden -g '*.md' -g '!.git/**')
+perl -MFile::Basename=dirname -MFile::Spec -e 'for my $f (@ARGV) { open my $h, q{<}, $f or die qq{$f: $!\n}; my $code=0; while (<$h>) { if (/^\s*```/) { $code=!$code; next } next if $code; while (/\[[^\]]*\]\(([^)]+)\)/g) { my $p=$1; $p =~ s/#.*//; $p =~ s/^<|>$//g; next if $p eq q{} || $p =~ m{^(?:https?|mailto):}; my $x=File::Spec->rel2abs($p,dirname($f)); print qq{$f -> $1\n} unless -e $x } } }' $(rg --files --hidden -g '*.md' -g '!.git/**')
 ```
 
 No output from the link check is a pass. These commands are temporary and do

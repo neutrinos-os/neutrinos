@@ -5,6 +5,8 @@
 - First: [current context](docs/project/current-context.md) — gate, plan, next
   action, constraints. Derived; linked sources win.
 - Task scope: active plan + only its relevant links.
+- Summaries orient. Verify only task-material, conflicting, stale, or high-risk
+  claims; never traverse every link by default.
 - Terms: [glossary](docs/project/glossary.md).
 - Decisions: [accepted ADRs](docs/adrs/README.md); questions:
   [backlog](docs/project/decision-backlog.md); aggregate status:
@@ -65,4 +67,3 @@
   blockers, next action. Cut narration, repetition, generic reassurance.
 - Handoff: plan/task; scope; changed/preserved files; checks/evidence;
   accepted vs candidate/open; blockers/risks; exact next action.
-

@@ -1,0 +1,239 @@
+"""T3 static inspection of the composed slice artifact.
+
+This asks whether the shipped bytes are the bytes the declaration describes,
+without booting anything. Its central assertion is the one PLN-0001-04 made by
+hand and by hand only: the UKI stored on the ESP inside the disk image is
+byte-identical to the standalone UKI composition emitted. Those two files have
+different names, so nothing but their content can establish that the machine
+would boot what was built.
+
+The artifact is declared through the environment rather than built here.
+Composition needs the network and a package repository; canonical validation is
+offline. An absent artifact blocks this test, it does not skip it.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import struct
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[2]
+INPUT_SET = ROOT / "src" / "slice" / "input-set.toml"
+SECTOR_BYTES = 512
+GPT_HEADER_LBA = 1
+GPT_SIGNATURE = b"EFI PART"
+REQUIRED_UKI_SECTIONS = (".linux", ".initrd", ".osrel", ".uname")
+READ_CHUNK_BYTES = 4 * 1024 * 1024
+
+
+def esp_offset_bytes(image: Path) -> int:
+    """Byte offset of the ESP, read from the GPT rather than assumed.
+
+    Hard-coding 1 MiB would pass today and silently inspect the wrong region
+    the first time the partition layout changes.
+    """
+    with image.open("rb") as stream:
+        stream.seek(GPT_HEADER_LBA * SECTOR_BYTES)
+        header = stream.read(92)
+        if header[:8] != GPT_SIGNATURE:
+            raise ValueError("image has no GPT header")
+        entries_lba, entry_count, entry_size = struct.unpack("<Q", header[72:80])[0], (
+            struct.unpack("<I", header[80:84])[0]
+        ), struct.unpack("<I", header[84:88])[0]
+        stream.seek(entries_lba * SECTOR_BYTES)
+        for _ in range(entry_count):
+            entry = stream.read(entry_size)
+            if entry[:16] == bytes(16):
+                continue
+            name = entry[56:128].decode("utf-16-le").rstrip("\0")
+            if name == "esp":
+                return struct.unpack("<Q", entry[32:40])[0] * SECTOR_BYTES
+    raise ValueError("image has no partition named esp")
+
+
+def fat_entries(image: Path, offset: int, directory: str) -> list[str]:
+    result = subprocess.run(
+        ("mdir", "-b", "-i", f"{image}@@{offset}", f"::{directory}"),
+        check=False,
+        env={**os.environ, "MTOOLS_SKIP_CHECK": "1"},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise ValueError(f"cannot list {directory} on the ESP: {result.stderr.strip()}")
+    # `mdir -b` prints full `::/path` names; the caller wants leaf names.
+    return [
+        line.strip().rsplit("/", 1)[-1]
+        for line in result.stdout.splitlines()
+        if line.strip()
+    ]
+
+
+def fat_file_digest(image: Path, offset: int, path: str) -> str:
+    digest = hashlib.sha256()
+    with subprocess.Popen(
+        ("mtype", "-i", f"{image}@@{offset}", f"::{path}"),
+        env={**os.environ, "MTOOLS_SKIP_CHECK": "1"},
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as process:
+        assert process.stdout is not None
+        while chunk := process.stdout.read(READ_CHUNK_BYTES):
+            digest.update(chunk)
+        if process.wait() != 0:
+            raise ValueError(f"cannot read {path} from the ESP")
+    return digest.hexdigest()
+
+
+def file_digest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(READ_CHUNK_BYTES):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def pe_sections(path: Path) -> dict[str, tuple[int, int]]:
+    """Section name to (file offset, size) for a PE image."""
+    with path.open("rb") as stream:
+        if stream.read(2) != b"MZ":
+            raise ValueError("UKI is not a PE image")
+        stream.seek(0x3C)
+        pe_offset = struct.unpack("<I", stream.read(4))[0]
+        stream.seek(pe_offset)
+        if stream.read(4) != b"PE\0\0":
+            raise ValueError("UKI has no PE signature")
+        coff = stream.read(20)
+        section_count = struct.unpack("<H", coff[2:4])[0]
+        optional_size = struct.unpack("<H", coff[16:18])[0]
+        stream.seek(pe_offset + 24 + optional_size)
+        sections: dict[str, tuple[int, int]] = {}
+        for _ in range(section_count):
+            raw = stream.read(40)
+            name = raw[:8].rstrip(b"\0").decode("ascii", errors="replace")
+            size = struct.unpack("<I", raw[16:20])[0]
+            offset = struct.unpack("<I", raw[20:24])[0]
+            sections[name] = (offset, size)
+    return sections
+
+
+def section_text(path: Path, span: tuple[int, int]) -> str:
+    offset, size = span
+    with path.open("rb") as stream:
+        stream.seek(offset)
+        return stream.read(size).rstrip(b"\0").decode("utf-8", errors="replace").strip()
+
+
+def check_artifact() -> int:
+    from tools.validation.check import SLICE_ARTIFACT_ENV
+
+    directory = Path(os.environ[SLICE_ARTIFACT_ENV]).resolve()
+    image = directory / "neutrinos-slice.raw"
+    uki = directory / "neutrinos-slice.efi"
+    manifest_path = directory / "neutrinos-slice.manifest"
+    declared = tomllib.loads(INPUT_SET.read_text(encoding="utf-8"))
+    failures: list[str] = []
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    config = manifest.get("config", {})
+    packages = manifest.get("packages", [])
+    for field, expected in (
+        ("distribution", declared["packages"]["distribution"]),
+        ("release", declared["packages"]["release"]),
+        ("architecture", declared["packages"]["architecture"]),
+        ("output_format", "disk"),
+    ):
+        # The builder and the package ecosystem spell the same architecture
+        # differently -- mkosi writes `x86-64`, RPM writes `x86_64`. Comparing
+        # them literally would fail on a naming convention rather than on an
+        # input, so the separator is normalized. Nothing else is: a release or
+        # distribution that differs by any character is a different input.
+        observed = str(config.get(field))
+        if observed.replace("-", "_") != str(expected).replace("-", "_"):
+            failures.append(
+                f"manifest {field} is {observed!r}, declaration says {expected!r}"
+            )
+
+    architectures = {declared["packages"]["architecture"], "noarch"}
+    seen: set[tuple[str, str]] = set()
+    for package in packages:
+        identity = (str(package.get("name")), str(package.get("architecture")))
+        # `gpg-pubkey` is a real member of the RPM database and a real part of
+        # what the image trusts, but it is a key rather than a build, so it
+        # carries no architecture. Excluding it from the architecture rule is
+        # narrower than relaxing the rule for every entry.
+        required = ("type", "name", "version")
+        if package.get("name") != "gpg-pubkey":
+            required += ("architecture",)
+        if not all(package.get(field) for field in required):
+            failures.append(f"manifest entry is not fully identified: {package!r}")
+        elif package.get("architecture") and package["architecture"] not in architectures:
+            failures.append(
+                f"package {package['name']} has undeclared architecture "
+                f"{package['architecture']}"
+            )
+        if identity in seen:
+            failures.append(f"manifest lists {identity[0]} twice for {identity[1]}")
+        seen.add(identity)
+    if not packages:
+        failures.append("manifest declares an empty package closure")
+
+    sections = pe_sections(uki)
+    missing = [name for name in REQUIRED_UKI_SECTIONS if name not in sections]
+    if missing:
+        failures.append(f"UKI is missing sections: {', '.join(missing)}")
+
+    uname = section_text(uki, sections[".uname"]) if ".uname" in sections else ""
+    kernel = next(
+        (package for package in packages if package.get("name") == "kernel-core"), None
+    )
+    if kernel is None:
+        failures.append("closure contains no kernel-core to bind the UKI to")
+    else:
+        expected_uname = f"{kernel['version']}.{kernel['architecture']}"
+        if uname != expected_uname:
+            failures.append(
+                f"UKI .uname is {uname!r}; the closure's kernel-core is {expected_uname!r}"
+            )
+
+    offset = esp_offset_bytes(image)
+    esp_entries = fat_entries(image, offset, "/EFI/Linux")
+    if len(esp_entries) != 1:
+        failures.append(
+            f"ESP holds {len(esp_entries)} boot entries, not exactly one: {esp_entries}"
+        )
+    composed_digest = file_digest(uki)
+    installed_digest = ""
+    if esp_entries:
+        installed_digest = fat_file_digest(image, offset, f"/EFI/Linux/{esp_entries[0]}")
+        if installed_digest != composed_digest:
+            failures.append(
+                "the UKI on the ESP is not the composed UKI: "
+                f"{installed_digest} on the ESP, {composed_digest} composed"
+            )
+
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        return 1
+
+    report: dict[str, Any] = {
+        "closure_packages": len(packages),
+        "esp_boot_entry": esp_entries[0],
+        "esp_offset_bytes": offset,
+        "kernel_uname": uname,
+        # The same bytes under two names. This is the whole point of the test.
+        "uki_digest": composed_digest,
+        "uki_matches_esp_copy": installed_digest == composed_digest,
+        "uki_sections": sorted(sections),
+        "result": "passing",
+    }
+    print(json.dumps(report, ensure_ascii=False, separators=(",", ":"), sort_keys=True))
+    return 0

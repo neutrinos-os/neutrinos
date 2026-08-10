@@ -223,6 +223,20 @@ TESTS = (
         function="check_slice_input_set",
     ),
     Test(
+        id="T3-SLICE-001",
+        level="T3",
+        profiles=("complete",),
+        timeout_seconds=300,
+        traces=("PLN-0001/PLN-0001-05", "SYS-002", "SYS-008", "SYS-045", "SYS-058"),
+        capabilities=("declared slice artifact", "FAT reader"),
+        fixtures=(
+            "composed disk image, UKI, and manifest",
+            "src/slice/input-set.toml",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_artifact",
+    ),
+    Test(
         id="T5-VAL-001",
         level="T5@T1",
         profiles=("fast", "complete"),
@@ -899,8 +913,17 @@ def check_slice_input_set() -> int:
     return check_input_set()
 
 
+def check_slice_artifact() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_artifact import check_artifact
+
+    return check_artifact()
+
+
 CHECKS: dict[str, Callable[[], int]] = {
     "check_slice_input_set": check_slice_input_set,
+    "check_slice_artifact": check_slice_artifact,
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
     "check_runner_hostile_probes": check_runner_hostile_probes,
@@ -962,12 +985,26 @@ def capability_virtualization() -> str | None:
     return None
 
 
+def capability_fat_reader() -> str | None:
+    """Unprivileged read access to the ESP inside the image.
+
+    mtools reads a FAT filesystem at a byte offset in a plain file, so the
+    image is never attached to a loop device or mounted. Mounting would need
+    privilege the execution boundary refuses and would mutate host state.
+    """
+    missing = [name for name in ("mdir", "mtype") if shutil.which(name) is None]
+    if missing:
+        return f"mtools unavailable on PATH: {', '.join(missing)}"
+    return None
+
+
 # Capabilities with no probe are established by preflight, which fails the
 # whole run when they are absent. Only capabilities that may legitimately be
 # missing from an otherwise valid checkout are probed here.
 CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
     "declared slice artifact": capability_slice_artifact,
     "user-owned disposable VM": capability_virtualization,
+    "FAT reader": capability_fat_reader,
 }
 
 

@@ -79,6 +79,30 @@ separate CI one. Scoped exceptions live in `.betterleaks.toml`.
 the schema uses `$ref`, `allOf`, and `if`/`then`, and a hand-rolled subset
 checker that misread any of them would report a record as valid that the schema
 rejects.
+`T3-SLICE-001` inspects a composed artifact without booting it: the manifest's
+distribution, release, architecture, and output format must match the declared
+input set, every closure entry must be fully identified, the UKI must carry its
+required sections, its `.uname` must be the closure's `kernel-core`, and the
+UKI stored on the ESP inside the disk image must be **byte-identical** to the
+standalone UKI composition emitted. Those two files have different names, so
+only their content can establish that the machine boots what was built. The ESP
+is read through mtools at a byte offset in the plain file, so the image is
+never attached to a loop device or mounted, and the ESP's location is read from
+the GPT rather than assumed.
+
+Composition needs the network, and canonical validation is offline, so the
+artifact is an operator-declared input:
+
+```sh
+export NEUTRINOS_SLICE_ARTIFACT_DIR=/path/to/mkosi/output
+mise run --allow-env=NEUTRINOS_SLICE_ARTIFACT_DIR check:complete
+```
+
+**Without it, `check:complete` fails with `blocked=1`.** That is deliberate and
+follows the contract: a required test that cannot run is blocked, not skipped,
+and blocked fails the profile. A complete run that reported green while
+silently omitting its artifact evidence would be worse than one that fails.
+`check:fast` is unaffected and needs no artifact.
 `T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
 with an isolated empty mise cache and runs the registered `check:list` task
 using only the already-installed locked Python and uv inputs. `T5-VAL-003`

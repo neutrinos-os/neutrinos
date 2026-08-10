@@ -62,7 +62,8 @@ environment.
   now verified end to end, but canonical invocation is not, and this review
   does not claim otherwise. CI is the place where the variables can be set
   unconditionally, and CI is the remaining PRE-015 item.
-- Disposition: open, deferred to the CI increment
+- Disposition: open, deferred to the CI increment, which the owner moved to
+  PRE-017 on 2026-08-10
 - Residual risk: local canonical runs remain contamination-exposed until CI
   fixes the invocation environment, and local runs will not match CI until
   then.

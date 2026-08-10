@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 42f23b9
+source_snapshot_revision: 22b93ca
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -24,13 +24,14 @@ NeutrinOS source implementation is **not authorized**.
 PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
-the owner-approved Codex/Claude set. PRE-014 is satisfied and PRE-015 is active.
-Its one next action is the pinned least-privilege initial CI check; clean local
-profile evidence is obtained at `42f23b9`. The four canonical tasks, Linux-x64
-tool locks, result-producing failed invocations, output-safety quarantine,
-named T0 checks, and registered hostile runner probes are implemented but do
-not yet satisfy PRE-015. Copilot remains unverified and must not be relied on
-for autonomous repository work.
+the owner-approved Codex/Claude set. PRE-014 and PRE-015 are satisfied; the
+pinned least-privilege CI job is deferred to PRE-017. PRE-016 is active and its
+one next action is the repository hygiene contract plus an automated
+clean-clone check. The four canonical tasks, Linux-x64 tool locks, failed
+invocations, output-safety quarantine, named T0 checks, and registered hostile
+and empty-cache probes are implemented, with clean-clone profile evidence at
+`42f23b9`. Copilot remains unverified and must not be relied on for autonomous
+repository work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -68,11 +69,11 @@ open either for a cold status report.
   retained empty-cache acquisition-boundary probe. Bootstrap is an unfiltered
   acquisition phase bounded by pinned hash-checked locks, not by endpoint
   restriction, which the locked platform cannot enforce. Clean-clone profiles
-  pass; CI remains. Repository mise use does not select host-role software
-  placement.
+  pass; the CI job is deferred to PRE-017. Repository mise use does not select
+  host-role software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
-  PRE-001, PRE-002, and PRE-010 through PRE-014 are satisfied; PRE-018 and G1
-  are not.
+  PRE-001, PRE-002, and PRE-010 through PRE-015 are satisfied; PRE-016,
+  PRE-017, PRE-018, and G1 are not.
 
 ## Leading but unaccepted fixtures
 
@@ -129,7 +130,8 @@ Concurrent work requires explicit ownership and isolated worktrees under root
 Read-only task: do not run validation. Report only this requirement: after
 edits, run `mise run check:fast`; a successful terminal result is a pass.
 Bootstrap and the additional canonical profiles are documented in
-`docs/project/validation.md`. Current passing runs do not satisfy PRE-015.
+`docs/project/validation.md`. PRE-015 is satisfied; a passing run is not by
+itself G1 or qualification evidence.
 
 ## Context path for a fresh task
 

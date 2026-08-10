@@ -3,7 +3,7 @@ id: PR-0020
 subject: Initial validation runner and hostile probes
 reviewer: Codex adversarial pass
 date: 2026-08-10
-status: proposed
+status: accepted
 ---
 
 # Initial validation runner hostile-probe review
@@ -151,5 +151,6 @@ gate evidence.
 
 ## Owner decision
 
-Pending. Acceptance approves this bounded implementation increment and the six
-confirmations above; it does not accept PRE-015 or G1.
+Accepted by Jason Tarasovic on 2026-08-10. This approves the bounded
+implementation increment and the six confirmations above; it does not accept
+PRE-015 or G1.

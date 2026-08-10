@@ -651,6 +651,14 @@ def check_clean_clone() -> int:
     if git is None:
         print("git executable unavailable", file=sys.stderr)
         return 1
+    mise = shutil.which("mise")
+    if mise is None:
+        print(
+            "mise executable unavailable on PATH="
+            f"{os.environ.get('PATH', '')}",
+            file=sys.stderr,
+        )
+        return 1
     try:
         python_install = tool_install_path(PYTHON_INSTALL_ENV)
         uv_install = tool_install_path(UV_INSTALL_ENV)
@@ -696,8 +704,20 @@ def check_clean_clone() -> int:
         environment = {
             "HOME": str(home),
             "LANG": "C.UTF-8",
+            # The clone's own fast profile includes T5-VAL-002, which resolves
+            # mise from PATH. Include mise's directory explicitly: on a
+            # workstation it is usually /usr/bin and was covered by accident,
+            # but a CI runner installs it elsewhere and the clone then fails
+            # for a reason that has nothing to do with the clone.
             "PATH": os.pathsep.join(
-                dict.fromkeys((str(Path(git).parent), "/usr/bin", "/bin"))
+                dict.fromkeys(
+                    (
+                        str(Path(git).parent),
+                        str(Path(mise).parent),
+                        "/usr/bin",
+                        "/bin",
+                    )
+                )
             ),
             VALIDATION_CACHE_ROOT_ENV: str(cache_root),
             PYTHON_INSTALL_ENV: str(python_install),

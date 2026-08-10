@@ -78,9 +78,12 @@ updater or object store.
   authorization, lifecycle, and effective-status consequence.
 - Author response: the design denies inherited qualification to all executable
   content outside the deployment closure and requires release-owned privileged
-  extensions to be named by it.
-- Disposition: open pending the executable-input inventory; this is the
-  remaining critical design challenge.
+  extensions to be named by it. EX-0004 assigns platform, release, machine,
+  administrator, user, workload, and recovery inputs separate identity,
+  authorization, lifecycle, and status consequences.
+- Disposition: resolved at the design-policy level through
+  [EX-0004](../../research/exercises/0004-executable-input-inventory.md).
+  Concrete artifact and loader inventories remain required evidence.
 - Residual risk: the boundary between OS extension and independently managed
   workload may be contested by real desktop and networking software.
 
@@ -214,8 +217,8 @@ updater or object store.
 
 - A field-by-field mapping to production-supported bootc and direct
   systemd/UAPI lifecycle objects.
-- An executable-input inventory covering early boot through user and workload
-  startup.
+- Concrete artifact and loader inventories confirming the EX-0004 paper model
+  on both substrate candidates and all reference roles.
 - Representative workstation and router deployment manifests and configuration
   classifications.
 - Power-loss injection across multi-resource staging and boot selection.
@@ -227,8 +230,9 @@ updater or object store.
 
 1. **Open:** obtain owner review of the deployment-set boundary and the meaning
    of atomic selection.
-2. **Open:** inventory executable inputs and dispose of C-003 without claiming
-   that immutable base identity covers mutable code.
+2. **Complete at policy level:** EX-0004 inventories executable inputs and
+   disposes of C-003 without claiming that immutable base identity covers
+   mutable code. Concrete substrate and role inventories remain open evidence.
 3. **Open:** produce representative workstation and router deployment manifests
    or a paper exercise that classifies every artifact and configuration input.
 4. **Open:** map the model to both substrate candidates without assuming a new
@@ -239,6 +243,7 @@ updater or object store.
 ## Review disposition
 
 DES-0001 should advance from `sketch` to `in-review`, but not to `accepted`.
-Its core deployment-set boundary is coherent on paper. C-003 remains critical,
-and the substrate and role evidence needed to show that the abstraction is
+Its core deployment-set boundary and executable-input ownership rule are
+coherent on paper. No critical policy ambiguity remains in C-003, but the
+substrate and role evidence needed to show that the abstraction is complete and
 operable has not yet been produced.

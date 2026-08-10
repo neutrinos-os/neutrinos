@@ -48,8 +48,12 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
   them in effective status and compromise recovery, and avoid claiming that
   authenticated root equals an uncompromised machine.
 - Author response: the design limits the claim and treats executable mutable
-  state as a separate trust surface; concrete enumeration remains open.
-- Disposition: open.
+  state as a separate trust surface. EX-0004 inventories the platform, release,
+  machine, administrator, user, workload, and recovery classes and assigns each
+  an identity and status consequence.
+- Disposition: resolved at the design-policy level through
+  [EX-0004](../../research/exercises/0004-executable-input-inventory.md);
+  concrete artifact, loader, and persistent-path enumeration remains open.
 - Residual risk: user-facing status may still compress nuance into a reassuring
   green indicator.
 
@@ -165,7 +169,8 @@ key ceremony whose operational risk exceeds the personal fleet's actual threat.
 - Lifecycle cost of boot-to-root integrity on production bootc versus a direct
   systemd/UAPI path.
 - A minimal personal-fleet key ceremony and disaster-recovery exercise.
-- Inventory of mutable executable inputs outside the release root.
+- Concrete inventory of mutable executable inputs and loader paths on both
+  substrate candidates and the reference roles, using the EX-0004 model.
 - Quantified powered-off theft, temporary-access, and router availability
   assumptions.
 
@@ -195,6 +200,12 @@ and recovery exercises remain open.
 resolves C-006 at the design-policy level by separating recovery activation,
 data access, identity and platform repair, and return to normal service.
 Physical enforcement and abuse testing remain open.
+
+[EX-0004](../../research/exercises/0004-executable-input-inventory.md)
+resolves C-002 at the design-policy level by separating exact deployment
+identity from platform state, administrator modification, user and workload
+execution, and compromise status. Concrete loader and artifact inventories
+remain open.
 
 Jason Tarasovic accepted DES-0004 and ratified SYS-032 and SYS-033 on
 2026-08-09 through

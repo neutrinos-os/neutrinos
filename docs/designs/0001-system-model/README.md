@@ -500,8 +500,11 @@ supports a thin NeutrinOS policy and evidence layer over upstream lifecycle
 components rather than a new image or update engine. The
 [bootc comparison](../../research/comparisons/bootc-vs-systemd-sysupdate.md)
 keeps both substrate candidates accountable to the same complete-set identity
-and failure boundaries. DES-0002, DES-0003, and DES-0004 provide state, trust,
-and authority constraints incorporated here.
+and failure boundaries. The
+[executable-input tabletop](../../research/exercises/0004-executable-input-inventory.md)
+assigns inputs outside the immutable root explicit owners and status effects
+without extending release qualification to mutable code. DES-0002, DES-0003,
+and DES-0004 provide state, trust, and authority constraints incorporated here.
 
 The proposal is now in adversarial review. No artifact format, manifest schema,
 disk topology, updater, installer, or health implementation is selected, and no

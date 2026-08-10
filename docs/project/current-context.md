@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 1288521
+source_snapshot_revision: 7556ba6
 current_gate: G0-complete
 target_gate: G1
 active_plan: PLN-0000
@@ -25,12 +25,12 @@ PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
 repository readiness, documentation, validation, and collaboration
 scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
 the owner-approved Codex/Claude set. PRE-014 is satisfied and PRE-015 is active.
-Its one next action is to finish hostile preflight, timeout, interruption,
-output, and cleanup probes around the initial mise/Python 3.14 runner, then run
-clean local profiles and the pinned least-privilege initial CI check. The four
-canonical tasks, Linux-x64 tool locks, and named T0 documentation checks are
-implemented but do not yet satisfy PRE-015. Copilot remains unverified and must
-not be relied on for autonomous repository work.
+Its one next action is to make preflight and invalid invocations write the full
+result contract and add synthetic-canary output scanning, then run clean local
+profiles and the pinned least-privilege initial CI check. The four canonical
+tasks, Linux-x64 tool locks, named T0 checks, and registered hostile runner
+probes are implemented but do not yet satisfy PRE-015. Copilot remains
+unverified and must not be relied on for autonomous repository work.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -61,9 +61,11 @@ open either for a cold status report.
   `check:list`, and `check:run` tasks, with a locked Python 3.14/uv engine by
   default. Applicable-suite, offline/unprivileged/secret-free, result, timeout,
   cleanup, and CI rules are accepted (`docs/project/validation-contract.md`).
-  The initial Linux-x64 task/runner/T0 slice is implemented; hostile probes,
-  full fail-closed enforcement, clean evidence, and CI remain. Repository mise
-  use does not select host-role software placement.
+  The Linux-x64 task/runner/T0 slice, external XDG test cache, and registered
+  environment, cache-boundary, network, timeout, interruption, output, and
+  process-cleanup probes are implemented.
+  Full preflight result recording, canary scanning, clean evidence, and CI
+  remain. Repository mise use does not select host-role software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001, PRE-002, and PRE-010 through PRE-014 are satisfied; PRE-018 and G1
   are not.

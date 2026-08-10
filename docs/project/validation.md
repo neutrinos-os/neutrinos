@@ -16,14 +16,18 @@ Install mise using the independently pinned method for the execution
 environment, trust this repository after reviewing `mise.toml`, then run:
 
 ```sh
-mise install --locked python uv
-mise exec -- uv sync --locked --python "$(mise which python)"
+MISE_OFFLINE=0 mise install --locked python uv
+mise exec --allow-net pypi.org --allow-net files.pythonhosted.org -- \
+  uv sync --locked --python "$(mise which python)"
 ```
 
 Naming `python uv` prevents unrelated tools in a developer's global mise
-configuration from becoming repository bootstrap inputs. Bootstrap may use the
-network and tool caches. The canonical checks may not: they invoke uv with
-`--offline --locked --no-sync`, and mise task auto-install is disabled.
+configuration from becoming repository bootstrap inputs. `MISE_OFFLINE=0` is
+an explicit acquisition-phase exception to the repository default. Bootstrap
+may use the network and tool caches. The canonical checks may not: mise itself
+is offline, its tasks deny inherited environment and network access, its task
+and shim auto-install paths are disabled, each dispatcher resolves both tools
+through `mise which`, and uv runs with `--offline --locked --no-sync`.
 
 ## Checks
 
@@ -42,14 +46,29 @@ Each execution writes `run.json`, `results.jsonl`, and bounded per-test logs to
 the printed temporary run directory outside the checkout. A dirty-checkout
 pass is development feedback only.
 
+Pytest metadata persists at
+`${XDG_CACHE_HOME:-$HOME/.cache}/neutrinos/validation/pytest`. Canonical
+profiles never use `--last-failed`, `--failed-first`, or other cache-dependent
+selection. The cache is reconstructible local state, not evidence; it may be
+deleted while validation is not running. CI must begin with an empty cache and
+must not restore or upload it. Do not redirect it into the checkout or merely
+gitignore it: checkout-preservation checks intentionally include ignored state.
+The task dispatcher declares the resolved path after mise establishes its
+deny-environment sandbox, and the runner rejects an absent, relative, or
+in-repository value.
+
 ## Current implementation boundary
 
-The initial Python 3.14 runner implements named registration and selection,
-per-test process groups and timeouts, an allowlisted child environment,
-machine-readable results, bounded output detection, and before/after identities
-covering Git, untracked, and ignored checkout state.
+The Python 3.14 runner implements named registration and selection, exact
+runner and child environment allowlists, per-test process groups and timeouts,
+live bounded output capture, interruption and descendant cleanup,
+machine-readable results, and before/after identities covering Git, untracked,
+and ignored checkout state. Mise blocks inherited environment and network
+syscalls around the complete task and prevents acquisition before task launch.
+`T5-VAL-001` exercises these failure boundaries with synthetic processes.
 
-PRE-015 remains active. Hostile probes, stronger network and secret preflight,
-interruption and live output-limit enforcement, cleanup-resource accounting,
-clean-checkout profile evidence, and the pinned least-privilege CI workflow
-remain required before the contract is satisfied.
+PRE-015 remains active. Preflight and invalid-invocation failures still need to
+produce the full run-result record; synthetic canary scanning and unsafe-output
+handling need implementation; the empty-cache acquisition probe needs a
+repeatable retained form; and clean-checkout profile evidence plus the pinned
+least-privilege CI workflow remain required.

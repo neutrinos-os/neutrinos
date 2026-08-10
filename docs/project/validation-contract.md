@@ -75,14 +75,26 @@ compatibility statement. The exception must name its owner, affected checks,
 smallest viable fallback, and removal condition. Convenience, an older host
 interpreter, or an unexamined transitive constraint is not sufficient.
 
-Bootstrap is separate from validation. A local or CI bootstrap may install the
-pinned mise release and run `mise install --locked python uv` plus locked uv
-dependency synchronization. Naming the repository-owned tools prevents an
-operator's unrelated global mise configuration from entering project
-bootstrap. Mise task auto-install is disabled: after bootstrap, a missing tool
-or stale lock fails preflight rather than downloading or resolving during
-validation. CI pins its mise bootstrap and third-party actions independently
+Bootstrap is separate from validation. Mise is offline in repository context;
+a local or CI acquisition phase may explicitly set `MISE_OFFLINE=0` only while
+installing the pinned repository tools with `mise install --locked python uv`.
+Locked uv dependency synchronization may then allow only its declared package
+endpoints. Naming the repository-owned tools prevents an operator's unrelated
+global mise configuration from entering project bootstrap. Mise task and shim
+auto-install are disabled, and canonical dispatch resolves Python and uv
+through `mise which`: after bootstrap, a missing tool or stale lock fails
+preflight rather than downloading, resolving, or using an ambient same-named
+binary. CI pins its mise bootstrap and third-party actions independently
 because mise cannot bootstrap its own executable.
+
+Mise declares a validation cache root under the invoking user's XDG cache
+directory. Reconstructible test-framework metadata may persist there between
+local runs, but canonical profiles do not use cache-dependent selection or
+interpret cached state as a passing result. The cache is outside the checkout,
+is never qualification evidence, and may be deleted when validation is not
+running. CI starts with an empty validation cache and neither restores nor
+uploads it. Dependency, tool, build, image, and VM caches remain separate
+acquisition or future-plan concerns.
 
 ## Test registration and selection
 
@@ -109,6 +121,8 @@ Both profiles must:
 
 - run without root and refuse effective UID 0;
 - use a new private temporary work directory outside tracked source paths;
+- confine persistent test-framework metadata to the declared external
+  validation cache root;
 - snapshot repository status before execution and fail if validation changes
   tracked, staged, untracked, or ignored repository state;
 - isolate child processes in a killable process group and terminate it on
@@ -183,6 +197,10 @@ Every invocation creates one run directory outside the tracked checkout with:
 - `logs/`: bounded native stdout, stderr, and tool diagnostics per test; and
 - `artifacts/`: only outputs declared by the test registration, with identities
   and size recorded in `run.json`.
+
+`run.json` records the resolved validation cache path and that it neither
+affects test selection nor belongs to retained evidence. Cache contents are
+not copied into the run directory.
 
 The terminal summary reports the run directory and counts for passing, failing,
 blocked, skipped, not-applicable, and deferred tests. Exit zero means every

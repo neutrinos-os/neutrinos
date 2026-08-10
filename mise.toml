@@ -7,21 +7,49 @@ uv = "0.12"
 [settings]
 lockfile = true
 lockfile_platforms = ["linux-x64"]
+not_found_auto_install = false
+offline = true
+sandbox.deny_env = true
+sandbox.deny_net = true
 task.run_auto_install = false
 
 [tasks."check:fast"]
 description = "Run the fast applicable validation profile"
-run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py profile fast"
+run = '''
+#!/bin/sh
+set -eu
+export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
+  --python "$(mise which python)" python tools/validation/check.py profile fast
+'''
 
 [tasks."check:complete"]
 description = "Run the complete applicable validation profile"
-run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py profile complete"
+run = '''
+#!/bin/sh
+set -eu
+export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
+  --python "$(mise which python)" python tools/validation/check.py profile complete
+'''
 
 [tasks."check:list"]
 description = "List registered validation tests"
-run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py list"
+run = '''
+#!/bin/sh
+set -eu
+export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
+  --python "$(mise which python)" python tools/validation/check.py list
+'''
 
 [tasks."check:run"]
 description = "Run exact validation test IDs"
 raw_args = true
-run = "uv run --offline --locked --no-sync --no-env-file python tools/validation/check.py run"
+run = '''
+#!/bin/sh
+set -eu
+export NEUTRINOS_VALIDATION_CACHE_ROOT="{{ xdg_cache_home }}/neutrinos/validation"
+exec "$(mise which uv)" run --offline --locked --no-sync --no-env-file \
+  --python "$(mise which python)" python tools/validation/check.py run "$@"
+'''

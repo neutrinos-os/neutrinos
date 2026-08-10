@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import re
+import selectors
 import shutil
 import signal
 import stat
@@ -22,12 +23,32 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[2]
 MAX_OUTPUT_BYTES = 1_048_576
+VALIDATION_CACHE_ROOT_ENV = "NEUTRINOS_VALIDATION_CACHE_ROOT"
+ALLOWED_RUNNER_ENVIRONMENT = frozenset(
+    {
+        "COLORTERM",
+        "HOME",
+        "LANG",
+        "MISE_TASK_PGID_MANAGED",
+        VALIDATION_CACHE_ROOT_ENV,
+        "PATH",
+        "PWD",
+        "SHELL",
+        "SHLVL",
+        "TERM",
+        "USER",
+        "UV",
+        "UV_RUN_RECURSION_DEPTH",
+        "VIRTUAL_ENV",
+        "_",
+    }
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -41,6 +62,14 @@ class Test:
     fixtures: tuple[str, ...]
     cleanup_owner: str
     function: str
+
+
+@dataclasses.dataclass(frozen=True)
+class ProcessExecution:
+    returncode: int
+    detail: str | None
+    output_bytes: int
+    cleanup_ok: bool
 
 
 TESTS = (
@@ -65,6 +94,17 @@ TESTS = (
         fixtures=("repository Markdown files",),
         cleanup_owner="validation runner",
         function="check_markdown_links",
+    ),
+    Test(
+        id="T5-VAL-001",
+        level="T5@T1",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("PLN-0000/PRE-015",),
+        capabilities=(),
+        fixtures=("synthetic hostile validation processes",),
+        cleanup_owner="validation runner",
+        function="check_runner_hostile_probes",
     ),
 )
 TEST_BY_ID = {test.id: test for test in TESTS}
@@ -161,19 +201,70 @@ def check_markdown_links() -> int:
     return 0
 
 
+def validation_cache_root(environment: Mapping[str, str] = os.environ) -> Path:
+    raw = environment.get(VALIDATION_CACHE_ROOT_ENV)
+    if not raw:
+        raise ValueError(f"{VALIDATION_CACHE_ROOT_ENV} is not set")
+    path = Path(raw)
+    if not path.is_absolute():
+        raise ValueError(f"{VALIDATION_CACHE_ROOT_ENV} must be an absolute path")
+    path = path.resolve()
+    repository = ROOT.resolve()
+    if path == repository or repository in path.parents:
+        raise ValueError(f"{VALIDATION_CACHE_ROOT_ENV} must be outside the repository")
+    return path
+
+
+def check_runner_hostile_probes() -> int:
+    cache_dir = validation_cache_root() / "pytest"
+    result = subprocess.run(
+        (
+            sys.executable,
+            "-m",
+            "pytest",
+            "-o",
+            f"cache_dir={cache_dir}",
+            "-q",
+            "tools/validation/tests",
+        ),
+        cwd=ROOT,
+        check=False,
+    )
+    return result.returncode
+
+
 CHECKS: dict[str, Callable[[], int]] = {
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
+    "check_runner_hostile_probes": check_runner_hostile_probes,
 }
 
 
-def child_environment(home: Path) -> dict[str, str]:
+def preflight_errors(
+    environment: Mapping[str, str] = os.environ,
+    effective_uid: int | None = None,
+) -> list[str]:
+    errors = []
+    if (os.geteuid() if effective_uid is None else effective_uid) == 0:
+        errors.append("validation refuses to run as root")
+    unexpected = sorted(set(environment) - ALLOWED_RUNNER_ENVIRONMENT)
+    if unexpected:
+        errors.append(f"undeclared environment variables: {', '.join(unexpected)}")
+    try:
+        validation_cache_root(environment)
+    except ValueError as error:
+        errors.append(str(error))
+    return errors
+
+
+def child_environment(home: Path, cache_root: Path) -> dict[str, str]:
     environment = {
         "GIT_CONFIG_GLOBAL": os.devnull,
         "GIT_CONFIG_NOSYSTEM": "1",
         "HOME": str(home),
         "LANG": "C.UTF-8",
         "LC_ALL": "C.UTF-8",
+        VALIDATION_CACHE_ROOT_ENV: str(cache_root),
         "PATH": os.environ["PATH"],
         "PYTHONDONTWRITEBYTECODE": "1",
         "PYTHONIOENCODING": "utf-8",
@@ -183,59 +274,145 @@ def child_environment(home: Path) -> dict[str, str]:
     return environment
 
 
-def terminate_process_group(process: subprocess.Popen[bytes]) -> None:
-    if process.poll() is not None:
-        return
+def terminate_process_group(process_group: int, process: subprocess.Popen[bytes]) -> bool:
     try:
-        os.killpg(process.pid, signal.SIGTERM)
+        os.killpg(process_group, signal.SIGTERM)
+    except ProcessLookupError:
+        return True
+
+    try:
         process.wait(timeout=2)
-    except (ProcessLookupError, subprocess.TimeoutExpired):
-        if process.poll() is None:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            process.wait()
+    except subprocess.TimeoutExpired:
+        try:
+            os.killpg(process_group, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        process.wait()
+
+    deadline = time.monotonic() + 2
+    while time.monotonic() < deadline:
+        try:
+            os.killpg(process_group, 0)
+        except ProcessLookupError:
+            return True
+        time.sleep(0.01)
+    try:
+        os.killpg(process_group, signal.SIGKILL)
+    except ProcessLookupError:
+        return True
+    return False
 
 
-def execute_test(test: Test, run_dir: Path, home: Path) -> dict[str, Any]:
+def execute_process(
+    command: Sequence[str],
+    *,
+    cwd: Path,
+    environment: dict[str, str],
+    stdout_path: Path,
+    stderr_path: Path,
+    timeout_seconds: float,
+    max_output_bytes: int = MAX_OUTPUT_BYTES,
+) -> ProcessExecution:
+    started = time.monotonic()
+    detail: str | None = None
+    output_bytes = 0
+    process = subprocess.Popen(
+        command,
+        cwd=cwd,
+        env=environment,
+        start_new_session=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert process.stdout is not None
+    assert process.stderr is not None
+    selector = selectors.DefaultSelector()
+    outputs = {
+        process.stdout.fileno(): stdout_path.open("wb"),
+        process.stderr.fileno(): stderr_path.open("wb"),
+    }
+    for stream in (process.stdout, process.stderr):
+        os.set_blocking(stream.fileno(), False)
+        selector.register(stream, selectors.EVENT_READ)
+
+    try:
+        while selector.get_map():
+            remaining = timeout_seconds - (time.monotonic() - started)
+            if remaining <= 0:
+                detail = f"timed out after {timeout_seconds:g}s"
+                break
+            for key, _ in selector.select(timeout=min(remaining, 0.05)):
+                chunk = os.read(key.fd, 65_536)
+                if not chunk:
+                    selector.unregister(key.fileobj)
+                    continue
+                permitted = max_output_bytes - output_bytes
+                if permitted > 0:
+                    outputs[key.fd].write(chunk[:permitted])
+                output_bytes += len(chunk)
+                if output_bytes > max_output_bytes:
+                    detail = f"output exceeded {max_output_bytes} bytes"
+                    break
+            if detail is not None:
+                break
+            if process.poll() is not None:
+                # Descendants must not keep inherited output pipes or other
+                # process-group resources alive after the registered command.
+                terminate_process_group(process.pid, process)
+        if detail is not None:
+            terminate_process_group(process.pid, process)
+    except BaseException:
+        terminate_process_group(process.pid, process)
+        raise
+    finally:
+        selector.close()
+        for output in outputs.values():
+            output.close()
+        process.stdout.close()
+        process.stderr.close()
+
+    cleanup_ok = terminate_process_group(process.pid, process)
+    returncode = process.poll()
+    if returncode is None:
+        returncode = -signal.SIGKILL
+    if detail is None and returncode != 0:
+        detail = f"exited {returncode}"
+    return ProcessExecution(
+        returncode=returncode,
+        detail=detail,
+        output_bytes=output_bytes,
+        cleanup_ok=cleanup_ok,
+    )
+
+
+def execute_test(
+    test: Test,
+    run_dir: Path,
+    home: Path,
+    cache_root: Path,
+) -> dict[str, Any]:
     logs = run_dir / "logs"
     stdout_path = logs / f"{test.id}.stdout.log"
     stderr_path = logs / f"{test.id}.stderr.log"
     started = utc_now()
     start = time.monotonic()
-    status = "failing"
-    detail: str | None = None
-
-    with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
-        process = subprocess.Popen(
-            (sys.executable, str(Path(__file__).resolve()), "_execute", test.id),
-            cwd=ROOT,
-            env=child_environment(home),
-            start_new_session=True,
-            stdout=stdout,
-            stderr=stderr,
-        )
-        try:
-            returncode = process.wait(timeout=test.timeout_seconds)
-            status = "passing" if returncode == 0 else "failing"
-            if returncode != 0:
-                detail = f"exited {returncode}"
-        except subprocess.TimeoutExpired:
-            terminate_process_group(process)
-            status = "failing"
-            detail = f"timed out after {test.timeout_seconds}s"
-        except BaseException:
-            terminate_process_group(process)
-            raise
-
-    output_bytes = stdout_path.stat().st_size + stderr_path.stat().st_size
-    if output_bytes > MAX_OUTPUT_BYTES:
+    execution = execute_process(
+        (sys.executable, str(Path(__file__).resolve()), "_execute", test.id),
+        cwd=ROOT,
+        environment=child_environment(home, cache_root),
+        stdout_path=stdout_path,
+        stderr_path=stderr_path,
+        timeout_seconds=test.timeout_seconds,
+    )
+    status = "passing" if execution.returncode == 0 and execution.detail is None else "failing"
+    detail = execution.detail
+    if not execution.cleanup_ok:
         status = "failing"
-        detail = f"output exceeded {MAX_OUTPUT_BYTES} bytes"
+        detail = "process-group cleanup failed"
 
     return {
         "assertions": [test.function],
+        "cleanup": {"process_group_absent": execution.cleanup_ok},
         "diagnostics": {
             "stderr": str(stderr_path.relative_to(run_dir)),
             "stdout": str(stdout_path.relative_to(run_dir)),
@@ -245,6 +422,7 @@ def execute_test(test: Test, run_dir: Path, home: Path) -> dict[str, Any]:
         "ended_at": utc_now(),
         "id": test.id,
         "level": test.level,
+        "output_bytes": execution.output_bytes,
         "result": status,
         "started_at": started,
         "subjects": list(test.fixtures),
@@ -277,8 +455,9 @@ def select_tests(mode: str, values: Sequence[str]) -> tuple[str, list[Test]]:
 
 
 def run(mode: str, values: Sequence[str]) -> int:
-    if os.geteuid() == 0:
-        print("validation refuses to run as root", file=sys.stderr)
+    errors = preflight_errors()
+    if errors:
+        print("\n".join(errors), file=sys.stderr)
         return 2
 
     try:
@@ -286,6 +465,8 @@ def run(mode: str, values: Sequence[str]) -> int:
     except ValueError as error:
         print(error, file=sys.stderr)
         return 2
+
+    cache_root = validation_cache_root()
 
     started = utc_now()
     before = repository_snapshot()
@@ -301,7 +482,7 @@ def run(mode: str, values: Sequence[str]) -> int:
     try:
         with results_path.open("a", encoding="utf-8") as stream:
             for test in selected:
-                result = execute_test(test, run_dir, home)
+                result = execute_test(test, run_dir, home, cache_root)
                 results.append(result)
                 stream.write(canonical_json(result) + "\n")
                 stream.flush()
@@ -321,6 +502,11 @@ def run(mode: str, values: Sequence[str]) -> int:
     status = git("status", "--porcelain=v2", "--untracked-files=all").stdout
     manifest = {
         "cleanup": {"repository_preserved": cleanup_ok},
+        "cache": {
+            "affects_selection": False,
+            "path": str(cache_root),
+            "retained_as_evidence": False,
+        },
         "counts": counts,
         "dirty": bool(status),
         "dirty_identity": before["git_identity"],

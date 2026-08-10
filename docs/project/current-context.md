@@ -1,10 +1,10 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: 4bcb3c5
-current_gate: G0-complete
-target_gate: G1
-active_plan: PLN-0000
+source_snapshot_revision: a00b4a6
+current_gate: G1
+target_gate: G2
+active_plan: PLN-0001
 ---
 
 # Current project context
@@ -17,29 +17,35 @@ active_plan: PLN-0000
 
 ## Current position
 
-NeutrinOS has an accepted architecture-policy baseline and is preparing the G1
-gate for one disposable VM-only evidence prototype. G1 is **not satisfied** and
-NeutrinOS source implementation is **not authorized**.
+NeutrinOS has an accepted architecture-policy baseline and **G1 is satisfied**:
+approved by Jason Tarasovic on 2026-08-10 following PR-0029, which also
+satisfies PRE-018 and completes PLN-0000
+(`docs/plans/0000-pre-implementation-readiness.md`, status `complete`).
 
-PLN-0000 (`docs/plans/0000-pre-implementation-readiness.md`) is active only for
-repository readiness, documentation, validation, and collaboration
-scaffolding. EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are satisfied for
-the owner-approved Codex/Claude set. PRE-014 and PRE-015 are satisfied.
-PRE-016 is satisfied. PRE-017 is satisfied on 2026-08-10 following PR-0028:
-the tracked baseline, licence, and secret scanning are committed, the remote
-was force-pushed over an unrelated 2022 history and moved to a ruleset
-requiring the `canonical profiles` check, and both profiles passed on a hosted
-runner at `d0a2cc5`. PRE-018 is the only unsatisfied criterion. PRE-003 through
-PRE-009 are satisfied by owner acceptance of `PLN-0001`
-(`docs/plans/0001-reference-vm-slice.md`) on 2026-08-10. That plan is
-**active** and is the sole active implementation slice. NeutrinOS source
-implementation remains **unauthorized**: PLN-0000 permits repository
-implementation changes only after G1 *and* under an accepted follow-on plan,
-and only the second condition holds. PRE-018 and G1 are unsatisfied. The four canonical tasks, Linux-x64 tool locks, failed
-invocations, output-safety quarantine, named T0 checks, secret scanning, and
-registered hostile, empty-cache, and clean-clone probes are implemented.
-Copilot remains unverified and must not be relied on for autonomous repository
-work.
+NeutrinOS source implementation is now **authorized, and only** for the
+disposable VM/lab scope of accepted PLN-0001
+(`docs/plans/0001-reference-vm-slice.md`), which is the **active plan** and the
+sole active implementation slice. Both conditions of PLN-0000's mutation
+boundary — G1 plus an accepted follow-on plan — now hold. Physical-host
+mutation, production authority, and any mechanism ADR remain unauthorized, and
+no candidate fixture became a decision.
+
+Readiness history: EX-0016 passed at `c96fdbb`; PRE-012 and PRE-013 are
+satisfied for the owner-approved Codex/Claude set. PRE-017 is satisfied
+following PR-0028: the tracked baseline, licence, and secret scanning are
+committed, the remote was force-pushed over an unrelated 2022 history and moved
+to a ruleset requiring the `canonical profiles` check, and both profiles passed
+on a hosted runner at `d0a2cc5`. That is a single green run; repeatability is
+untested. The four canonical tasks, Linux-x64 tool locks, failed invocations,
+output-safety quarantine, named T0 checks, secret scanning, and registered
+hostile, empty-cache, and clean-clone probes are implemented. Copilot remains
+unverified and must not be relied on for autonomous repository work.
+
+PR-0029 C-005 is the standing risk for the duration of G1: mkosi, the Fedora
+snapshot, EROFS/Btrfs, `systemd-sysinstall`, and the general distribution
+kernel will now be used repeatedly and successfully, and repeated success is
+how a candidate becomes a decision without an ADR. The test is whether the
+required challengers — bootc, a literal Arch snapshot — are ever actually run.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
@@ -89,7 +95,13 @@ open either for a cold status report.
   for a reason it never stated. Repository mise use does not select
   host-role software placement.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
-  PRE-001 through PRE-017 are satisfied; PRE-018 and G1 are not.
+  PRE-001 through PRE-018 are satisfied and the plan is complete.
+- **G1 is approved** (2026-08-10, PR-0029). It authorizes disposable VM/lab
+  implementation under PLN-0001 and nothing else. PRE-018 records an authority
+  act rather than evidence; the gate is a readiness gate, not a capability
+  gate. Seven review challenges are carried open, not closed: PR-0026 C-003 and
+  C-005, PR-0027 C-002 and C-006, PR-0028 C-002's residual class, C-003, and
+  C-006.
 
 ## Leading but unaccepted fixtures
 
@@ -116,15 +128,20 @@ architecture.
 
 Currently allowed:
 
-- documentation, repository guidance, validation scaffolding, and other
-  readiness changes within active PLN-0000;
+- NeutrinOS source implementation and reference-VM work within the bounded
+  scope of active PLN-0001, under its named tasks, using disposable VM disks,
+  firmware variables, virtual TPM state, and test networks;
+- synthetic signing, enrollment, identity, and credential fixtures;
+- build caches and artifacts in declared development locations;
+- documentation, repository guidance, and validation scaffolding;
 - read-only repository and host inspection when the specific task authorizes
   it; and
 - documentation-only evaluation with synthetic inputs.
 
 Currently prohibited:
 
-- NeutrinOS source implementation or a reference-VM build under G1;
+- implementation outside PLN-0001's accepted task scope, or any work reaching
+  for G2 qualification claims;
 - mutation of `desktop-jason`, `router`, `misc`, or another physical host;
 - use of production credentials, signing keys, enrollment state, recovery
   material, or machine authority;
@@ -133,7 +150,9 @@ Currently prohibited:
 - autonomous push, merge, release, or publication.
 
 The exact mutation-changing authority and stop conditions live in
-`docs/plans/0000-pre-implementation-readiness.md`. Do not open it for a
+`docs/plans/0000-pre-implementation-readiness.md` (mutation boundary, retained
+after completion) and `docs/plans/0001-reference-vm-slice.md` (task scope and
+stop conditions). Do not open either for a
 read-only status report; the current boundary above is complete for that task.
 
 ## Working-tree and validation expectations

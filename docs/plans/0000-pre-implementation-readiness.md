@@ -1,7 +1,7 @@
 ---
 id: PLN-0000
 title: Pre-implementation readiness
-status: active
+status: complete
 owner: Jason Tarasovic
 created: 2026-08-10
 last_updated: 2026-08-10
@@ -231,7 +231,7 @@ command. Before G1:
 | PRE-015 | Canonical fast and complete validation entry points define isolation, privileges, network/secrets, timeout, flaky, artifact, redaction, cleanup, and CI behavior. | Satisfied | Accepted [validation execution contract](../project/validation-contract.md), [PR-0018](../project/reviews/0018-validation-contract.md), [PR-0019](../project/reviews/0019-mise-validation-interface.md), [PR-0020](../project/reviews/0020-validation-runner-hostile-probes.md), [PR-0021](../project/reviews/0021-validation-failed-invocation-results.md), [PR-0022](../project/reviews/0022-validation-output-safety.md), [PR-0023](../project/reviews/0023-validation-empty-cache.md), and [PR-0024](../project/reviews/0024-bootstrap-acquisition-boundary.md); four mise tasks, locked Linux-x64 Python 3.14/uv tooling, external XDG test cache, result-producing failed invocations, canary scanning and quarantine, named T0 checks, and registered hostile and retained empty-cache probes implemented; clean local profile evidence obtained at `42f23b9` from a fresh clone bootstrapped as documented, both profiles `passing=4 failing=0` with the checkout preserved clean. CI behavior is defined by the accepted contract; owner deferred the passing initial pinned least-privilege CI job to PRE-017 on 2026-08-10. Canonical-invocation config isolation remains open in proposed [PR-0025](../project/reviews/0025-config-discovery-boundary.md) and carries to PRE-017 with the CI job |
 | PRE-016 | Repository layout, generated/committed content, ignored local state, large artifacts, stable IDs, formatting, dependency, supersession, and clean-clone rules are documented and checked. | Satisfied | Owner acceptance of the [repository hygiene contract](../project/repository-hygiene.md) and [PR-0026](../project/reviews/0026-repository-hygiene-contract.md) on 2026-08-10; `T5-VAL-003` implements the clean-clone check in the complete profile. Two accepted limitations carry forward: mise task dispatch in a clean clone is uncovered pending an environment-allowlist decision (PR-0026 C-003), and the size and binary bounds are reviewer-applied with no check (C-002) |
 | PRE-017 | Root README, license decision, `.gitignore`, `.editorconfig`, contribution/agent guidance, secret scanning, and private/public deferrals are complete. | Satisfied | Tracked baseline committed at `4bcb3c5`: root README, `.gitignore`, `.editorconfig`, adapter `.gitkeep` entries, and the pinned least-privilege CI workflow deferred from PRE-015, which declares the PR-0025 canonical-invocation config isolation. Secret scanning is registered as `T0-SEC-001` in both profiles using betterleaks locked in `mise.lock` with SHA-256 and cosign provenance, so local and CI dispatch one definition; its scoped exception was verified narrow against a planted key. Owner accepted Apache-2.0 and public visibility on 2026-08-10, resolving `P-007` in [scope](../project/scope.md#licensing-and-visibility). CI evidence obtained on 2026-08-10 following [PR-0028](../project/reviews/0028-continuous-integration-evidence.md): the remote was force-pushed to replace an unrelated 2022 history, legacy branch protection was migrated to a ruleset requiring the `canonical profiles` check with signatures and linear history, and run `31418770417` at `d0a2cc5` passed both profiles `passing=6 failing=0` with the checkout unmodified. Four preceding runs failed on defects in this repository, one of which, `T5-VAL-003` resolving mise from `PATH`, passed locally only because a workstation installs mise into `/usr/bin`. Open: repeatability is untested on one green run, executables still resolved from `PATH` rather than declared inputs are the same defect class, and the public CI failure log is a disclosure surface bounded by the scanner's rules |
-| PRE-018 | G1 approval is recorded explicitly; proposed-plan status alone grants no implementation authority. | Pending | Owner acceptance recorded in this plan |
+| PRE-018 | G1 approval is recorded explicitly; proposed-plan status alone grants no implementation authority. | Satisfied | Owner acceptance recorded in this plan's decision section and in [PR-0029](../project/reviews/0029-g1-gate-approval.md) on 2026-08-10. The criterion records an authority act and proves nothing on its own; PR-0029 C-001 states this explicitly |
 
 ## Requirements-trace expectations for PLN-0001
 
@@ -282,8 +282,31 @@ G1 is satisfied only when:
 
 ## Decision
 
-Accepted by Jason Tarasovic on 2026-08-10. PLN-0000 is active for repository
+Accepted by Jason Tarasovic on 2026-08-10. PLN-0000 was active for repository
 readiness, documentation, validation, and collaboration scaffolding only. The
-approval accepts its readiness model and fixture/defer classifications; it does
-not satisfy PRE-018, G1, or authorize NeutrinOS source implementation. G1 also
-requires an accepted PLN-0001 and completion of this checklist.
+approval accepted its readiness model and fixture/defer classifications; it did
+not by itself satisfy PRE-018, G1, or authorize NeutrinOS source implementation.
+
+## G1 approval
+
+**G1 is approved by Jason Tarasovic on 2026-08-10**, following
+[PR-0029](../project/reviews/0029-g1-gate-approval.md). This satisfies PRE-018
+and completes PLN-0000. All five G1 exit conditions are met: PRE-001 through
+PRE-018 are satisfied with linked evidence, PLN-0001 is accepted, the work
+register names it the sole active implementation slice, both mutation
+boundaries are explicit, and this record is the approval.
+
+What the approval authorizes: disposable VM and lab implementation under
+accepted PLN-0001, within the permitted set above. Both conditions of the
+mutation boundary now hold.
+
+What it does not authorize: G2, physical-host mutation on `desktop-jason`,
+`router`, or `misc`, production signing, Secure Boot, enrollment, recovery,
+fleet, machine, or credential authority, any mechanism ADR, or promotion of any
+candidate fixture to an accepted decision.
+
+Carried open and unclosed by this approval: PR-0026 C-003 and C-005, PR-0027
+C-002 and C-006, and PR-0028 C-002's residual class, C-003, and C-006. PR-0029
+C-005 records the standing risk for the duration of G1: repeated successful use
+of a candidate fixture is not a decision, and the required challengers must
+actually be run.

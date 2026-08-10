@@ -69,7 +69,15 @@ mise run check:run T0-DOC-001 T0-DOC-002
 their implementations in documentation or CI.
 `T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
 with an isolated empty mise cache and runs the registered `check:list` task
-using only the already-installed locked Python and uv inputs.
+using only the already-installed locked Python and uv inputs. `T5-VAL-003`
+clones committed `HEAD`, builds the clone's declared environment offline, runs
+the clone's own fast profile, and asserts the clone is unmodified afterward.
+
+`T5-VAL-003` is registered in the complete profile only. Registering it in the
+fast profile would make that profile clone and re-run itself, and the fast
+profile must stay fast. It requires the declared uv cache to already hold the
+locked packages, because canonical validation is offline; a cold cache fails
+the test with that reason rather than reaching the network.
 
 Each execution writes `run.json`, `results.jsonl`, and bounded per-test logs to
 the printed temporary run directory outside the checkout. A dirty-checkout

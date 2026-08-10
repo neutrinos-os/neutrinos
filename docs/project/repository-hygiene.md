@@ -111,14 +111,25 @@ Reviews are immutable once accepted; a further challenge is a new review.
 ## Clean-clone check
 
 PRE-016 requires an automated check that a clean clone can run the documented
-fast validation without undeclared local state. This is not yet implemented.
+fast validation without undeclared local state. `T5-VAL-003` implements it in
+the complete profile: the fast profile must stay fast, and registering the
+check there would make that profile clone and re-run itself.
 
-The check must clone the current checkout into a temporary location, run the
-documented bootstrap, run `check:fast`, and assert a passing terminal result
-and a clean tree afterward. It must not read or modify the operator checkout
-beyond reading committed history, and must not require network access beyond
-the acquisition phase the bootstrap already declares.
+The check clones committed `HEAD` into a temporary directory, builds the
+clone's declared environment offline from `uv.lock`, runs the clone's fast
+profile, and asserts the clone is unmodified afterward. It never writes to the
+operator checkout and never reaches the network.
 
-Registering it as a `T5` test inside the fast profile would make the profile
-recursive. It therefore belongs either in the complete profile or in CI, and
-that placement is an open question for the owner.
+Two bounded limitations, both deliberate:
+
+- It requires the declared uv cache to already hold the locked packages.
+  Canonical validation is offline, so acquisition cannot happen inside a test.
+  A cold cache fails the check with that stated reason rather than silently
+  passing or downloading.
+- It drives the clone through the clone's committed runner rather than through
+  `mise run`. The runner enforces a strict environment allowlist, and the mise
+  configuration isolation the probe needs cannot cross it without widening
+  that allowlist, which is a reviewed boundary. Mise task dispatch in a clean
+  clone is therefore not covered here; `T5-VAL-002` covers dispatch under
+  isolation, and closing the gap would require an owner decision on the
+  allowlist.

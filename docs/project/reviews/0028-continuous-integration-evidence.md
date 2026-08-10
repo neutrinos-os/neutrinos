@@ -149,3 +149,36 @@ that local and remote execution are equivalent.
 Accepted by Jason Tarasovic on 2026-08-10. PRE-017 is satisfied. C-002's
 residual class, C-003, and C-006 remain open; C-006 joins the deferred set
 already carried by PR-0026 C-003 and C-005.
+
+## Post-acceptance evidence
+
+Recorded 2026-08-10 after acceptance. This section adds observations; it does
+not revise any challenge or disposition above, which stand as accepted.
+
+- **C-001 is closed.** Repeatability was measured at `6ec625a`, a different
+  commit on a cold runner. Run `31420905770` (`workflow_dispatch`) and run
+  `31421167463` (`pull_request`) both passed on the first attempt with no
+  intervening fix, fast `passing=5 failing=0` and complete `passing=6
+  failing=0`, betterleaks `✓ Cosign verified`, checkout unmodified. Two
+  independent green runs at a second revision satisfy what C-001 asked for.
+- **C-002's declared-`PATH` fix was exercised in CI**, since `T5-VAL-002` and
+  `T5-VAL-003` pass at `6ec625a` under the per-executable construction. The
+  residual class remains open: the fix covers the two known instances, not the
+  general rule that a check must resolve executables from declared inputs.
+- **New finding: the required status check deadlocks direct pushes to `main`.**
+  `canonical profiles` triggers only on `push` to `main` and `pull_request`
+  targeting `main`. A direct push is rejected with `GH013` because the check
+  cannot report on a commit that has not landed, and the commit cannot land
+  until it reports. The ruleset therefore made `main` pull-request-only in
+  effect, which no record stated and which contradicts this review's probe
+  observation that no pull-request requirement existed. Recorded as `P-008`.
+- **New finding: merging through GitHub changes signature provenance.** Every
+  commit on `main` through `d0a2cc5` carries the owner's SSH signature because
+  it was pushed directly. The repository permits only squash merges, which
+  replace the pushed commits with one commit signed by GitHub's `web-flow` key.
+  That satisfies `required_signatures` while weakening what the rule proves:
+  the signature attests that a change passed through GitHub, not that the owner
+  authored it. Carried into `P-008`.
+- Pull request 7 remains open and green; nothing was merged. Local `main` at
+  `6ec625a` is three commits ahead of the remote by owner decision to continue
+  working locally.

@@ -27,6 +27,7 @@ this backlog into a duplicate task tracker.
 | P-005 | Is systemd-native composition a project constraint? | [Accepted: systemd-first](../adrs/0001-systemd-first.md) | P-001 |
 | P-006 | What is the canonical project name and technical identifier? | [Accepted: NeutrinOS and `neutrinos`](naming.md#decision) | P-002 |
 | P-007 | Under what license, and at what visibility, is this repository published? | [Accepted: Apache-2.0 and a public repository](scope.md#licensing-and-visibility) | P-002 |
+| P-008 | How do changes land on `main`, and what must a required signature prove? | Open: the ruleset's required `canonical profiles` check cannot report on an unpushed commit, so direct pushes are rejected and `main` is pull-request-only in effect; the only enabled merge method replaces owner-signed commits with one signed by GitHub's `web-flow` key, satisfying `required_signatures` while weakening what it attests. Recorded in [PR-0028 post-acceptance evidence](reviews/0028-continuous-integration-evidence.md#post-acceptance-evidence) | P-007 |
 
 
 ## Wave 1: system and trust model

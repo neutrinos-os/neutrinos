@@ -35,8 +35,16 @@ satisfied for the owner-approved Codex/Claude set. PRE-017 is satisfied
 following PR-0028: the tracked baseline, licence, and secret scanning are
 committed, the remote was force-pushed over an unrelated 2022 history and moved
 to a ruleset requiring the `canonical profiles` check, and both profiles passed
-on a hosted runner at `d0a2cc5`. That is a single green run; repeatability is
-untested. The four canonical tasks, Linux-x64 tool locks, failed invocations,
+on a hosted runner at `d0a2cc5`. Repeatability was then measured at `6ec625a`:
+two independent green runs, `31420905770` and `31421167463`, both first-attempt
+with no intervening fix, closing PR-0028 C-001.
+
+`P-008` is open and blocks nothing under G1: the required `canonical profiles`
+check cannot report on an unpushed commit, so direct pushes to `main` are
+rejected and `main` is pull-request-only in effect, and the only enabled merge
+method replaces owner-signed commits with one signed by GitHub's `web-flow`
+key. Work continues locally by owner decision; local `main` is ahead of the
+remote and pull request 7 is open and green but unmerged. The four canonical tasks, Linux-x64 tool locks, failed invocations,
 output-safety quarantine, named T0 checks, secret scanning, and registered
 hostile, empty-cache, and clean-clone probes are implemented. Copilot remains
 unverified and must not be relied on for autonomous repository work.

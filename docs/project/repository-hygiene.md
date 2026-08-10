@@ -87,8 +87,35 @@ Both gaps recorded during PRE-016 are now closed under PRE-017:
 
 No tracked file exceeds 1 MiB, and no tracked binary artifact is permitted at
 all. The largest tracked file today is 69 KB, so these bind nothing currently
-and exist to fail before the first image or VM disk is committed. Neither bound
-is enforced by a check yet; both are policy a reviewer applies.
+and exist to fail before the first image or VM disk is committed.
+
+Both bounds are enforced by `T0-HYG-001` in both profiles, closing the
+reviewer-applied limitation PR-0026 recorded as C-002. It classifies the
+repository **index** rather than `HEAD`, so a breach fails before it is
+committed rather than after, and it takes Git's own binary classification from
+`git diff --numstat` rather than re-deciding what "binary" means. Two limits
+follow from that choice and are accepted: Git calls a blob binary when it finds
+a NUL byte in the first 8000 bytes, so a small binary format that happens to
+contain none is not caught; and the check reads the index of this checkout, so
+it constrains what is committed here and makes no claim about history.
+
+**The binary bound was breached from 2026-08-10 until the check was written.**
+`tools/validation/__pycache__/check.cpython-314.pyc`, 63,646 bytes of Python
+bytecode, was committed in `f54c217` during the forty-minute window before
+`.gitignore` existed, and survived twenty-six further commits and the G1 review
+because these bounds were policy that a reviewer applies and no reviewer
+applied them. It was untracked on 2026-08-10; `.gitignore` already covered it,
+which is why it never reappeared once removed.
+
+It is **deliberately left in history.** `f54c217` is an ancestor of both
+published refs, and rewriting it would invalidate seven commit identities cited
+as evidence in this repository -- including `6ec625a`, the commit G1 was
+approved at, and `874e9c7`, which `src/slice/input-set.toml` declares as the
+exact source revision the reference-VM slice is built from. Trading an inert
+62 KB blob for seven broken evidence citations is the worse outcome for a
+project whose records are built on exact identities. The blob is inert: Python
+compares the source mtime recorded inside a `.pyc` against the source file's
+actual mtime, and in any fresh clone those disagree, so it was never loaded.
 
 Images, VM disks, large evidence bundles, and retained validation output live
 outside the repository. A document that depends on such an artifact records

@@ -33,6 +33,11 @@ MAX_OUTPUT_BYTES = 1_048_576
 MAX_ERROR_BYTES = 16_384
 SCAN_CHUNK_BYTES = 65_536
 SCAN_OVERLAP_BYTES = 512
+MAXIMUM_TRACKED_BYTES = 1_048_576
+# Git's empty tree. Diffing the index against it lists every tracked blob as an
+# addition, which is how a whole-repository classification is obtained from a
+# command that otherwise reports only changes.
+EMPTY_TREE_OBJECT = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 VALIDATION_CACHE_ROOT_ENV = "NEUTRINOS_VALIDATION_CACHE_ROOT"
 PYTHON_INSTALL_ENV = "NEUTRINOS_VALIDATION_PYTHON_INSTALL"
 UV_INSTALL_ENV = "NEUTRINOS_VALIDATION_UV_INSTALL"
@@ -197,6 +202,17 @@ TESTS = (
         function="check_markdown_links",
     ),
     Test(
+        id="T0-HYG-001",
+        level="T0",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("PLN-0000/PRE-016",),
+        capabilities=(),
+        fixtures=("repository index",),
+        cleanup_owner="validation runner",
+        function="check_tracked_artifacts",
+    ),
+    Test(
         id="T0-SEC-001",
         level="T0",
         profiles=("fast", "complete"),
@@ -354,12 +370,15 @@ def output_safe_error(value: object, safety: OutputSafety) -> str:
     return "unsafe runner diagnostic quarantined; content omitted"
 
 
-def git(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+def git(
+    *args: str, check: bool = True, input: str | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ("git", *args),
         cwd=ROOT,
         env=git_environment(),
         check=check,
+        input=input,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
@@ -446,6 +465,61 @@ def check_markdown_links() -> int:
     if failures:
         print("\n".join(failures))
         return 1
+    return 0
+
+
+def check_tracked_artifacts() -> int:
+    """Enforce the hygiene contract's two artifact bounds.
+
+    Both bounds were reviewer-applied policy with no check, which PR-0026
+    recorded as accepted limitation C-002. A tracked bytecode cache then
+    survived twenty-six commits and a gate review before anyone noticed it, so
+    the limitation is closed here rather than restated.
+
+    The index is the subject, not `HEAD`: what a commit would contain is what
+    the bounds are about, and checking `HEAD` would report the breach only
+    after it had already landed.
+
+    Binary classification is Git's own. `--numstat` prints `-` for both the
+    added and the deleted line count exactly when Git considers a blob binary,
+    which means this honors `.gitattributes` and Git's NUL heuristic instead of
+    re-deciding, differently, what "binary" means.
+    """
+    failures: list[str] = []
+
+    # Each -z record is one NUL-terminated `added TAB deleted TAB path`. Only
+    # renames split the path into further fields, and a diff against the empty
+    # tree is all additions, so there are none.
+    numstat = git("diff", "--numstat", "-z", "--cached", EMPTY_TREE_OBJECT)
+    for record in numstat.stdout.split("\0"):
+        if not record:
+            continue
+        added, deleted, path = record.split("\t", 2)
+        if added == "-" and deleted == "-":
+            failures.append(f"tracked binary artifact: {path}")
+
+    listing = git("ls-files", "--cached", "--stage", "-z")
+    blobs: dict[str, str] = {}
+    for record in listing.stdout.split("\0"):
+        if not record:
+            continue
+        metadata, path = record.split("\t", 1)
+        blobs[path] = metadata.split()[1]
+
+    sizes = git(
+        "cat-file",
+        "--batch-check=%(objectsize)",
+        input="".join(f"{sha}\n" for sha in blobs.values()),
+    )
+    measured = sizes.stdout.split()
+    for (path, _), size in zip(blobs.items(), measured, strict=True):
+        if int(size) > MAXIMUM_TRACKED_BYTES:
+            failures.append(f"tracked file exceeds {MAXIMUM_TRACKED_BYTES} bytes: {path} is {size}")
+
+    if failures:
+        print("\n".join(sorted(failures)))
+        return 1
+    print(f"tracked blobs checked: {len(blobs)}")
     return 0
 
 
@@ -955,6 +1029,7 @@ CHECKS: dict[str, Callable[[], int]] = {
     "check_slice_boot": check_slice_boot,
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
+    "check_tracked_artifacts": check_tracked_artifacts,
     "check_runner_hostile_probes": check_runner_hostile_probes,
     "check_empty_mise_cache": check_empty_mise_cache,
     "check_clean_clone": check_clean_clone,

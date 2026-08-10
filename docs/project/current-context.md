@@ -114,6 +114,18 @@ against its declaration -- an inherited guarantee, not an enforced one, and one
 that does not survive a change of distribution. Two mitigations are proposed in
 the evidence record and neither is accepted. PLN-0001-07 is next.
 
+A hygiene breach was found and closed alongside it.
+`tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since
+`f54c217`, committed in the forty-minute window before `.gitignore` existed,
+and survived twenty-six commits and the G1 review because the contract's
+"no tracked binary artifact" bound was policy a reviewer applies and no
+reviewer applied it. The file is untracked and `T0-HYG-001` now enforces both
+artifact bounds against the index in both profiles, closing PR-0026 C-002.
+**It is deliberately left in history**: `f54c217` is an ancestor of both
+published refs, and rewriting would invalidate seven cited commit identities
+including `6ec625a`, the commit G1 was approved at, and `874e9c7`, the source
+revision `src/slice/input-set.toml` declares. `check:fast` is now 7/0.
+
 **Open and unresolved: this makes the CI `check:complete` job fail.** The
 workflow runs both profiles, and a hosted runner has no composed artifact, so
 the three-way choice is CI composing the slice itself, CI running `fast` only

@@ -72,6 +72,13 @@ secrets using the locked betterleaks, always with `--redact` so a finding never
 widens exposure. It is registered in both profiles and runs the same way
 locally and in CI: there is one definition of the check, not a local one and a
 separate CI one. Scoped exceptions live in `.betterleaks.toml`.
+`T0-HYG-001` enforces the [hygiene contract](repository-hygiene.md)'s two
+artifact bounds -- no tracked binary and no tracked file over 1 MiB -- which
+were reviewer-applied policy with no check until a committed bytecode cache
+survived twenty-six commits and a gate review. It classifies the index, not
+`HEAD`, so a breach fails before it is committed, and it takes Git's own binary
+classification from `git diff --numstat` rather than re-deciding what binary
+means.
 `T2-SLICE-001` validates `src/slice/input-set.toml` against the schema its own
 `[schema]` block declares, and reproduces the nine constructed rejections the
 [input declaration](slice-input-declaration.md) claims. It uses the locked

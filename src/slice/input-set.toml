@@ -10,7 +10,7 @@
 
 [schema]
 id = "neutrinos.slice.input-set"
-version = 1
+version = 2
 
 [source]
 repository = "https://github.com/neutrinos-os/neutrinos"
@@ -39,6 +39,33 @@ version = "v26"
 identity_kind = "git-commit"
 identity = "84af20892b61c8e177e391f997ded8b4cb5514f2"
 note = "Candidate composition fixture. Commit is the v26 annotated tag dereferenced; the tag itself is mutable."
+
+# The tools tree supplies dnf5 and rpm, which resolve and install every package
+# in the image. It is built from the frozen repository declared above, not from
+# the build host's rolling distribution, so no undeclared moving input decides
+# image contents. It is declared by recipe rather than by digest: exporting the
+# tree produces unstable timestamps, so its own digest would change without any
+# input changing.
+[tools_tree]
+base_image = "registry.fedoraproject.org/fedora@sha256:93f227979b6ef8395cde2a38dee260ef4cbecaab7668ee45d97960aba910e918"
+package_source = "fedora"
+packages = [
+  "distribution-gpg-keys",
+  "cpio",
+  "systemd",
+  "systemd-ukify",
+  "systemd-boot",
+  "dosfstools",
+  "mtools",
+  "e2fsprogs",
+  "erofs-utils",
+  "btrfs-progs",
+  "squashfs-tools",
+  "tar",
+  "zstd",
+  "xz",
+  "python3",
+]
 
 # QEMU is deliberately absent. It executes the artifact but cannot change what
 # composition produces, and this record declares composition inputs only. The

@@ -8,7 +8,7 @@ governing_plan: PLN-0001
 
 This records what the slice's declared input set contains and, for each input,
 what makes it exact. It is the PLN-0001-01 deliverable together with
-`src/slice/input-set.toml` and `src/slice/schema/input-set-v1.schema.json`.
+`src/slice/input-set.toml` and `src/slice/schema/input-set-v2.schema.json`.
 
 Exactness here means one thing: the input names a specific immutable byte
 sequence, and a substitution is detectable. A version string, a branch name, a
@@ -38,6 +38,21 @@ well-formed, not verified.
 | Repository list | The complete, finite, ordered list | Precedence is declaration order. Any repository not named here is undeclared, and resolution from it must fail closed under SYS-059. A glob or a discovery step would make the closure unbounded |
 | Tool identity | Git commit or SHA-256, with the kind declared alongside | A version string is a label the upstream can retag. The `identity_kind` field forces the record to say what the value actually is, and the schema constrains the format to match |
 | Fleet intent | Named role and machine with explicit `common < role < machine` layer order | SYS-044 fixes the precedence. Declaring it rather than assuming it makes a violation observable in the record instead of implicit in composition code |
+
+## Schema version 2
+
+Version 1 modelled every tool as a single pinned executable. The package
+manager that resolves the image is not that: it is a constructed set of
+packages in a tools tree, and version 1 offered no way to declare it. Leaving
+it undeclared would have put a moving input in the position that decides what
+the image contains, which is the failure the whole declaration exists to
+prevent. Version 2 adds `tools_tree` and is required, so a version 1 record no
+longer validates.
+
+The tools tree is declared by recipe -- a digest-pinned base image plus exact
+packages from the frozen repository -- rather than by its own digest, because
+exporting the tree produces unstable timestamps and its digest would change
+without any input changing.
 
 ## Deliberate omissions
 
@@ -71,11 +86,12 @@ not a decision and does not become one; see
 
 ## Verification performed
 
-The instance validates against the schema, and the schema rejects seven
+The instance validates against the schema, and the schema rejects nine
 constructed violations: a rolling repository, a branch name as source revision,
 an unknown top-level field, an empty repository list, a `git-commit` identity
-holding a SHA-256, an undeclared precedence layer, and an unsupported schema
-version. A schema that has only ever been shown to accept is untested.
+holding a SHA-256, an undeclared precedence layer, an unsupported schema
+version, a tools tree pinned by tag instead of digest, and an empty tools
+package list. A schema that has only ever been shown to accept is untested.
 
 This verification was performed locally with an ephemeral validator. **No
 registered check validates this record yet.** Slice tests register in the

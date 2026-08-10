@@ -39,6 +39,15 @@ on a hosted runner at `d0a2cc5`. Repeatability was then measured at `6ec625a`:
 two independent green runs, `31420905770` and `31421167463`, both first-attempt
 with no intervening fix, closing PR-0028 C-001.
 
+PLN-0001-01 and PLN-0001-02 are complete. The slice declares its inputs in
+bounded TOML validated by JSON Schema, and composes a bootable Fedora 44
+deployment set unprivileged on `desktop-jason` with no host mutation, from a
+single frozen repository enforced by mkosi's `LocalMirror`. The UKI, kernel,
+and initrd are bit-identical across builds; the disk image is not, and that is
+unexplained. See the [input declaration](slice-input-declaration.md) and
+[composition record](slice-composition-record.md). mkosi and Fedora remain
+candidate fixtures; nothing has booted yet.
+
 `P-008` is open and blocks nothing under G1: the required `canonical profiles`
 check cannot report on an unpushed commit, so direct pushes to `main` are
 rejected and `main` is pull-request-only in effect, and the only enabled merge

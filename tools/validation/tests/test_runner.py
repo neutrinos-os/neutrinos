@@ -83,7 +83,27 @@ def preflight_environment(cache: str) -> dict[str, str]:
         check.VALIDATION_CACHE_ROOT_ENV: cache,
         check.PYTHON_INSTALL_ENV: install,
         check.UV_INSTALL_ENV: install,
+        check.UV_CACHE_ENV: install,
     }
+
+
+def test_preflight_rejects_undeclared_uv_cache(tmp_path: Path) -> None:
+    cache = "/synthetic/cache"
+    environment = preflight_environment(cache)
+    del environment[check.UV_CACHE_ENV]
+    assert check.preflight_errors(environment, effective_uid=1000) == [
+        f"{check.UV_CACHE_ENV} is not set"
+    ]
+    for value, expected in (
+        ("relative/path", "must be an absolute path"),
+        (str(tmp_path / "missing"), "must identify an existing directory"),
+        (str(check.ROOT), "must be outside the repository"),
+    ):
+        environment = preflight_environment(cache)
+        environment[check.UV_CACHE_ENV] = value
+        assert check.preflight_errors(environment, effective_uid=1000) == [
+            f"{check.UV_CACHE_ENV} {expected}"
+        ]
 
 
 def test_preflight_rejects_root_and_undeclared_environment() -> None:
@@ -145,6 +165,7 @@ def test_child_environment_is_allowlisted() -> None:
         check.VALIDATION_CACHE_ROOT_ENV,
         check.PYTHON_INSTALL_ENV,
         check.UV_INSTALL_ENV,
+        check.UV_CACHE_ENV,
         "PATH",
         "PYTHONDONTWRITEBYTECODE",
         "PYTHONIOENCODING",

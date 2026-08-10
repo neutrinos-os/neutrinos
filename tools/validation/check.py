@@ -36,6 +36,7 @@ SCAN_OVERLAP_BYTES = 512
 VALIDATION_CACHE_ROOT_ENV = "NEUTRINOS_VALIDATION_CACHE_ROOT"
 PYTHON_INSTALL_ENV = "NEUTRINOS_VALIDATION_PYTHON_INSTALL"
 UV_INSTALL_ENV = "NEUTRINOS_VALIDATION_UV_INSTALL"
+UV_CACHE_ENV = "NEUTRINOS_VALIDATION_UV_CACHE"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -65,6 +66,7 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         VALIDATION_CACHE_ROOT_ENV,
         PYTHON_INSTALL_ENV,
         UV_INSTALL_ENV,
+        UV_CACHE_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -208,6 +210,17 @@ TESTS = (
         fixtures=("isolated empty mise cache", "locked local Python and uv"),
         cleanup_owner="validation runner",
         function="check_empty_mise_cache",
+    ),
+    Test(
+        id="T5-VAL-003",
+        level="T5@T1",
+        profiles=("complete",),
+        timeout_seconds=600,
+        traces=("PLN-0000/PRE-016",),
+        capabilities=("populated uv cache",),
+        fixtures=("clean clone of committed HEAD",),
+        cleanup_owner="validation runner",
+        function="check_clean_clone",
     ),
 )
 TEST_BY_ID = {test.id: test for test in TESTS}
@@ -380,6 +393,25 @@ def validation_cache_root(environment: Mapping[str, str] = os.environ) -> Path:
     repository = ROOT.resolve()
     if path == repository or repository in path.parents:
         raise ValueError(f"{VALIDATION_CACHE_ROOT_ENV} must be outside the repository")
+    return path
+
+
+def declared_directory(
+    name: str, environment: Mapping[str, str] = os.environ
+) -> Path:
+    """An externally declared directory that must sit outside the checkout."""
+    raw = environment.get(name)
+    if not raw:
+        raise ValueError(f"{name} is not set")
+    path = Path(raw)
+    if not path.is_absolute():
+        raise ValueError(f"{name} must be an absolute path")
+    path = path.resolve()
+    if not path.is_dir():
+        raise ValueError(f"{name} must identify an existing directory")
+    repository = ROOT.resolve()
+    if path == repository or repository in path.parents:
+        raise ValueError(f"{name} must be outside the repository")
     return path
 
 
@@ -582,11 +614,165 @@ def check_empty_mise_cache() -> int:
     return 0
 
 
+def check_clean_clone() -> int:
+    """A clean clone runs its own committed fast profile from declared inputs.
+
+    The clone is driven through its committed runner rather than through
+    ``mise run``: the nested runner enforces a strict environment allowlist,
+    and the mise configuration isolation this probe needs cannot cross it
+    without widening that allowlist. Mise task dispatch is therefore not
+    exercised here; ``T5-VAL-002`` covers it.
+    """
+    git = shutil.which("git")
+    if git is None:
+        print("git executable unavailable", file=sys.stderr)
+        return 1
+    try:
+        python_install = tool_install_path(PYTHON_INSTALL_ENV)
+        uv_install = tool_install_path(UV_INSTALL_ENV)
+        uv_cache = declared_directory(UV_CACHE_ENV)
+    except ValueError as error:
+        print(bounded_error(error), file=sys.stderr)
+        return 1
+    python = python_install / "bin" / "python"
+    candidates = sorted(uv_install.glob("*/uv")) + sorted(uv_install.glob("uv"))
+    if not python.is_file() or not candidates:
+        print("declared Python or uv installation is unusable", file=sys.stderr)
+        return 1
+    uv = candidates[0]
+
+    with tempfile.TemporaryDirectory(prefix="neutrinos-clean-clone-") as raw:
+        root = Path(raw)
+        clone = root / "clone"
+        home = root / "home"
+        cache_root = root / "cache"
+        for directory in (home, cache_root):
+            directory.mkdir(mode=0o700)
+
+        cloned = subprocess.run(
+            (git, "clone", "--quiet", "--no-local", str(ROOT), str(clone)),
+            cwd=root,
+            env=git_environment(),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if cloned.returncode != 0:
+            print(
+                "clean clone failed: " + bounded_error(cloned.stderr),
+                file=sys.stderr,
+            )
+            return 1
+
+        # The clone runs its own committed runner, which enforces a strict
+        # environment allowlist. Everything else is passed as a uv flag so no
+        # undeclared variable reaches it.
+        environment = {
+            "HOME": str(home),
+            "LANG": "C.UTF-8",
+            "PATH": os.pathsep.join(
+                dict.fromkeys((str(Path(git).parent), "/usr/bin", "/bin"))
+            ),
+            VALIDATION_CACHE_ROOT_ENV: str(cache_root),
+            PYTHON_INSTALL_ENV: str(python_install),
+            UV_INSTALL_ENV: str(uv_install),
+            UV_CACHE_ENV: str(uv_cache),
+        }
+        uv_flags = (
+            "--offline",
+            "--locked",
+            "--cache-dir",
+            str(uv_cache),
+            "--no-managed-python",
+            "--python",
+            str(python),
+        )
+
+        bootstrap = subprocess.run(
+            (str(uv), "sync", *uv_flags),
+            cwd=clone,
+            env=environment,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if bootstrap.returncode != 0:
+            print(
+                "clean clone could not build its declared environment offline; "
+                "the declared uv cache must already hold the locked packages: "
+                + bounded_error(bootstrap.stderr),
+                file=sys.stderr,
+            )
+            return 1
+
+        executed = subprocess.run(
+            (
+                str(uv),
+                "run",
+                *uv_flags,
+                "--no-sync",
+                "--no-env-file",
+                "python",
+                "tools/validation/check.py",
+                "profile",
+                "fast",
+            ),
+            cwd=clone,
+            env=environment,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        if executed.returncode != 0:
+            print(
+                "clean clone failed its own fast profile: "
+                + bounded_error(executed.stderr),
+                file=sys.stderr,
+            )
+            return 1
+
+        dirty = subprocess.run(
+            (git, "status", "--porcelain"),
+            cwd=clone,
+            env=git_environment(),
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        residue = [line for line in dirty.stdout.splitlines() if line.strip()]
+        if dirty.returncode != 0 or residue:
+            print(
+                "clean clone was modified by its own validation: "
+                + ", ".join(residue[:5]),
+                file=sys.stderr,
+            )
+            return 1
+
+        print(
+            canonical_json(
+                {
+                    "clone_clean_after_run": True,
+                    "nested_dispatch": "committed runner",
+                    "nested_profile": "fast",
+                    "offline": True,
+                    "result": "passing",
+                    "source": "committed HEAD",
+                }
+            )
+        )
+    return 0
+
+
 CHECKS: dict[str, Callable[[], int]] = {
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
     "check_runner_hostile_probes": check_runner_hostile_probes,
     "check_empty_mise_cache": check_empty_mise_cache,
+    "check_clean_clone": check_clean_clone,
 }
 
 
@@ -609,6 +795,10 @@ def preflight_errors(
             tool_install_path(name, environment)
         except ValueError as error:
             errors.append(str(error))
+    try:
+        declared_directory(UV_CACHE_ENV, environment)
+    except ValueError as error:
+        errors.append(str(error))
     return errors
 
 
@@ -626,6 +816,7 @@ def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, st
         SYNTHETIC_CANARY_ENV: canary,
         PYTHON_INSTALL_ENV: os.environ[PYTHON_INSTALL_ENV],
         UV_INSTALL_ENV: os.environ[UV_INSTALL_ENV],
+        UV_CACHE_ENV: os.environ[UV_CACHE_ENV],
     }
     if "SYSTEMROOT" in os.environ:
         environment["SYSTEMROOT"] = os.environ["SYSTEMROOT"]

@@ -3,7 +3,7 @@ id: PR-0025
 subject: Configuration-discovery boundary for bootstrap and canonical runs
 reviewer: Claude implementation pass
 date: 2026-08-10
-status: proposed
+status: accepted
 ---
 
 # Configuration-discovery boundary review
@@ -61,7 +61,7 @@ environment.
 - Response: accepted. Bootstrap is closed because its documented procedure is
   now verified end to end, but canonical invocation is not, and this review
   does not claim otherwise. CI is the place where the variables can be set
-  unconditionally, and CI is the remaining PRE-015 item.
+  unconditionally; the owner moved that CI job to PRE-017.
 - Disposition: open, deferred to the CI increment, which the owner moved to
   PRE-017 on 2026-08-10
 - Residual risk: local canonical runs remain contamination-exposed until CI
@@ -128,10 +128,11 @@ These are development observations, not qualification or gate evidence.
    the CI increment rather than claimed closed here.
 4. No registered test yet asserts repository-only config resolution for
    canonical invocation.
-5. PRE-015 and G1 remain open.
+5. PRE-016, PRE-017, and G1 remain open.
 
 ## Owner decision
 
-Pending. Acceptance would record the environment-scoped boundary, the
-documented bootstrap procedure, and the deferral of canonical invocation to
-the CI increment. It does not accept PRE-015 or G1.
+Accepted by Jason Tarasovic on 2026-08-10. Acceptance records the
+environment-scoped boundary, the documented bootstrap procedure, and the
+deferral of canonical invocation to the CI increment now held by PRE-017. It
+does not accept PRE-016, PRE-017, or G1.

@@ -50,8 +50,18 @@ so disk-image reproducibility is unreachable with a btrfs root regardless of
 configuration. It is a goal, not a G1 requirement. An EROFS root would likely
 be reproducible; that is a recorded hypothesis and not a reason to select
 EROFS. See the [input declaration](slice-input-declaration.md) and
-[composition record](slice-composition-record.md). mkosi and Fedora remain
-candidate fixtures; nothing has booted yet.
+[composition record](slice-composition-record.md).
+
+PLN-0001-03 is complete and **the artifact boots**: 26 targets reached, zero
+failed units, virtual TPM found. It then stops at the interactive
+`systemd-firstboot` prompt and never reaches `multi-user.target`. Three
+composition gaps are attributed back to PLN-0001-02 -- no first-boot
+configuration, no kernel command line so no serial console, and no credential
+or autologin -- and **PLN-0001-04 is blocked until they are authorized and
+fixed**, because an identity report from the running machine requires reaching
+it. Booted under TCG: `/dev/kvm` is absent and loading `kvm-amd` would mutate
+the build host. See the [boot record](slice-boot-record.md). mkosi and Fedora
+remain candidate fixtures; one boot under emulation is not qualification.
 
 `P-008` is open and blocks nothing under G1: the required `canonical profiles`
 check cannot report on an unpushed commit, so direct pushes to `main` are

@@ -25,6 +25,8 @@ Initial research tracks:
 - [reference package-input closure and refresh exercise](exercises/0009-package-input-closure.md)
 - [supply-chain evidence standards comparison](comparisons/supply-chain-evidence-standards.md)
 - [representative supply-chain evidence graph](exercises/0010-representative-evidence-graph.md)
+- [fleet rollout and reboot-coordination prior art](comparisons/fleet-rollout-coordination.md)
+- [representative personal-fleet rollout tabletop](exercises/0011-personal-fleet-rollout-tabletop.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

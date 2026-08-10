@@ -292,6 +292,50 @@ discovered -> acquired -> staged -> eligible -> selected
 - **garbage collection**: Removal of unreferenced artifacts according to
   retention policy.
 
+## Rollout control
+
+- **rollout**: The controlled movement of an already authorized release across
+  a declared fleet scope. Rollout may restrict who advances and when; it does
+  not create release authorization or local eligibility.
+- **rollout plan**: An immutable record binding a release authorization and
+  promotion evidence set to a fleet inventory snapshot, transition policy,
+  ordered cohorts, gates, windows, and stop rules.
+- **rollout revision**: An append-only ordered decision that starts, advances,
+  pauses, resumes, supersedes, or terminates a rollout plan. It does not mutate
+  the plan or earlier revisions.
+- **rollout cohort**: A named set of machines evaluated together at one rollout
+  stage. Membership is exact or deterministically derived from a frozen fleet
+  inventory; a cohort is not deployment identity or a statistical claim.
+- **canary**: A rollout cohort intentionally placed early to produce evidence
+  before a larger or higher-consequence cohort advances. A canary establishes
+  only the behavior its role, platform, and observation policy actually cover.
+- **rollout gate**: A declared rule over an exact cohort and observation set
+  that permits advance, requires pause, or demands an explicit accepted-risk
+  decision.
+- **rollout grant**: A bounded decision permitting one named machine or exact
+  cohort member to perform a specified rollout action from an exact source to
+  an exact target deployment. It cannot replace release authorization or local
+  eligibility.
+- **rollout observation**: An attributable report binding a machine,
+  deployment, boot or transition, policy, producer, result, and time for use by
+  a rollout gate.
+- **rollout pause**: A decision preventing new acquisition or activation within
+  a stated scope and in-flight boundary. A pause is not withdrawal.
+- **rollout resume**: A new decision superseding a named pause after recording
+  supporting evidence or accepted risk. Elapsed time alone is not resume.
+- **transition path**: One or more explicitly permitted edges from exact current
+  deployment identity to exact target identity, including applicable state and
+  input-baseline compatibility.
+- **reboot lease**: Temporary permission to consume an availability slot for a
+  reboot. It is not release authorization, rollout permission, or software
+  eligibility.
+- **pin**: An attributed exception fixing a machine to an exact deployment or
+  disabling automatic activation until a review or expiry condition. A pin does
+  not imply currentness, support, or immunity from withdrawal.
+- **deferral**: An attributed delay of an otherwise eligible rollout action
+  until a stated condition or deadline. It does not change deployment identity
+  or authorization.
+
 ## State and status
 
 - **state**: Data expected to survive deployment replacement. Formal text

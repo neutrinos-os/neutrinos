@@ -92,6 +92,13 @@ are now under review in
 No evidence format, scanner, SLSA level, or reproducibility claim is accepted
 merely because it appears in that proposal.
 
+Fleet rollout policy is now under review in
+[DES-0009](../designs/0009-fleet-release-rollout/README.md). The working model
+separates release authorization, exact inventory-bound rollout decisions, local
+eligibility, update transport, and reboot availability. Minimal immutable
+records lead for the personal-fleet exercise; Omaha/Nebraska and
+Cincinnati-derived semantics remain explicit challengers.
+
 ## User preferences that must remain visible
 
 ### Systemd and UAPI
@@ -334,7 +341,9 @@ review while its concrete storage mechanisms await evidence. SYS-057 through
 SYS-064 accept package-input policy; DES-0007 and the Fedora-versus-Arch
 selection remain in review pending EX-0009. SYS-065 through SYS-074 accept the
 supply-chain evidence and vulnerability policy boundaries; DES-0008 remains in
-review for concrete formats, mechanisms, and costs.
+review for concrete formats, mechanisms, and costs. SYS-075 through SYS-085
+accept the fleet rollout policy boundaries; DES-0009 remains in review for
+records, mechanisms, and operating cost.
 
 ## Restart checklist
 

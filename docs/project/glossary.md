@@ -326,6 +326,10 @@ Format-specific artifact terms retain their upstream meanings:
   requirement or explicit experimental question to its claim classification,
   exact boundary and non-claims, applicable test levels and scenarios, oracle,
   inputs, evidence, result, gaps, and execution authority.
+- **validation profile**: A named repository-defined selection of registered
+  tests with stable execution semantics. `fast` selects bounded offline checks;
+  `complete` selects every currently applicable and authorized test. A profile
+  result applies only to its recorded repository revision and selection.
 - **evidence record**: Immutable, content-identified bytes expressing one typed
   claim or observation about exact subjects under a declared format, producer,
   completeness, and verification policy. Record identity does not establish

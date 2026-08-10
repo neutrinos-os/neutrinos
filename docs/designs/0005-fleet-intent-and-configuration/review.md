@@ -3,7 +3,7 @@ design: DES-0005
 reviewer: Codex adversarial pass
 perspective: operability, ambiguity, security, failure, alternatives
 date: 2026-08-09
-status: open
+status: accepted
 ---
 
 # Fleet intent and configuration composition review
@@ -33,10 +33,13 @@ attribution, validation, selection, status, or recovery.
 - Required response or experiment: write representative common, workstation,
   and router inputs using mostly native files; measure duplicated declarations
   and identify defaults that remain unambiguous.
-- Author response: EX-0006 models source-level metadata defaults and an
-  unmodeled native networkd setting. Extraction of literal current native
-  configuration remains follow-up evidence.
-- Disposition: mitigated at the paper-model level.
+- Author response: EX-0006 models source-level metadata defaults. EX-0007 then
+  translates sanitized router intent into literal networkd, unit, timer,
+  sysctl, tmpfiles, sysusers, nftables, mount, and kernel-command-line inputs.
+  Its representative source manifest defaults scope, owner, consumer, target
+  mapping, and mode while listing the exact file closure.
+- Disposition: resolved at the paper and local-intent level; implementation
+  effort remains a spike measurement.
 - Residual risk: a convenience schema can slowly become mandatory even though
   SYS-015 prohibits that outcome.
 
@@ -174,12 +177,12 @@ attribution, validation, selection, status, or recovery.
 
 ## Remaining evidence
 
-- Native systemd, networkd, tmpfiles, sysusers, kernel-command-line, and mount
-  examples exercising conflict and deletion rules.
 - An authenticated first-enrollment sequence with hostile SMBIOS or instance
   metadata.
-- Concrete schema and serialization alternatives measured against the EX-0006
-  records.
+- Parser, JSON Schema validator, and canonicalization agreement over positive
+  and negative fixture corpora.
+- Literal native-output validation and inspection using built artifacts rather
+  than the EX-0007 paper fixtures.
 
 ## Required changes before acceptance
 
@@ -198,10 +201,16 @@ attribution, validation, selection, status, or recovery.
 6. **Complete at requirement level:** PR-0008 accepts SYS-042 through SYS-047
    with explicit minimal-metadata, native-composition, semantic-power, and
    provisioning guardrails. Implementation evidence remains open.
+7. **Complete on paper:** RES-0005 compares TOML, restricted YAML, JSON, CUE,
+   and native-only alternatives and proposes a bounded authoring/validation
+   split with explicit falsification and implementation gates.
+8. **Complete on paper:** EX-0007 exercises native formats, consumer-specific
+   semantics, explicit deletion, and bidirectional inspection against
+   sanitized current router intent.
 
 ## Review disposition
 
-DES-0005 advances to `in-review` based on EX-0006. Provisioning mechanism and
-first-enrollment authentication may remain open under L-003, but the authority
-boundary and replay requirements must be normative before accepting this
-design.
+DES-0005 and its ADR-0003 representation boundary are accepted. Parser/tool
+selection remains a required spike, while provisioning mechanism plus first-
+enrollment authentication remain follow-on work under L-003; the already
+accepted SYS-047 boundary remains normative.

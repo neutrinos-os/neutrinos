@@ -1,14 +1,14 @@
 ---
 id: DES-0005
 title: Fleet intent and configuration composition
-status: in-review
+status: accepted
 owners: [Jason Tarasovic]
 reviewers: [Codex]
 created: 2026-08-09
 last_updated: 2026-08-09
 depends_on: [DES-0001, DES-0002, DES-0003]
 decision_backlog: [S-003, C-001, C-002, L-003]
-related_adrs: []
+related_adrs: [ADR-0003]
 ---
 
 # Fleet intent and configuration composition
@@ -46,7 +46,8 @@ qualified.
 
 ## Non-goals
 
-- Choose YAML, TOML, JSON, CUE, JSON Schema, or another serialization format.
+- Select a concrete TOML parser, JSON Schema validator, canonicalization
+  library, implementation language, or repository split.
 - Define a universal schema for systemd, kernel, network, desktop, or workload
   configuration.
 - Select a configuration renderer or write its implementation.
@@ -90,7 +91,7 @@ authorize a deployment.
 6. One maintainer must be able to diagnose conflicts and provenance without a
    fleet database or custom control plane.
 
-## Proposed decision
+## Decision
 
 The source of truth for normal fleet intent is a versioned **fleet inventory**
 containing machine records and referenced configuration sources. One machine
@@ -110,6 +111,23 @@ Platform observations, bootstrap hints, provisioning inputs, and late-bound
 values may select or satisfy only behavior already declared by the machine
 record and deployment manifest. They cannot assign a role, introduce normal
 release-owned policy, or produce a different OS deployment on the machine.
+
+## Concrete representation decision
+
+[RES-0005](../../research/comparisons/fleet-intent-representation.md)
+records the comparison supporting the ADR-0003 decision: TOML 1.0 authoring
+records validated structurally through JSON Schema Draft 2020-12, exact
+upstream-native files declared by small source manifests, and canonical JSON
+resolved output and evidence. The decision keeps schema validation, reference
+resolution, composition, native validation, policy, and qualification as
+separate owned boundaries.
+
+[ADR-0003](../../adrs/0003-bounded-fleet-intent-representation.md) accepts
+this representation direction. It requires a bounded parser, schema, and
+canonicalization spike before production identity depends on concrete
+libraries. Operator records remain data, native settings do not wait for a
+project schema, defaults are materialized, unknown intent fails, and no
+inventory-supplied code implements validation or composition.
 
 ## Authoritative intent model
 
@@ -492,6 +510,13 @@ demonstrate:
 10. one configuration change traced through composition, deployment identity,
     qualification, selection, runtime status, and deliberate rollback.
 
+[EX-0007](../../research/exercises/0007-native-configuration-and-inspection.md)
+now exercises representative native systemd, networkd, sysctl, tmpfiles,
+sysusers, nftables, mount, and kernel-command-line inputs; complete-file
+replacement, tombstones, and consumer-specific conflicts; and both inspection
+directions. It is analysis and sanitized local-experience evidence, not an
+implementation result.
+
 ## Accepted requirements
 
 The following requirements were accepted through
@@ -519,8 +544,9 @@ The following requirements were accepted through
 
 ## Risks and unresolved questions
 
-- What serialization and schema-validation tools keep machine records bounded
-  without creating another proprietary configuration language?
+- Does the accepted TOML, JSON Schema, and canonical JSON split survive a
+  parser/validator/canonicalization spike without implementation-specific
+  behavior?
 - How is inventory change authorization represented before a release
   authorization binds the resulting deployment?
 - Should the first implementation co-locate fleet inventory with the framework
@@ -537,11 +563,15 @@ The following requirements were accepted through
 
 ## Review disposition
 
-An adversarial review is open in [review.md](review.md).
+The adversarial review is accepted in [review.md](review.md).
 [EX-0006](../../research/exercises/0006-representative-fleet-intent.md)
 provides candidate machine records, a field-authority table, non-overridable
 invariants, representative late-bound contracts, and scope-composition
-fixtures. PR-0008 accepts the configuration and provisioning authority
-boundaries. The design remains in review pending representative native inputs
-and serialization evidence; concrete provisioning and first-enrollment
-mechanisms remain open follow-on work.
+fixtures. [EX-0007](../../research/exercises/0007-native-configuration-and-inspection.md)
+adds representative native inputs, consumer-specific conflict behavior, and
+inspection examples, while
+[RES-0005](../../research/comparisons/fleet-intent-representation.md) supports
+the bounded representation accepted by ADR-0003. PR-0008 accepts the
+configuration and provisioning authority boundaries. DES-0005 is accepted;
+concrete provisioning and first-enrollment mechanisms remain open follow-on
+work under L-003, and concrete parser/tool selection remains a required spike.

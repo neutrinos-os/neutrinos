@@ -17,6 +17,8 @@ Initial research tracks:
 - [executable-input ownership and deployment-boundary tabletop](exercises/0004-executable-input-inventory.md)
 - [representative deployment manifests and composition tabletop](exercises/0005-representative-deployment-manifests.md)
 - [representative fleet intent and field-authority model](exercises/0006-representative-fleet-intent.md)
+- [fleet-intent representation and validation comparison](comparisons/fleet-intent-representation.md)
+- [native configuration and inspection walkthrough](exercises/0007-native-configuration-and-inspection.md)
 - package-source release and security-maintenance models
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration

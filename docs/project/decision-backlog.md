@@ -29,7 +29,7 @@ ADR.
 | --- | --- | --- | --- |
 | S-001 | What is the independently replaceable unit of deployment? | [In review: complete content-identified deployment set](../designs/0001-system-model/README.md) | P-003 |
 | S-002 | What belongs to the OS, machine configuration, administrator, user, and workload? | [Ownership boundary accepted; implementation design remains in review](reviews/0003-state-ownership-requirements.md) | S-001 |
-| S-003 | How are common and role-specific artifacts composed? | [Proposed: versioned fleet intent resolves common, role, and machine configuration into an identity-bound deployment variant](../designs/0005-fleet-intent-and-configuration/README.md) | P-004, S-001 |
+| S-003 | How are common and role-specific artifacts composed? | [Accepted: versioned fleet intent resolves common, role, and machine configuration into an identity-bound deployment variant](../designs/0005-fleet-intent-and-configuration/README.md) | P-004, S-001 |
 | S-004 | What are the disk, partition, filesystem, and encryption models? | Open | S-001, S-002 |
 | S-005 | What threats and trust assertions govern boot and runtime? | [Boot-to-root and role objectives accepted; remaining threat model in review](reviews/0005-role-security-and-availability-objectives.md) | S-001 |
 | S-006 | How are signing keys generated, used, rotated, revoked, and recovered? | [Accepted policy: separate routine, exceptional, machine, and data authorities; mechanism exercises remain](../adrs/0002-separate-authority-and-recovery.md) | S-005 |
@@ -51,7 +51,7 @@ ADR.
 
 | ID | Question | State | Depends on |
 | --- | --- | --- | --- |
-| C-001 | What is the source of truth and representation for machine and role configuration? | [Requirements accepted: versioned fleet inventory, bounded inputs plus native configuration, fixed precedence, and immutable composition records; concrete representation remains in review](reviews/0008-fleet-intent-and-configuration-requirements.md) | S-002, S-003 |
+| C-001 | What is the source of truth and representation for machine and role configuration? | [Accepted: TOML records, JSON Schema structural validation, literal native sources, and generated canonical JSON evidence](../adrs/0003-bounded-fleet-intent-representation.md) | S-002, S-003 |
 | C-002 | How are `/etc`, local overrides, secrets, and credentials owned and delivered? | [Policy accepted: identity-bound configuration and late-bound contracts; concrete delivery and exception mechanisms remain open](reviews/0008-fleet-intent-and-configuration-requirements.md#sys-046-late-bound-contracts) | C-001, S-005 |
 | W-001 | What are the supported identity, UID, sub-ID, and rootless-container semantics? | Open | S-002, C-001 |
 | W-002 | What is the microVM artifact, networking, storage, and lifecycle model? | Open | S-003, S-004, C-001 |

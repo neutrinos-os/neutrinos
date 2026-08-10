@@ -15,6 +15,7 @@ annotated, but changing a decision requires a new ADR with explicit
 | --- | --- | --- |
 | [ADR-0001](0001-systemd-first.md) | Accepted | Prefer systemd ecosystem mechanisms; require strong justification for overlapping alternatives. |
 | [ADR-0002](0002-separate-authority-and-recovery.md) | Accepted | Separate routine, exceptional, machine, and data authorities while keeping recovery independently usable. |
+| [ADR-0003](0003-bounded-fleet-intent-representation.md) | Accepted | Use bounded TOML records and exact native configuration, with JSON Schema validation and generated JSON evidence. |
 
 Strong preferences from the design-session transcript remain stated directions
 in the decision backlog until they are deliberately ratified.

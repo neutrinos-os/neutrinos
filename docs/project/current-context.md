@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-10
-source_snapshot_revision: a00b4a6
+source_snapshot_revision: e349c7d
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0001
@@ -53,15 +53,30 @@ EROFS. See the [input declaration](slice-input-declaration.md) and
 [composition record](slice-composition-record.md).
 
 PLN-0001-03 is complete and **the artifact boots**: 26 targets reached, zero
-failed units, virtual TPM found. It then stops at the interactive
-`systemd-firstboot` prompt and never reaches `multi-user.target`. Three
-composition gaps are attributed back to PLN-0001-02 -- no first-boot
+failed units, virtual TPM found. It stopped at the interactive
+`systemd-firstboot` prompt and never reached `multi-user.target`, so three
+composition gaps were attributed back to PLN-0001-02 -- no first-boot
 configuration, no kernel command line so no serial console, and no credential
-or autologin -- and **PLN-0001-04 is blocked until they are authorized and
-fixed**, because an identity report from the running machine requires reaching
-it. Booted under TCG: `/dev/kvm` is absent and loading `kvm-amd` would mutate
-the build host. See the [boot record](slice-boot-record.md). mkosi and Fedora
-remain candidate fixtures; one boot under emulation is not qualification.
+or autologin. Booted under TCG: `/dev/kvm` is absent and loading `kvm-amd`
+would mutate the build host. See the [boot record](slice-boot-record.md).
+
+PLN-0001-04 is complete. The three gaps were **authorized by the owner and
+fixed** in the composition fixture on 2026-08-10; the amendment changed
+configuration only, leaving the package manifest and kernel digests and the
+104-package closure unchanged. The machine now reaches `multi-user.target` with
+no failed units, and **every identity it can report matches composition** --
+kernel, systemd, distribution, command line, timezone, locale, hostname,
+credentials -- with the UKI on its own ESP bit-identical to the composed
+output. Three findings: the image carries **no package database**, so package
+closure is not self-verifiable and rests on the builder's manifest alone; the
+root filesystem is mounted `rw`, so **SYS-049 is not demonstrated** and the
+plan's earlier read-only-root claim was never true; and systemd lacks TPM2
+support although the vTPM is present. A correction to PLN-0001-02's method is
+recorded: `CleanPackageMetadata=auto` skips `directory` output, so the two
+directory builds compared a tree that is not the shipped tree. See the
+[identity report](slice-identity-report.md). PLN-0001-05 is next. mkosi and
+Fedora remain candidate fixtures; one boot under emulation is not
+qualification.
 
 `P-008` is open and blocks nothing under G1: the required `canonical profiles`
 check cannot report on an unpushed commit, so direct pushes to `main` are

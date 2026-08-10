@@ -134,10 +134,37 @@ Until then, SYS-016's two-build comparison holds at the UKI, kernel, initrd,
 manifest, and file-tree layers, and fails at the disk layer. PLN-0001-07's
 offline reconstruction must compare those layers, not the `.raw` digest.
 
+### Correction: the compared tree is not the shipped tree
+
+Recorded 2026-08-10 from PLN-0001-04, which found the running machine has no
+package database at all. The cause is mkosi's `CleanPackageMetadata=auto`
+default, which removes package databases when the package manager is not
+installed in the image -- **but skips the removal entirely for `directory` and
+`tar` output** (`mkosi/installer/__init__.py:209`).
+
+The two-build comparison above used `Format=directory`. Those trees therefore
+contain `/usr/lib/sysimage/rpm` and `/usr/lib/sysimage/libdnf5`, which the
+shipped `Format=disk` artifact does not. Two consequences:
+
+1. The `RemoveFiles=` entries for the sqlite sidecars never affect the disk
+   image. They are retained because they keep the directory comparison -- the
+   actual measurement method -- meaningful.
+2. The reproducibility result is sound but narrower than it reads. It
+   establishes that the composition process is deterministic. It is not a direct
+   measurement of the tree inside the artifact. A tighter method extracts the
+   trees from two disk images and compares those.
+
+Neither changes a G1 claim. See the [identity report](slice-identity-report.md).
+
 ## What this does not establish
 
 - **Nothing boots yet.** The artifact has not been executed. Booting is
   PLN-0001-03, and a disk image that builds is not a disk image that starts.
+  (Superseded by measurement: it boots, and it reaches `multi-user.target`
+  after the PLN-0001-04 amendment. See the [boot record](slice-boot-record.md)
+  and [identity report](slice-identity-report.md). The digests in this record
+  predate that amendment; the manifest and kernel digests survived it unchanged,
+  the UKI and initrd digests did not.)
 - **No mechanism is selected.** mkosi and Fedora 44 remain candidate fixtures.
   bootc and a literal Arch snapshot remain the required challengers, and this
   build working is not evidence for mkosi over bootc because bootc was not

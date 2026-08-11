@@ -242,7 +242,25 @@ for entry in "$etc"/* "$etc"/.*; do
         echo "finalize: $factory/$name already exists" >&2
         exit 1
     fi
-    mv "$entry" "$factory/$name"
+    if [ -L "$entry" ]; then
+        # A symlink changes meaning when it moves, and a factory entry moves
+        # further than a relocated one: from /etc to
+        # /usr/share/factory/neutrinos-etc. `../usr/lib/os-release` means
+        # /usr/lib/os-release from /etc and /usr/share/factory/usr/lib/os-release
+        # from the factory, which does not exist.
+        #
+        # This is the same defect the relocation above already fixes, and it was
+        # missed here until a boot found it: five release paths shipped as
+        # dangling links -- os-release, issue, issue.net, fedora-release, and
+        # system-release-cpe -- with redhat-release and system-release dangling
+        # through fedora-release. `head /etc/os-release` failed on the running
+        # machine. The same retarget applies, and it is applied through the same
+        # function rather than a second copy of the rule.
+        ln -sfn "$(retarget "$(readlink "$entry")" "$etc" /etc)" "$factory/$name"
+        rm -f "$entry"
+    else
+        mv "$entry" "$factory/$name"
+    fi
     echo "$(disposition "$name") /etc/$name - - - - /usr/share/factory/neutrinos-etc/$name" >>"$tmpfiles"
 done
 

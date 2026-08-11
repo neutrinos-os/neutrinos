@@ -53,7 +53,47 @@ the paper mapping proven.
 - Author response: no byte size or commitment to the 16 GB disk is accepted
   before this evidence; moving the complete lifecycle to the 1 TB disk is a
   first-class option.
-- Disposition: open.
+- Crux restated 2026-08-11, agreed with the owner. The router is the
+  instrument, not the subject. What this challenge falsifies is **SYS-050's
+  capacity dependence**: whether "preserve the complete booted deployment plus
+  capacity for one complete candidate or eligible fallback" holds on a small
+  device, or whether the design must shrink the OS unsafely or drop the
+  fallback exactly where availability matters most. Its output is therefore a
+  **declared minimum viable device and the formula that produces it**, not a
+  verdict about one machine. A design whose guarantees are conditional on an
+  undeclared disk size has bound itself to the author's hardware, which the
+  owner has said the project must avoid.
+- Falsification method, owner direction 2026-08-11: **a VM with a deliberately
+  undersized disk, bisected downward until the guarantee breaks.** Capacity
+  falsification is monotone -- if a real router artifact set fits in 8 GB then
+  16 GB passes a fortiori -- and the size at which it breaks *is* the minimum
+  viable device. The disk may be synthetic; the artifact must not be. A real
+  router package set, genuinely composed and verity-hashed, or the exercise is
+  circular. This also avoids mutating the router at all, which the safety rules
+  independently forbid without an accepted plan naming the exact mutation.
+- Effect of C-013 on the numbers: smaller than first supposed. `/usr` is nearly
+  the whole of an image-based root, so the authenticated artifact did not
+  shrink materially. The relief comes instead from layout: under EX-0008 R-A
+  the writable root carrying `/var` sits on the 1 TB device, so the small disk
+  holds only the ESP, two `/usr` slots, and two hash trees -- all replaced
+  wholesale on update, none growing at runtime. The reference `nixconfig`
+  router already splits this way, with `/nix` on a separate filesystem and no
+  `/var` mount of its own; `/usr` is the direct analogue of `/nix`.
+- Not part of this challenge, handed to C-011: under R-A the machine's normal
+  boot depends on **two physical disks**, since `/var` is not optional. That is
+  an availability property of one machine's hardware, not a test of the
+  capacity guarantee, and it belongs with the recovery failure-domain
+  challenge. The same dependency already exists on the running NixOS router if
+  `/nix` is on the larger disk, so it is inherited rather than introduced.
+- Disposition: open. R-A and R-B are retained as instances to be checked
+  against the rule rather than argued separately; the owner declined to drop
+  either before evidence.
+- Modeling assumption, not evidence: the growth horizon applied to measured
+  bytes. No VM can produce real package and UKI growth over time. The horizon
+  decides the outcome more than the reserve percentage does -- a short horizon
+  keeps a small device viable, a long one will not -- and its value is the
+  owner's to set. It must be labeled an assumption wherever the result is
+  cited.
 - Residual risk: a compact initial root can conceal long-term package and UKI
   growth.
 
@@ -241,6 +281,17 @@ the paper mapping proven.
   local recovery artifact.
 - Author response: local recovery is optional and never the only independent
   recovery capability; DES-0004 remains authoritative.
+- Inherited from C-002 on 2026-08-11: under EX-0008 R-A the router's **normal
+  boot depends on two physical disks**. The small device holds the ESP and the
+  authenticated `/usr` slots; the large device holds the writable root, and
+  `/var` is not optional. Loss of the large disk is therefore not a data
+  incident but a boot incident, and it widens rather than narrows the recovery
+  failure domain this challenge already contests. It also constrains C-015's
+  terminal state: "keep running, degraded and reachable" presumes a writable
+  `/var`, which does not exist if the failed device is the one that carries it.
+  The dependency is inherited rather than introduced -- the running NixOS
+  router has the same shape with `/nix` on a separate filesystem -- but the
+  design should state it rather than discover it.
 - Disposition: mitigated by design; physical exercise required.
 - Residual risk: removable media can be stale or inaccessible when needed.
 

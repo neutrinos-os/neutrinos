@@ -388,6 +388,15 @@ disk and place state on the 1 TB disk, or make the larger disk the single
 primary normal boot and state device. Measured artifact capacity and exercised
 firmware/IPMI recovery decide the result.
 
+Capacity is not decided against the router. Under C-002 the design must declare
+a **minimum viable device** and the formula producing it, falsified against a
+deliberately undersized VM bisected downward until the SYS-050 guarantee
+breaks. Capacity falsification is monotone, so a set that fits a smaller disk
+fits a larger one, and R-A and R-B are then instances checked against the rule
+rather than arguments to be settled separately. The disk may be synthetic; the
+artifact may not. Mutating the router is separately constrained by R-054: the
+development workstation reaches the network through it.
+
 ## Encryption and unlock
 
 ### Common rules

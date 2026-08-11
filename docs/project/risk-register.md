@@ -1,6 +1,6 @@
 ---
 status: draft
-last_updated: 2026-08-10
+last_updated: 2026-08-11
 ---
 
 # Risk register
@@ -60,3 +60,4 @@ last_updated: 2026-08-10
 | R-051 | Multiple package planes and mutable PATH, desktop, D-Bus, interpreter, plugin, or unit precedence cause a different executable to run than the operator, test, or service expects. | Critical | Make all realizations and selection rules inspectable, isolate privileged/unattended resolution from mutable user paths, and inject same-name shadowing across every activation mechanism. |
 | R-052 | OS rollback is reported as machine rollback even though newer user, application, workload, or guest code and state remain active and incompatible. | Critical | Model independent update domains, qualify exact cross-domain compatibility, expose partial rollback, and exercise old/new combinations plus coordinated failure in EX-0015. |
 | R-053 | Moving software among native, user, application, container, and guest placements loses state or credentials, leaves duplicate activation, or silently transfers support authority. | High | Treat placement changes as interruption-safe owner/state migrations with inventory, backup, target qualification, deterministic cutover, verification, reversal, and cleanup. |
+| R-054 | Mutating the router strands the operator, because the development workstation reaches the network through it and a failed change removes the access needed to repair it. | High | Prove IPMI power control and remote console independent of the router's data plane before any accepted plan mutates it; falsify capacity and layout questions against a deliberately undersized VM instead, where the answer is monotone and nothing is stranded. |

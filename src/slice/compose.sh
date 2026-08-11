@@ -40,7 +40,24 @@ tools_packages="distribution-gpg-keys cpio systemd systemd-ukify systemd-boot
 # possible the declaration should be read rather than restated.
 overlay_dir="$build_root/inputs/overlay"
 
-mkdir -p "$build_root"
+# Synthetic verity signing material for the configuration extension. Never
+# enrolled anywhere, never a trust anchor, and destroyed with the build root.
+# PLN-0002's boundary forbids production signing material and this needs none:
+# what is under test is whether the mechanism binds, not whose key signs.
+#
+# Guarded on the certificate rather than the key, because openssl writes the key
+# first and an interrupted run otherwise leaves a key with no certificate that a
+# key-guarded check skips forever. Observed in the PLN-0002-01 spike, not
+# hypothesised.
+keys_dir="$build_root/keys"
+
+mkdir -p "$build_root" "$keys_dir"
+
+if [ ! -f "$keys_dir/verity.crt" ]; then
+    openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
+        -subj "/CN=NeutrinOS slice verity, synthetic/" \
+        -keyout "$keys_dir/verity.key" -out "$keys_dir/verity.crt"
+fi
 
 if [ ! -d "$build_root/mkosi" ]; then
     git clone --quiet --filter=blob:none "$mkosi_repository" "$build_root/mkosi"
@@ -72,11 +89,50 @@ fi
 # composition rather than be discovered in the artifact.
 python3 "$root/acquire-overlay.py" --destination="$overlay_dir"
 
+# The configuration extension, built before the artifact that carries it.
+#
+# PLN-0002-03a. It resolves no repository -- a confext carries configuration and
+# has no package closure -- so it builds whether or not the declared repository
+# is reachable, and it does not consume the overlay or the package cache.
+#
+# Delivery is a **declared fixture**, not a decision: the signed image is staged
+# into /usr/lib/confexts inside the authenticated artifact, per the owner ruling
+# of 2026-08-11 on finding 1 option D. That fuses release and configuration,
+# which is what DES-0005's amendment separates. PLN-0002-03b owns the design.
+#
+# The certificate travels beside it in /usr/lib/verity.d. Note what that does
+# and does not buy: it is where systemd looks, and it is **not** sufficient for
+# the signature to be enforced. Measured on 2026-08-11 -- dm-verity signature
+# validation resolves the key through the kernel keyring, a synthetic key is in
+# no keyring, the kernel returns -ENOKEY, and systemd falls back to unsigned
+# verity and merges anyway. See docs/project/etc-path-carve.md.
+confext_staging="$build_root/confext-staging"
+confext_out="$build_root/confext"
+
+if [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
+    mkdir -p "$confext_out"
+    (
+        cd "$root/confext/neutrinos-network"
+        PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
+            --tools-tree="$build_root/tools" \
+            --verity-key="$keys_dir/verity.key" \
+            --verity-certificate="$keys_dir/verity.crt" \
+            --output-directory="$confext_out" \
+            --force build
+    )
+
+    rm -rf "$confext_staging"
+    mkdir -p "$confext_staging/usr/lib/confexts" "$confext_staging/usr/lib/verity.d"
+    cp "$confext_out/neutrinos-network.raw" "$confext_staging/usr/lib/confexts/"
+    cp "$keys_dir/verity.crt" "$confext_staging/usr/lib/verity.d/neutrinos-synthetic.crt"
+fi
+
 cd "$root/composition"
 PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
     --tools-tree="$build_root/tools" \
     --package-cache-directory="$build_root/pkgcache" \
     --package-directory="$overlay_dir/systemd-261" \
+    --extra-tree="$confext_staging" \
     --output-directory="$build_root/out" \
     "$@"
 

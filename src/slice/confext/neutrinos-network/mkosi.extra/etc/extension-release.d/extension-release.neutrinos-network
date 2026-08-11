@@ -1,0 +1,21 @@
+# Base compatibility guard, not deployment identity. DES-0005: the confext
+# declares a base level that blocks activation against an incompatible /usr,
+# while the deployment manifest binds the literal tuple. Binding an exact
+# deployment identity here would force every machine's configuration to be
+# rebuilt and re-signed on every /usr release that changed nothing it contains,
+# and would make sharing impossible by construction.
+#
+# ID and VERSION_ID must match the running /usr/lib/os-release or systemd
+# refuses the merge. PLN-0002-01 measured that refusal working -- and measured
+# that it fails *silently*, the unit reporting Finished while the machine boots
+# unconfigured, which is why DES-0005's per-confext required/optional policy
+# needs a mechanism that does not yet exist.
+#
+# Fedora 44 is a candidate fixture. Naming it here does not select it.
+ID=fedora
+VERSION_ID=44
+
+# Merge in both stages. The sysroot merge in the initrd is the one PLN-0002
+# exercises; `system` is kept because dropping it would silently narrow where
+# this image can apply for no reason this task has.
+CONFEXT_SCOPE=initrd system

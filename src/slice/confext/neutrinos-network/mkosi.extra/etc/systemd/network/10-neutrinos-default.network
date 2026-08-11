@@ -1,0 +1,9 @@
+# The carve's only content. Minimal on purpose: PLN-0002-03a owes a confext
+# that is real configuration rather than a marker file, and owes nothing
+# beyond that. A richer network policy would be fleet intent, which is
+# DES-0005's to author and not a task's to invent.
+[Match]
+Name=en*
+
+[Network]
+DHCP=yes

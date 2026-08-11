@@ -425,6 +425,92 @@ and is **not** answered here; it belongs to PLN-0002-02.
 This is a **task-02 defect found by task 03a**, and it is recorded here because
 this is where the evidence is. Task 02's disposition is the owner's.
 
+## The signed confext, and a signature that is not enforced
+
+Built 2026-08-11 and delivered as repository content:
+`src/slice/confext/neutrinos-network/`, built by `compose.sh` before the
+artifact that carries it. It is a real DDI with three partitions --
+
+```text
+neutrinos-network.raw1  504K  Linux root (x86-64)
+neutrinos-network.raw2  508K  Linux root verity (x86-64)
+neutrinos-network.raw3   16K  Linux root verity sign. (x86-64)
+```
+
+-- and it merges. `systemd-confext status` reports `/etc neutrinos-network`,
+the factory replays beside it under option A, and `/etc` is read-only. That is
+the deliverable PLN-0002-03a owed.
+
+**It is also not enforcing its signature, and the failure is silent.** From the
+same boot:
+
+```text
+device-mapper: table: 252:1: verity: Root hash verification failed (-ENOKEY)
+device-mapper: ioctl: error adding target to table
+erofs (device dm-1): mounted with root inode @ nid 36.
+```
+
+Signed verity is attempted, the kernel cannot resolve the signing key, the
+device-mapper target is rejected -- **and systemd retries without the signature,
+mounts the data partition, and merges.** Nothing fails. `systemd-confext status`
+looks identical to a correctly validated merge.
+
+### Why the key does not resolve
+
+dm-verity signature validation resolves the signing key through the **kernel
+keyring**, not through a file. Placing the certificate in `/usr/lib/verity.d/`
+is where systemd looks and is not sufficient: the synthetic key is in no
+keyring, so the kernel returns `-ENOKEY` regardless.
+
+Getting it into a keyring needs a trust anchor -- firmware enrollment, MOK, or a
+key built into the kernel. PLN-0002's boundary forbids production enrollment and
+permits synthetic material in a disposable VM's own varstore, so this is
+*achievable* within the plan and is **not** achievable by shipping a certificate
+in the image, which is what was tried.
+
+### One attempt at making it fail closed, which did not
+
+`systemd-confext --image-policy=root=signed` was applied to the sysroot merge
+through a drop-in. The merge still succeeded with the same `-ENOKEY`. The most
+likely reading is that the image policy governs **partition presence and flags
+on the image** -- and the image genuinely has a verity-signature partition, so
+`signed` is structurally satisfied -- while the cryptographic validation is a
+separate kernel operation that failed and was fallen back from.
+
+Stated as what it is: **one attempt with one documented flag, not a proof that
+no policy prevents this.** `image_policy_confext_strict` exists as a named
+built-in and was not reached through the CLI. What is measured is that the
+obvious spelling does not close it.
+
+### Why this matters more than it looks
+
+This is the same shape as PLN-0002-01's central finding, in a third mechanism. A
+corrupt `/usr` booted normally because dm-verity is lazy; a refused confext
+reported `Finished`; and now an unvalidated signature merges and reports
+success. **Three times, the mechanism that was supposed to fail closed failed
+open and said nothing.**
+
+It also converts PLN-0002-05's `systemd.image_policy=` item from a
+completeness argument into a measured requirement. The plan's amendment argued
+that NeutrinOS asserts `/usr` integrity by having mounted it successfully, which
+is the weaker claim. This is that claim failing on the configuration half, in a
+build, today.
+
+And it bears directly on DES-0005's independent-signing question. RES-0015 found
+medium-confidence evidence that confexts validate against the same key as EFI
+binaries, so a confext partition buys independent delivery and not independent
+signing. This measurement adds that **with no enrolled key at all, a signed
+confext is indistinguishable from an unsigned one at merge time.**
+
+### What it does not say
+
+The image is not unprotected. Verity still runs against the root hash carried
+in the image, so corruption is detected. What is absent is the binding between
+that root hash and an authority: anyone who can replace the whole DDI supplies
+their own root hash and it verifies. That is exactly the substitution PLN-0002-10
+exists to inject, and this finding is a **prediction that it will pass** unless
+signature enforcement is real by then.
+
 ## What this asks the owner for
 
 Questions 1 through 4 were ruled on 2026-08-11 -- collision 1 as A, collision 2
@@ -435,7 +521,7 @@ list left to the drafter. What the measurements then raised:
 | --- | --- | --- |
 | 5 | The initrd replay unit is repository content that changes the **initrd**, which is inside the signed UKI. It is a PLN-0002-05 declaration | **PLN-0002-06**, hard |
 | 6 | Collision 1's option A -- deeper factory emission -- is ruled but **not implemented**, because this carve does not need it. Implement now, or when the first carve needs it | The next carve, not this one |
-| 7 | The confext measured here is a **directory**, not a signed DDI. `image_policy_confext_strict` requires signed. 03a still owes the signed build path | 03a's completion |
+| 7 | **Signature enforcement.** The signed DDI exists and merges, but its signature does not validate and the merge proceeds anyway. Making it real needs a synthetic key enrolled in the disposable VM's own firmware, which the plan permits and nobody has done | PLN-0002-10's confext substitution, which this predicts will pass |
 | 8 | Should the generated fragment skip paths systemd's own `etc.conf` owns | PLN-0002-02, whose defect this is |
 | 9 | Is the tools-tree reuse acceptable, and should the slice adopt it rather than keeping two build roots | Every subsequent build while the outage lasts |
 

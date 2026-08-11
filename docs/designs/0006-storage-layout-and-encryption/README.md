@@ -681,30 +681,64 @@ confidentiality when the disk and key are acquired together.
 
 ## Verification
 
-The design is not implementation-ready until a bounded spike demonstrates:
+The design is not implementation-ready until a bounded spike demonstrates the
+following. Each item names the challenges that own it, so a challenge cannot be
+closed by an item that does not actually answer it.
 
 1. blank-disk creation from literal partition definitions in a UEFI VM;
 2. EROFS and ext4 `/usr` artifacts authenticated through the exact signed UKI
    and dm-verity path, with early boot exercised: `fstab`, `crypttab`, and any
-   initrd-stage configuration consumed before `/usr` is verified;
+   initrd-stage configuration consumed before `/usr` is verified. **C-007** is
+   answered only by a comparison, not by both formats booting: equivalent
+   deterministic artifacts compared on image size, build time and determinism,
+   boot behavior, memory, update transfer size, inspectability, corruption
+   behavior, and recovery behavior. Absent that, EROFS would be selected by
+   having been tried first;
 3. two complete normal slots with interrupted staging, trial failure,
-   blessing, fallback, and deliberate rollback;
-4. substitution of a valid root, Verity tree, UKI, config, or slot label from
-   another deployment failing the exact-binding gate;
-5. recovery boot after both normal slots fail, with mutable state initially
-   locked;
+   blessing, fallback, and deliberate rollback, including the second-update
+   overwrite of a retained eligible fallback and the durability of ineligibility
+   marking across power loss (**C-014**);
+4. substitution of a valid `/usr` image, Verity tree, UKI, config, or slot label
+   from another deployment failing the exact-binding gate. **C-001** requires
+   this as a cross product, not a sample: every pairwise-valid combination, with
+   power loss injected before and after each finalization write. Its residual
+   risk is firmware-variable and FAT rename ordering, which a VM cannot settle,
+   so the ordering claim needs physical evidence;
+5. recovery boot after every eligible deployment fails, with mutable state
+   initially locked, and the terminal state reached rather than an indefinite
+   selection loop (**C-015**);
 6. LUKS2 routine unlock, recovery-key unlock, rotation, header backup/restore,
    TPM clear, firmware change, Secure Boot change, and simulated mainboard
    replacement;
 7. no plaintext leakage through swap, hibernation, dumps, temporary data, or
    diagnostics under the selected role policy;
 8. owner-consistent state backup and restore to a blank replacement volume;
-9. workstation Btrfs/ext4 representative workload comparison;
-10. router capacity and R-A/R-B physical layout comparison;
+9. workstation representative workload comparison across **Btrfs, XFS, and
+   ext4** -- three candidates since the C-009 ruling of 2026-08-11, not two;
+10. capacity falsification in a VM with a deliberately undersized disk,
+    bisected downward until the guarantee breaks (**C-002**). The output is a
+    declared minimum viable device and the formula producing it, not a verdict
+    about the router. The disk may be synthetic; the artifact set must be a
+    real router package set, genuinely composed and verity-hashed, or the
+    exercise is circular. The growth horizon applied to measured bytes is an
+    owner-set assumption and must be labeled as one wherever the result is
+    cited. R-A and R-B are checked against the resulting rule. **No router
+    mutation:** the development workstation reaches the network through it
+    (R-054), and the safety rules independently forbid mutating it without an
+    accepted plan naming the exact mutation;
 11. router offline unattended boot, failed-update fallback, and IPMI/local
-    recovery with its production network path absent; and
+    recovery with its production network path absent. **C-011** additionally
+    requires an independently stored recovery medium or IPMI virtual-media path
+    exercised beside any local recovery artifact, and -- inherited from C-002 --
+    loss of the large disk exercised as a **boot** incident rather than a data
+    incident, since under R-A `/var` lives there and is not optional. That case
+    also bounds C-015's "degraded and reachable" terminal state, which presumes
+    a writable `/var`;
 12. full-storage, filesystem-corruption, missing-disk, and incompatible-feature
-    failure behavior.
+    failure behavior. **C-012** is answered only if the reserve mechanism is
+    selected and its enforcement proven -- protected region or enforceable
+    quota -- with alerting before violation, not merely by observing what
+    happens when the disk fills.
 
 ## Accepted requirements
 

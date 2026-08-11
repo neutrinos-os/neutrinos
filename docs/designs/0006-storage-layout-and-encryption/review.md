@@ -36,9 +36,14 @@ the paper mapping proven.
 - Author response: slot and version names are explicitly non-authoritative;
   the signed UKI root hash and deployment manifest must bind the literal tuple,
   and UKI entry-point installation occurs last.
+- Spike binding, 2026-08-11: **verification item 4**, which now states the
+  cross product explicitly -- every pairwise-valid combination, with power loss
+  injected before and after each finalization write -- because a sampled
+  substitution matrix would let a hybrid through and still read as passing.
 - Disposition: mitigated on paper; implementation evidence required.
 - Residual risk: firmware-variable and FAT rename behavior may not provide the
-  assumed ordering on actual hardware.
+  assumed ordering on actual hardware. **A VM cannot settle this**, so the
+  ordering claim carries to physical evidence rather than closing with item 4.
 
 ### C-002: Fixed partition slots can make the 16 GB router undeployable
 
@@ -373,7 +378,15 @@ the paper mapping proven.
   corruption, and recovery behavior.
 - Author response: ext4 remains a mandatory challenger and fallback; EROFS is
   not accepted merely because it is read-only.
-- Disposition: open.
+- Spike binding, 2026-08-11: **verification item 2**, which previously required
+  only that both formats boot authenticated. That would have closed the wrong
+  question. The item now carries the comparison criteria -- image size, build
+  time and determinism, boot, memory, update transfer size, inspectability,
+  corruption, and recovery -- because without them EROFS would be selected by
+  having been tried first, which is the implementation accident this challenge
+  exists to prevent.
+- Disposition: open. Now asked against the `/usr` artifact rather than a
+  complete root (C-013).
 - Residual risk: measurements may be platform- and package-set-specific.
 
 ### C-008: Multiple state volumes multiply failure and recovery work
@@ -589,6 +602,11 @@ the paper mapping proven.
   The dependency is inherited rather than introduced -- the running NixOS
   router has the same shape with `/nix` on a separate filesystem -- but the
   design should state it rather than discover it.
+- Spike binding, 2026-08-11: **verification item 11**, extended to require an
+  independently stored recovery medium or IPMI virtual-media path exercised
+  beside any local artifact, and loss of the large disk exercised as a boot
+  incident. Item 12's "missing-disk" case is not sufficient: it tests a
+  degraded filesystem, not the loss of a device the machine needs to boot.
 - Disposition: mitigated by design; physical exercise required.
 - Residual risk: removable media can be stale or inaccessible when needed.
 
@@ -604,7 +622,14 @@ the paper mapping proven.
   behavior.
 - Author response: the design makes reserve an owned region and forbids normal
   state growth from silently consuming it; exact mechanism remains open.
-- Disposition: open.
+- Spike binding, 2026-08-11: **verification item 12**, which now requires the
+  reserve mechanism to be selected and its enforcement proven -- protected
+  region or enforceable quota -- with alerting before violation. Observing
+  behavior at a full disk demonstrates the failure this challenge predicts
+  rather than the guarantee it demands.
+- Disposition: open. Coupled to C-002: the minimum viable device and the
+  reserve are the same arithmetic, and a reserve chosen before that formula
+  exists is a guess.
 - Residual risk: fixed reserve wastes scarce router capacity while flexible
   reserve is harder to guarantee.
 

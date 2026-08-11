@@ -148,10 +148,24 @@ login prompt without changing a byte. **All three PLN-0001-04 composition
 amendments are therefore unnecessary for reachability**. **Owner decision
 2026-08-10: revert them, but not until KVM works**, so the revert and the move
 to vsock ssh happen in one motion; where first-boot configuration belongs on a
-physical host, which has no harness, remains an open `C-002`/`L-003` question. **KVM does not work on
-`desktop-jason` because SVM is disabled in firmware**, not because a module or
-group is missing; TCG is the only option until that changes, and it rules out
-both alternative runners. `W-002` now blocks `P-009`.
+physical host, which has no harness, remains an open `C-002`/`L-003` question.
+
+**SVM was enabled in firmware setup on 2026-08-10 and the revert was executed.**
+KVM is live -- `svm` present, `kvm_amd` loaded, QMP `query-kvm` reporting
+`enabled` on the harness's own flag set -- and `T4-SLICE-001` runs at 18 seconds
+against 72 under TCG with identical evidence fields. The six settings were
+removed from the composition fixture and the rebuild reproduced the
+pre-amendment UKI, initrd, kernel, and manifest digests **exactly**, which is
+what establishes the amendment was the only difference. `check:complete` is
+`passing=10 failing=0` against the reverted artifact.
+
+Two parts of that decision are **not** done and should not be read as closed.
+The vsock-ssh half is unimplemented: `Autologin=` is gone, and the harness
+still waits on the serial `login:` marker, which works only because the marker
+is the prompt rather than a shell. Nothing drives commands inside the guest.
+And the retained `T4-SLICE-001` result records `accelerator_requested` but not
+which accelerator was obtained, so a silent fallback to TCG would still report
+passing. `W-002` no longer blocks `P-009` on hardware grounds.
 
 `P-008` is open and blocks nothing under G1: the required `canonical profiles`
 check cannot report on an unpushed commit, so direct pushes to `main` are

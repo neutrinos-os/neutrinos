@@ -142,7 +142,17 @@ unnecessary for reachability.** The literal artifact can be given a console,
 first-boot answers, a hostname, and an unlocked root account entirely from
 outside, leaving the artifact byte-identical.
 
-**Owner decision 2026-08-10: revert, but not yet -- wait for KVM.** Dropping
+**Owner decision 2026-08-10: revert, but not yet -- wait for KVM.**
+**Executed 2026-08-10** once SVM was enabled in firmware setup and KVM became
+available. The six settings were removed, the rebuild reproduced the
+pre-amendment UKI `575c847d...` and initrd `e7061e25...` exactly, and
+`T4-SLICE-001` still reached a login prompt under a harness-supplied hostname
+with no failed units. The ssh-over-vsock half of the decision is **not** done:
+`Autologin=` is gone and the harness still waits on the serial `login:` marker,
+which it can do because the marker is the prompt itself rather than a shell.
+Driving commands inside the guest remains unimplemented.
+
+Dropping
 `Autologin=` leaves a `login:` prompt that a human can use and a script cannot,
 and the intended replacement is ssh over vsock with ephemeral keys, which is
 untested and untestable while this host has no KVM. Reverting now would buy a

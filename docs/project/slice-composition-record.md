@@ -164,7 +164,11 @@ Neither changes a G1 claim. See the [identity report](slice-identity-report.md).
   after the PLN-0001-04 amendment. See the [boot record](slice-boot-record.md)
   and [identity report](slice-identity-report.md). The digests in this record
   predate that amendment; the manifest and kernel digests survived it unchanged,
-  the UKI and initrd digests did not.)
+  the UKI and initrd digests did not. **The amendment was reverted on
+  2026-08-10 and all four digests above are current again**, reproduced exactly
+  by a rebuild from the reverted fixture -- which is the evidence that the
+  amendment was the only difference and that nothing else drifted underneath
+  it.)
 - **No mechanism is selected.** mkosi and Fedora 44 remain candidate fixtures.
   bootc and a literal Arch snapshot remain the required challengers, and this
   build working is not evidence for mkosi over bootc because bootc was not

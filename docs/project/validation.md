@@ -119,11 +119,17 @@ mutation would be a real defect rather than an artefact of the harness. First
 boot configuration and the kernel command line are supplied as SMBIOS Type 11
 credentials, so nothing is baked into the image to make this pass. QEMU is
 asked for `accel=kvm:tcg`: KVM where the host offers it, TCG where it does not,
-with the same evidence either way. Measured at 72 seconds wall clock under TCG.
+with the same evidence either way. Measured at 72 seconds wall clock under TCG,
+and at 18 seconds under KVM once SVM was enabled in firmware setup on
+2026-08-10. The evidence fields were identical across both; only the clock
+changed. The retained result records `accelerator_requested` and **not** which
+accelerator was actually obtained, so a silent fallback to TCG would still
+report passing and nothing in the run would say so.
 
 Guest-driven readiness over a notify vsock is the intended replacement for
-waiting on a serial marker and is deliberately absent while this build host has
-no KVM; see [RES-0013](../research/comparisons/vm-test-harness.md).
+waiting on a serial marker. It remains unimplemented, and with emulation no
+longer dominating the wall clock it is now the largest remaining cost; see
+[RES-0013](../research/comparisons/vm-test-harness.md).
 `T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
 with an isolated empty mise cache and runs the registered `check:list` task
 using only the already-installed locked Python and uv inputs. `T5-VAL-003`

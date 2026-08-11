@@ -46,6 +46,12 @@ would have sent someone chasing a module or a group permission instead of a
 firmware setting. See [RES-0013](../research/comparisons/vm-test-harness.md). This costs wall-clock time and nothing else for a
 boot witness, but a later task that measures timing must not use these numbers.
 
+**Resolved 2026-08-10:** SVM was enabled in firmware setup. `svm` is now
+present, `kvm_amd` is loaded, and QEMU reports `{"enabled": true}` to a QMP
+`query-kvm` on the harness's own flag set. `T4-SLICE-001` runs at 18 seconds
+against 72 under TCG. The numbers in this record remain TCG numbers and are
+still not a timing baseline.
+
 The artifact itself was never opened for write. The VM ran against disposable
 copies of the disk image and firmware variables under the build root.
 

@@ -64,5 +64,6 @@ linked follow-up.
 
 - [PLN-0000: pre-implementation readiness](0000-pre-implementation-readiness.md)
 - [PLN-0001: reference-VM evidence slice](0001-reference-vm-slice.md)
+- [PLN-0002: authenticated `/usr` artifact format comparison](0002-usr-artifact-format-spike.md)
 
 Start new plans from the [plan template](template.md).

@@ -4,7 +4,7 @@ last_updated: 2026-08-11
 source_snapshot_revision: cc87b1d
 current_gate: G1
 target_gate: G2
-active_plan: none (PLN-0001 complete 2026-08-11; no accepted successor)
+active_plan: none (PLN-0001 complete 2026-08-11; PLN-0002 proposed, not accepted)
 ---
 
 # Current project context

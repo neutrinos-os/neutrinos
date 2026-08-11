@@ -170,7 +170,7 @@ version-controlled NixOS intent but not confirmed on the running machine.
 | TPM capability | TPM 2.0 advertised; operation untested | No firmware TPM evidence; a documented discrete TPM 2.0 module was acquired 2026-08-10 but is not installed, so the capability remains absent per PR-0005 | Intel PTT documented; not exposed to Linux and version/operation unverified. Vendor sources do not establish whether Haswell-era PTT presents TPM 1.2 or 2.0 |
 | Authenticated immutable root | Not present or demonstrated | Not configured or demonstrated | Not configured or demonstrated |
 | Storage encryption | Not visible; confirmation needed | No LUKS/dm-crypt mapping observed | No LUKS/dm-crypt mapping observed |
-| Unattended reboot | Not yet a stated workstation requirement | Required in principle; mechanism unverified | Unknown |
+| Unattended reboot | Not a workstation requirement; TPM2 + PIN ruled 2026-08-11 | Required in principle; mechanism unverified | Required, stated by the owner 2026-08-11; mechanism unverified |
 | Independent local recovery | Not yet exercised | IPMI device and watchdog observed; access untested | Not yet inventoried; no IPMI observed |
 
 ## Consequences for the next design

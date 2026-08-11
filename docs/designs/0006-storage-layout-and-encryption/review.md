@@ -116,12 +116,25 @@ the paper mapping proven.
   is likewise settled by PR-0005: without a proven hardware-bound secret
   facility it may be a development target but does not meet the production
   confidentiality objective.
-- Owner ruling, 2026-08-11: the workstation target is **TPM2 + PIN**. It
-  defeats the scenario this challenge names, a stolen intact machine that
-  decrypts itself with nobody present, and the inventory records that
-  unattended reboot is not a stated workstation requirement, so the cost is a
-  typed secret rather than a lost capability. Unattended TPM2 alone was
-  rejected for the workstation.
+- Owner ruling, 2026-08-11: the routine unlock policy is **per role, not
+  global**.
+  - **Workstation (`desktop-jason`): TPM2 + PIN.** It defeats the scenario this
+    challenge names, a stolen intact machine that decrypts itself with nobody
+    present, and unattended reboot is not a workstation requirement, so the
+    cost is a typed secret rather than a lost capability. Unattended TPM2 alone
+    was rejected here.
+  - **Router and `misc`: unattended TPM2, no human input**, because the owner
+    stated on 2026-08-11 that both must reboot unattended. This is exactly the
+    pairing PR-0005 says requires a proven hardware-bound secret facility, and
+    neither machine has one today. Until they do, both accept the narrow claim
+    or carry no powered-off confidentiality claim at all.
+- Consequence for `misc`, and the reason its firmware check is decisive rather
+  than routine: if Haswell-era PTT presents **TPM 1.2**, `systemd-cryptenroll
+  --tpm2` cannot enroll it, and Intel's specification states the D54250WYK
+  supports no discrete TPM. A 1.2 answer therefore forecloses unattended
+  encrypted boot on that machine permanently rather than inconveniently, and
+  `misc` can never be a production-confidentiality target without different
+  hardware.
 - Enabling conditions, stated so this is not mistaken for an available
   capability: `desktop-jason` advertises TPM 2.0 but its **operation is
   untested**, Secure Boot is **off**, and owner platform keys are **not
@@ -170,9 +183,41 @@ the paper mapping proven.
 - Author response: recovery material is explicitly independent, never stored
   only on its target, and separately governed; the concrete ceremony remains
   deliberately unresolved.
-- Disposition: open.
+- Changed by C-003 on 2026-08-11: the recovery inventory gained a third item.
+  It is now a high-entropy recovery key per volume, a LUKS2 header backup per
+  volume, and a **workstation PIN that can be forgotten**. PR-0005 C-002
+  already prohibits hardware-bound unlock as the only recovery path, so the
+  recovery key is mandatory rather than optional. The design cannot remove this
+  material; it can only decide where it lives and who can reach it.
+- The constraints genuinely conflict, which is why this stayed open. ADR-0002
+  separates authority from recovery, A-011 assumes an offline copy outside the
+  primary local-disaster failure domain, and this challenge's own residual risk
+  names the trap: stored together, one theft or one fire ends it; stored apart,
+  a single-maintainer restore becomes a multi-location errand at the worst
+  possible moment.
+- Owner ruling, 2026-08-11: **split the question by authority rather than
+  resolving the ceremony here.** DES-0006 owns only the mechanical guarantees a
+  storage design can enforce:
+  1. every encrypted volume has at least one routine unlock method and one
+     independently retained high-entropy recovery method;
+  2. a LUKS2 header backup exists per volume, is stored separately from both
+     the encrypted device and the recovery key, and is restore-tested rather
+     than merely created;
+  3. no volume's recovery material is stored on that volume, or on any device
+     unlockable by it.
+  Creation, custody, access, audit, rotation, loss, and destruction belong to
+  DES-0004 under S-006, alongside C-004's signing-key custody, which is the
+  same species of question.
+- Disposition: **Resolved 2026-08-11 for this design, accepted by Jason
+  Tarasovic**, as a recorded handoff rather than a closure. The alternative --
+  treating the ceremony as blocking DES-0006's acceptance -- was rejected: it
+  would hold a storage design hostage to a key-custody decision that has its
+  own gate.
 - Residual risk: a sole maintainer can lose either availability or separation
-  through one poorly designed backup location.
+  through one poorly designed backup location. The handoff does not reduce that
+  risk, it relocates it, and DES-0006 cannot detect a ceremony that is designed
+  and then not followed. The restore test in guarantee 2 is the only part of
+  this a storage design can actually verify.
 
 ### C-006: Read-only `/etc` can make the system unusable
 

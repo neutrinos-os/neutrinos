@@ -409,9 +409,17 @@ development workstation reaches the network through it.
   recovery key; the backup's identity, date, confidentiality, and restore test
   are recorded.
 - Adding a new unlock method is verified before an old method is removed.
-- Recovery material is never stored only on the volume or machine it recovers.
+- Recovery material is never stored only on the volume or machine it recovers,
+  nor on any device that a compromise of the recovered volume would unlock.
 - Destruction records which keys, headers, backups, and external credentials
   must be destroyed or revoked.
+
+Those rules are the whole of what this design owns for recovery material
+(C-005, ruled 2026-08-11). Creation, custody, access, audit, rotation, loss,
+and destruction ceremony belong to DES-0004 under `S-006`, with C-004's
+signing-key custody. A storage design can require that a header backup exists,
+is separate, and is restore-tested; it cannot verify that a ceremony written
+elsewhere is followed.
 
 ### TPM2 profile
 
@@ -427,10 +435,16 @@ it experimental.
 
 ### Workstation
 
-The default candidate supports unattended normal reboot through TPM2 policy,
-consistent with PR-0005. The owner may select a TPM2+PIN or FIDO2-assisted
-interactive profile for stronger physical-presence semantics. Login/session
-authentication remains separate in every profile.
+The routine unlock policy is **TPM2 + PIN** (C-003, ruled 2026-08-11).
+Unattended reboot is not a workstation requirement, so the PIN costs a typed
+secret rather than a capability, and it defeats the stolen-intact-machine case
+that unattended sealing does not. Login and session authentication remain
+separate from volume unlock. This is a migration target: TPM operation is
+untested, Secure Boot is off, and owner platform keys are not enrolled.
+
+The PIN is recovery material. It can be forgotten, which makes the
+independently retained high-entropy recovery method load-bearing rather than
+ceremonial.
 
 ### Router
 

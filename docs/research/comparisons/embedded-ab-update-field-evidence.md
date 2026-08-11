@@ -171,7 +171,7 @@ Ubuntu Core marks a new kernel or base as a "try" in `modeenv`, and on the next
 boot snapd **compares the snap actually booted against the expected one**,
 treating a mismatch as a failed installation rather than as success.
 
-This is DES-0006's step 6 -- independently bind the actual UKI, root, and Verity
+This is DES-0006's step 7 -- independently bind the actual UKI, root, and Verity
 bytes to the selected deployment identity -- implemented in a shipping system,
 and confirmation that the step is load-bearing rather than paranoid.
 

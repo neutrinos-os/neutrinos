@@ -200,8 +200,9 @@ the unreproducible btrfs and FAT bytes PLN-0001 identified move to state, where
 reproducibility is not claimed -- a consequence of the decision, never a reason
 for it.
 
-**Two DES-0006 challenges are drafted and open**, both from RES-0014's review
-of shipping A/B updaters and neither accepted. C-014: the staging sequence
+**Two DES-0006 challenges are resolved**, both from RES-0014's review of
+shipping A/B updaters, accepted by Jason Tarasovic on 2026-08-11 and now in the
+design. C-014: the staging sequence
 never marks the target slot ineligible before overwriting it, so on a second
 update the retained eligible fallback becomes a partial image while still
 selectable -- the outcome SYS-050 forbids, reached through ordinary operation.
@@ -223,8 +224,16 @@ additionally branches on whether the deployment was ever known-good, since a
 previously-good deployment failing indicts the environment rather than the
 image. A minimal ESP notification image was raised and rejected: it needs a
 credential exactly when sealed state may be unavailable, and notification
-belongs to the degraded running system. Both amendments are drafted verbatim
-in the review and are not in the design until accepted.
+belongs to the degraded running system. Both amendments are now in DES-0006:
+C-014 as step 3 of "Staging and selection", C-015 as "When every eligible
+deployment fails" in the same section, each with a failure-table row. The
+spike inherits two cases from them -- the second-update overwrite of a retained
+eligible fallback, and every eligible deployment failing assessment -- and owes
+evidence on the strongest ineligibility durability level rather than the first
+that works. Two questions are deliberately left unresolved: where the
+exhaustion counter and known-good record live, given that state is what may be
+damaged in the scenarios that trigger them, and what a machine running in an
+unassessed condition is permitted to keep doing, router traffic in particular.
 
 **PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
 the exit-criteria assessment drafted in the plan, including its qualification

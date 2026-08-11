@@ -167,7 +167,8 @@ authorization path.
 dm-verity read failures fail closed for release-owned content and produce
 attributable diagnostics. They do not cause recovery to be selected
 automatically. Boot attempt exhaustion may select only a retained eligible
-normal deployment, as required by SYS-038.
+normal deployment, as required by SYS-038; what happens when every eligible
+deployment fails is designed under "Staging and selection".
 
 ## Root filesystem and `/etc`
 
@@ -248,21 +249,73 @@ For two normal slot pairs:
 
 1. Protect every slot and UKI belonging to the booted deployment.
 2. Choose only an inactive root and matching Verity slot.
-3. Write root and Verity bytes, then verify their literal identities and root
+3. Mark the chosen slot pair ineligible for selection, durably, before writing
+   any byte into it. The previous occupant stops being a retained fallback at
+   this point rather than when it is overwritten.
+4. Write root and Verity bytes, then verify their literal identities and root
    hash while they remain unselected.
-4. Install the exact signed UKI only after its complete backing deployment set
+5. Install the exact signed UKI only after its complete backing deployment set
    is staged and eligible.
-5. Commit one trial selection through the bootloader's native attempt-counting
+6. Commit one trial selection through the bootloader's native attempt-counting
    mechanism.
-6. At early boot, independently bind the actual UKI, root, and Verity bytes to
+7. At early boot, independently bind the actual UKI, root, and Verity bytes to
    the selected deployment identity.
-7. Bless only after the exact deployment passes role health assessment.
-8. Retain the previous complete eligible deployment until its retention
+8. Bless only after the exact deployment passes role health assessment.
+9. Retain the previous complete eligible deployment until its retention
    reference and state-compatibility claim are deliberately removed.
+
+Step 3 is what makes the failure analysis below true rather than aspirational.
+On a first update the inactive slot is empty and the marking is invisible; on
+every later update that slot holds the previous eligible deployment, and
+without the marking the first byte written destroys a fallback that the
+selection mechanism still considers a candidate. Ineligibility must survive
+power loss, an unreadable ESP, and hostile offline modification; surviving the
+first two is an accepted fallback, and surviving only power loss requires a
+recorded reason, because that is marking held on the same filesystem as the
+artifacts it describes. The mechanism is chosen by the substrate spike, which
+owes evidence on the strongest level rather than the first that works.
 
 `systemd-sysupdate` partition and file transfers are the leading mechanism,
 but the substrate spike must prove power-loss outcomes. The layout does not
 claim that updating several partitions is one physical atomic write.
+
+### When every eligible deployment fails
+
+Selection driven by exhaustion is itself durably counted, and a deployment that
+has already been selected by exhaustion and failed assessment is not selected
+that way again.
+
+Response depends on whether the failing deployment has ever passed assessment.
+A deployment that has never passed is unproven, and exhaustion selects an
+eligible fallback. A deployment that has passed before indicts the environment
+rather than the image, so at most one further attempt is made before stopping;
+falling back cannot address a cause the fallback shares.
+
+When no eligible normal deployment remains unselected, automatic selection
+stops. The machine does not halt: the last deployment continues running,
+degraded and reachable, and reports an attributable diagnosis naming each
+deployment tried and its failure. Recovery is not entered automatically, as
+SYS-038 requires, and the stop is a terminal state for selection only.
+
+This is a design commitment beyond the requirement floor, not a reading of
+SYS-038, whose bounded attempt accounting governs each deployment's own trial
+boots rather than the loop between deployments. It exists because assessment
+evaluates the machine in an environment that moves, so the causes that matter
+are the ones common to both slots -- an expired certificate, a state schema
+migrated beyond what the older deployment can read, PCR values changed by a
+firmware update, failing hardware, or a health check that depends on reaching
+something. Fallback helps only when the failure was caused by the thing being
+fallen back from. Field practice is recorded in
+[RES-0014](../../research/comparisons/embedded-ab-update-field-evidence.md);
+no reviewed implementation halts the machine, and notification belongs to the
+degraded running system rather than to a separate boot artifact.
+
+Two things this does not settle. The exhaustion counter and the known-good
+record are both state, and state is what may be damaged in the scenarios that
+trigger them; where they live is unresolved. A machine kept running while
+failing assessment is also running in an unassessed condition, and what it is
+permitted to keep doing there -- forwarding router traffic in particular -- is
+not defined here.
 
 ## Persistent state layout
 
@@ -465,6 +518,8 @@ It does not claim:
 | Failure | Required result |
 | --- | --- |
 | Root or Verity staging interrupted | Inactive partial bytes remain ineligible; current selection is unchanged |
+| Ineligibility marking interrupted | Target remains ineligible or the marking is not observed at all; never a slot marked eligible with foreign bytes in it |
+| Every eligible deployment boots and fails assessment | Automatic selection stops; last deployment keeps running and remains reachable; attributable diagnosis names each deployment tried; no automatic recovery entry |
 | UKI installation interrupted | No entry point to incomplete backing artifacts; current selection remains |
 | GPT label or boot selection write interrupted | Old selection, one complete trial, or attributable stop—never a hybrid |
 | dm-verity detects corruption | Fail closed for affected release content; retain diagnosis; choose only eligible normal fallback |

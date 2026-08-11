@@ -302,7 +302,9 @@ the paper mapping proven.
   Not part of the 2026-08-09 adversarial review.
 - Claim: the failure table already requires that interrupted staging leave
   "inactive partial bytes ineligible", but no step in the staging sequence
-  produces that result. Step 2 chooses an inactive slot pair and step 3
+  produces that result. Step numbers here are the sequence as it stood when
+  this was raised, before the accepted amendment renumbered it. Step 2 chooses
+  an inactive slot pair and step 3
   immediately writes. On a first update the claim holds for free, because the
   inactive slot is empty. On a second update that slot holds the previous
   **eligible** deployment -- the retained fallback step 8 promises to keep --
@@ -344,10 +346,13 @@ the paper mapping proven.
   Ordering matters here: level 1 is the ESP-only marking C-011 challenges as a
   shared failure domain, so landing there must be a stated finding rather than
   a discovery that it was easiest.
-- Author response: none recorded.
-- Disposition: open. The ordering fix is not contested; the durability level is
-  ruled and the mechanism is deferred to the spike, which owes an answer on
-  level 3's feasibility rather than stopping at the first thing that works.
+- Author response: accepted as drafted.
+- Disposition: **Resolved 2026-08-11, accepted by Jason Tarasovic.** The
+  amendment is in the design as step 3 of "Staging and selection", with the
+  durability levels stated there and a failure-table row for interrupted
+  marking. The mechanism is deferred to the substrate spike, which owes an
+  answer on level 3's feasibility rather than stopping at the first thing that
+  works.
 - Residual risk: the mechanism for durable ineligibility is not chosen here and
   interacts with the ESP failure domain raised in C-011 and RES-0014, since
   systemd-boot's counters live as filenames on the same FAT filesystem as the
@@ -432,8 +437,11 @@ the paper mapping proven.
   and authorization path. greenboot's `red.d` demonstrates that notification
   belongs to the degraded running system, which already has network
   configuration and credentials.
-- Author response: none recorded.
-- Disposition: open.
+- Author response: accepted as drafted.
+- Disposition: **Resolved 2026-08-11, accepted by Jason Tarasovic.** The
+  amendment is in the design as "When every eligible deployment fails" under
+  "Staging and selection", with a failure-table row. It is recorded there as a
+  commitment beyond the requirement floor, not as a reading of SYS-038.
 - Residual risk: the exhaustion counter and the known-good record are both
   state, and state is what may be damaged in the scenarios that trigger them.
   Where they live, and whether they survive the failure modes they exist to

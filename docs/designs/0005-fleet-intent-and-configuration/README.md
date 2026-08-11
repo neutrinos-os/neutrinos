@@ -145,27 +145,77 @@ question named boot-time binding, fallback, and garbage collection, and C-013
 adopted the mechanism without settling any of them. SYS-123 now applies in full
 to every confext, and this design is its home.
 
-### One confext per deployment variant
+### Several disjoint confexts per deployment variant
 
-A deployment variant resolves to **exactly one** configuration extension image.
-It is built from the already-resolved configuration of the existing
-`common < role < machine` composition, and it is named by the deployment
-manifest.
+A deployment variant resolves to a **set** of configuration extension images.
+The deployment manifest names the complete set by digest; a missing, extra, or
+substituted member fails the eligibility gate exactly as any other deployment-set
+member does.
 
-This is not an efficiency choice. Several confexts merged at activation time
-would carry their own precedence, which relocates scope resolution from build
-time to boot time -- precisely the "generic role image plus boot-time machine
-assembly" this design already rejected, and for the same reason: it lets
-activation order create effective behavior that was never the literal
-qualification subject. Precedence stays where it is. The confext is a transport
-for an already-decided result, not a layer with semantics of its own.
+Owner ruling, 2026-08-11: several confexts rather than one, so that
+configuration identical across machines is built, signed, and transferred once
+instead of being duplicated inside every machine's image.
 
-The accepted cost is transfer efficiency. Common and role configuration shared
-across machines is rebuilt and retransmitted inside each machine's confext
-rather than shipped once. For a three-machine fleet this is negligible, and it
-is the correct trade against reintroducing runtime composition. If fleet size
-ever makes it material, the answer is content-addressed transfer of identical
-blocks, not a second precedence surface.
+**The split is by disjoint path ownership, not by scope.** This is the
+constraint that makes several images safe, and it is not a detail. Splitting
+along `common`, `role`, and `machine` would fail, because those scopes overlap
+by construction -- machine scope exists precisely to override role scope for the
+same key -- so resolving them would require precedence at activation time. That
+is the "generic role image plus boot-time machine assembly" this design already
+rejected, and the rejection stands.
+
+Instead, each confext owns a disjoint set of paths, drawn along consumer or
+subsystem lines: network configuration in one, the graphical stack in another.
+`common < role < machine` precedence is resolved at build time **within** each
+confext, so each one already carries a decided result for the paths it owns.
+Two confexts in one deployment writing the same path is a **composition-time
+error**, not a runtime conflict to be ordered.
+
+Disjointness buys the property that matters: **merge order cannot change the
+effective result.** Activation ordering stops being a semantic question and
+becomes a scheduling one. Reuse then comes from two machines legitimately
+having byte-identical configuration for a subsystem, which is a fact about the
+inventory that the composition record can prove -- not from layering, which
+would smuggle precedence back in.
+
+The accepted cost is that the split must be designed. Path ownership is now a
+modeling decision with a wrong answer available: a subsystem carved too finely
+produces many tiny images, and one carved too coarsely destroys the reuse this
+ruling exists to capture. The disjointness rule is mechanically checkable,
+which keeps the cost bounded to design effort rather than to correctness.
+
+### Declared failure policy
+
+Owner direction, 2026-08-11: each confext declares the policy for its own
+failure to merge. This is what makes the split carry meaning rather than being
+only a transport optimization -- a router's network configuration and a
+workstation's desktop stack genuinely differ in whether the machine should
+continue without them.
+
+A confext is declared either **required**, where failure to merge fails the
+trial boot, or **optional**, where failure is reported, marks the deployment
+degraded, and allows boot to continue. This replaces the global fail-closed
+rule and the per-role rule with a per-subsystem one that follows what the
+configuration actually does.
+
+**The declaration is authored in the fleet inventory and carried by the
+confext, never authored by it.** An artifact that decides how important it is
+would be deciding its own failure handling, which is the shape this project
+refuses everywhere else. The inventory declares criticality as reviewed,
+identity-bound intent; the composition record records it; the image transports
+it. A confext whose declared policy disagrees with the manifest's is a
+substituted member and fails the gate.
+
+Two consequences follow and are accepted:
+
+- **Optional is not a soft default.** A deployment in which an optional confext
+  failed is degraded, not healthy, and must not be blessed on that boot. It is
+  the difference between a router that keeps routing while reporting a broken
+  desktop stack and a router that silently becomes healthy with configuration
+  missing.
+- **Required is the default for anything unclassified.** An unmarked confext
+  fails closed. Getting this backwards would let an unreviewed image become
+  optional by omission.
 
 ### The SYS-123 obligations
 
@@ -179,43 +229,49 @@ The remaining six are new, and each is new because this design was written
 while configuration lived inside the deployment artifact, where the question
 could not arise:
 
-- **Base compatibility.** The confext declares, through
-  `extension-release.d`, the exact deployment identity it belongs to. Binding
-  is to that identity, not to a compatibility range: a confext built for one
-  deployment variant must refuse to activate against any other. A range would
-  permit combinations that were never jointly qualified, which is the C-001
-  hybrid failure arriving through the configuration door. This is stricter than
-  systemd's `SYSEXT_LEVEL` convention allows for, and the strictness is
-  deliberate.
-- **Activation ordering.** With one confext there is no inter-extension order
-  to define. What remains is ordering against consumers: the confext must be
-  merged before any unit that reads its content starts, and the two-stage
-  initrd and sysroot activation named by the C-013 amendment means "before" has
-  two distinct meanings. Configuration consumed before `/usr` is verified is
-  outside the integrity boundary, so the split between what must be present in
-  the initrd stage and what may wait for sysroot is an integrity boundary, not
-  a convenience. This design states the requirement; DES-0006 owns the boot
-  chain that realizes it.
-- **Health.** A failed merge is a failed deployment, not a degraded one. With
-  one confext there is no partial-merge state to represent: either the
-  configuration the deployment was qualified with is in effect, or the machine
-  is not running that deployment and must fail its trial boot rather than
-  proceed on release defaults. Silently falling back to `/usr/lib` defaults
-  would run a configuration nobody qualified.
+- **Base compatibility.** The confext declares a base compatibility level
+  through `extension-release.d`, which acts as a **guard** against activating
+  against an incompatible `/usr`. It does not carry deployment identity. The
+  deployment manifest already binds the literal tuple, which is C-001's answer
+  to the hybrid problem, so duplicating that binding in `extension-release.d`
+  would add no integrity and would force every machine's confexts to be rebuilt
+  and re-signed on every `/usr` release that changed nothing they contain. With
+  the guard model, a `/usr` release requires the tuple to be **re-qualified**,
+  not the configuration to be **rebuilt**. Reuse across machines depends on
+  this: a confext bound to one exact deployment identity could never be shared.
+- **Activation ordering.** Inter-extension order is immaterial by construction,
+  because the confexts are disjoint -- that is the point of the disjointness
+  rule rather than a happy consequence of it. What remains is ordering against
+  consumers: each confext must be merged before any unit that reads the paths
+  it owns, and the two-stage initrd and sysroot activation named by the C-013
+  amendment means "before" has two distinct meanings. Configuration consumed
+  before `/usr` is verified is outside the integrity boundary, so which
+  confexts must be present in the initrd stage and which may wait for sysroot
+  is an integrity boundary, not a convenience. This design states the
+  requirement; DES-0006 owns the boot chain that realizes it.
+- **Health.** Determined by each confext's declared policy, above. A required
+  confext failing to merge fails the trial boot; an optional one failing marks
+  the deployment degraded and blocks blessing. Neither case may silently fall
+  back to `/usr/lib` release defaults and report success, which would run a
+  configuration nobody qualified.
 - **Rollback.** Configuration does **not** roll back independently. Because the
-  confext is named by the deployment manifest and bound to one deployment
-  identity, rolling back configuration means selecting the earlier deployment.
+  manifest names the complete confext set, rolling back configuration means
+  selecting the earlier deployment.
   This follows from the binding above rather than being an additional rule, and
   it is what keeps a rolled-back OS from running forward configuration.
-- **Retention.** A confext is retained exactly as long as the deployment that
-  names it, and is collected with it. It is a deployment-set member for
-  retention purposes, so SYS-050's guarantee -- one complete current deployment
-  plus one complete candidate or fallback -- covers configuration without a
-  separate policy. DES-0006's Configuration artifacts region is its storage
-  home, and its bytes count against the capacity formula C-002 produces.
-- **Effective-deployment status.** Machine status must report the merged
-  confext's identity and whether it matches the one the running deployment
-  names. The existing inspection surface asks whether the machine matches its
+- **Retention.** A confext is retained as long as **any** retained deployment
+  names it, and is collected when none does. Sharing makes this a reference
+  count rather than a per-deployment lifetime, which is the one place reuse
+  adds machinery rather than removing it: collecting a confext because one
+  deployment was dropped could strip the retained fallback that still needs it,
+  turning garbage collection into the SYS-050 violation C-014 already found in
+  the staging path. Otherwise confexts are deployment-set members, so SYS-050's
+  current-plus-fallback guarantee covers configuration without a separate
+  policy. DES-0006's Configuration artifacts region is its storage home, and
+  the bytes count against the capacity formula C-002 produces.
+- **Effective-deployment status.** Machine status must report every merged
+  confext's identity, its declared failure policy, and whether the merged set
+  matches the set the running deployment names. The existing inspection surface asks whether the machine matches its
   expected composition record; that question is now answerable only if the
   active extension is enumerated, not inferred.
 
@@ -621,16 +677,29 @@ demonstrate:
 
 If the proposed confext amendment is accepted, it adds:
 
-11. a confext built for one deployment variant refusing to activate against any
-    other, including against a deployment that differs only in configuration;
-12. a failed confext merge failing the trial boot rather than proceeding on
-    `/usr/lib` release defaults;
-13. rollback to an earlier deployment carrying its own configuration, with no
-    path by which a rolled-back OS runs forward configuration;
-14. configuration retained and collected with the deployment that names it,
-    under SYS-050's current-plus-fallback guarantee; and
-15. machine status reporting the merged extension's identity and its agreement
-    with the running deployment, enumerated rather than inferred.
+11. two confexts in one deployment claiming the same path failing at
+    composition time, not being resolved by activation order;
+12. the merged result proving invariant under activation order, exercised by
+    merging a deployment's confext set in several orders and comparing the
+    effective configuration byte for byte;
+13. a confext refusing to activate against an incompatible base, while the same
+    confext is legitimately shared by two machines and survives a `/usr` release
+    that requires re-qualification but no rebuild;
+14. a missing, extra, or substituted set member failing the eligibility gate,
+    including a member whose declared failure policy disagrees with the
+    manifest;
+15. a required confext failing to merge failing the trial boot, and an optional
+    one failing marking the deployment degraded and unblessable, with neither
+    silently proceeding on `/usr/lib` defaults;
+16. an unclassified confext defaulting to required rather than optional;
+17. rollback to an earlier deployment carrying its own configuration set, with
+    no path by which a rolled-back OS runs forward configuration;
+18. a shared confext surviving collection while any retained deployment still
+    names it, including the case where the deployment that introduced it was
+    dropped and a retained fallback still depends on it; and
+19. machine status reporting every merged extension's identity and declared
+    policy, and the merged set's agreement with the running deployment,
+    enumerated rather than inferred.
 
 [EX-0007](../../research/exercises/0007-native-configuration-and-inspection.md)
 now exercises representative native systemd, networkd, sysctl, tmpfiles,

@@ -288,6 +288,17 @@ For two normal slot pairs:
 9. Retain the previous complete eligible deployment until its retention
    reference and state-compatibility claim are deliberately removed.
 
+Boot-selection state -- attempt counters, slot eligibility, and the
+ineligibility marking of step 3 -- carries an integrity obligation that the
+encrypted volumes deliberately do not (C-010, ruled 2026-08-11). It is the
+state that decides what executes, it currently lives unauthenticated on vfat,
+and Secure Boot covers the executables it selects but not the selection. Field
+practice authenticates exactly this and nothing larger: Android's rollback
+index lives in RPMB, ChromeOS's version state in TPM NVRAM. **No mechanism is
+selected here.** No systemd-native facility provides it, and building one would
+contradict the project's finding that it should not create mechanisms, so the
+obligation is recorded and the spike owes an answer.
+
 Step 3 is what makes the failure analysis below true rather than aspirational.
 On a first update the inactive slot is empty and the marking is invisible; on
 every later update that slot holds the previous eligible deployment, and
@@ -562,7 +573,12 @@ The design claims:
 It does not claim:
 
 - confidentiality after an authorized unlock;
-- authenticity or benignness of mutable state;
+- authenticity or benignness of mutable state. No comparable system claims it
+  either: ChromeOS verifies the rootfs and encrypts parts of the stateful
+  partition without integrity, and Android verifies system while userdata gets
+  metadata encryption only. The exposure this leaves is bounded by C-003's
+  sealing, since an offline writer who cannot subsequently unlock a volume is
+  vandalizing rather than attacking it;
 - protection from compromised authorized firmware, kernel, initrd, service,
   or session;
 - secure deletion of every SSD remanence through file removal;
@@ -587,6 +603,7 @@ It does not claim:
 | Filesystem full | Preserve boot/fallback/recovery references; bound logs/caches; block unsafe update or migration |
 | State schema advances incompatibly | Remove old deployment from automatic fallback before commit barrier |
 | Suspected offline tamper | Treat mutable state as hostile; recovery does not auto-mount or execute it |
+| Boot-selection state modified offline | Detected or refused rather than obeyed; selection never follows unauthenticated metadata without a stated, recorded gap |
 
 ## Operations and diagnostics
 

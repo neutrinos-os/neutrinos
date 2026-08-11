@@ -423,10 +423,69 @@ the paper mapping proven.
   sensitive roles.
 - Author response: the design makes no mutable-authenticity claim and routes
   suspected access to SYS-035 compromise recovery rather than normal mount.
-- Disposition: accepted risk for the initial scope, subject to hostile-state
-  exercise.
+- Landscape check, 2026-08-11: **no comparable system authenticates general
+  mutable state.** ChromeOS runs dm-verity on the rootfs only, and only the
+  filesystem rather than the whole partition, while parts of the stateful
+  partition are dm-crypt encrypted under a TPM-held system key with no
+  integrity claim. Android is the same shape: dm-verity for system, metadata
+  encryption for userdata, no authenticity. The accepted-risk position is the
+  industry position rather than a shortcut.
+- What those systems **do** authenticate is the small metadata that decides
+  what boots. Android stores its AVB rollback index in the eMMC/UFS **RPMB**,
+  whose accesses are authenticated by a key burned into eFUSE at manufacture.
+  ChromeOS keeps version and rollback state in **TPM NVRAM** and marks a failed
+  kernel partition `DMVERROR` so firmware stops selecting it. The consensus is
+  to authenticate the state that selects, not the state that stores.
+- Scope shifted by C-013 and C-014, which is why this was revisited. Under
+  full-root, `/etc` was inside the authenticated artifact; it is not now, so
+  the unauthenticated writable root grew and early boot reads from it before
+  `/usr` is verified. Meanwhile the sharp target is the **ESP**: unencrypted
+  vfat holding the bootloader, the UKIs, boot-counter state, and under C-014
+  the slot-ineligibility markers. Secure Boot with owner keys covers executable
+  substitution; boot-selection state is not signed by anything.
+- The C-003 ruling narrows the encrypted-volume case more than it first
+  appears. With PCR-bound sealing and a workstation PIN, an offline attacker
+  who modifies state cannot subsequently unlock it. Planting content into a
+  volume the attacker cannot decrypt is vandalism rather than a useful attack,
+  so the realistic hostile-state adversary is one who has already obtained
+  unlock capability, or is working on content outside the encrypted volumes.
+- Relevant literature, for C-014's durable marker as much as for this
+  challenge: state continuity. **Memoir** (IEEE S&P 2011) uses hash chains with
+  NVRAM and monotonic counters against a malicious host; **Ariadne** (USENIX
+  Security 2016) reaches the theoretical minimum of one NV bit flip per state
+  update, NV wear being the binding constraint; **ROTE** (USENIX Security 2017)
+  and **NARRATOR** (CCS 2022) are practical and distributed variants. A TPM
+  counter increment costs roughly 97 ms and a read roughly 35 ms -- acceptable
+  per boot, disqualifying per write. Hardware anti-replay is also not absolute:
+  [arXiv 2511.22340](https://arxiv.org/html/2511.22340v1) breaks eMMC RPMB
+  authentication with electromagnetic fault injection.
+- This challenge's own required response, measuring dm-integrity alternatives,
+  is partly answered from documentation. LUKS2 authenticated encryption remains
+  **experimental**; HMAC with AES-XTS hashes the whole sector and is slow; few
+  AEAD algorithms are usable and several are discouraged; the dm-integrity
+  journal is not encrypted; and initializing authentication tags requires
+  wiping the device first. Not a production posture for general state, though
+  still worth a bounded measurement for a small sensitive volume.
+- Owner ruling, 2026-08-11: **narrow the claim rather than confirm it as-is.**
+  Offline authenticity stays out of scope for encrypted volumes, matching every
+  comparable system. Unencrypted boot-selection state is named as the real
+  exposure and carries an integrity obligation of its own, which is what
+  C-014's level 3 already reaches for.
+- Deliberately not committed: the mechanism. There is **no systemd-native
+  facility** for authenticated boot-selection state. `systemd-pcrlock` uses a
+  TPM NV index but is experimental and unrelated to boot counting, and
+  systemd-boot's counters are filenames on vfat. Building one would run against
+  A-014 and RES-0001's finding that NeutrinOS should not create mechanisms, so
+  the obligation is recorded and the mechanism waits for the spike rather than
+  incurring design debt now.
+- Disposition: **Resolved 2026-08-11, accepted by Jason Tarasovic**, as a
+  narrowed claim. Encrypted state keeps the accepted risk subject to the
+  hostile-state exercise; boot-selection integrity becomes a named requirement
+  with no mechanism selected.
 - Residual risk: compromise may be undetectable, so operators can mistakenly
-  choose availability recovery.
+  choose availability recovery. Added: a named obligation with no mechanism can
+  persist indefinitely as a documented gap, and the ESP remains unauthenticated
+  in the meantime.
 
 ### C-011: Local recovery shares too much failure domain
 

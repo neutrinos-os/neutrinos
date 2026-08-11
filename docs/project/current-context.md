@@ -200,6 +200,19 @@ the unreproducible btrfs and FAT bytes PLN-0001 identified move to state, where
 reproducibility is not claimed -- a consequence of the decision, never a reason
 for it.
 
+**Two DES-0006 challenges are drafted and open**, both from RES-0014's review
+of shipping A/B updaters and neither accepted. C-014: the staging sequence
+never marks the target slot ineligible before overwriting it, so on a second
+update the retained eligible fallback becomes a partial image while still
+selectable -- the outcome SYS-050 forbids, reached through ordinary operation.
+C-015: the design carries only half of SYS-038, selecting a fallback on
+exhaustion but never designing the "or stop with an attributable diagnosis"
+half, so deployments that all fail assessment can alternate indefinitely.
+Neither needs a requirement change, but C-015 rests on an owner interpretation
+of whether SYS-038's bounded accounting reaches the cross-deployment loop or
+only a single trial boot. Both amendments are drafted verbatim in the review
+and are not in the design until accepted.
+
 **PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
 the exit-criteria assessment drafted in the plan, including its qualification
 that criterion 5 is met for six of seven injected faults. One owner decision

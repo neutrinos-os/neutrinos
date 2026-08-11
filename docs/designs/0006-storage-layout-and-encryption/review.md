@@ -295,6 +295,96 @@ the paper mapping proven.
   residual: where per-machine identity comes from is now constrained -- it
   cannot live in `/etc` -- and is left to L-003.
 
+### C-014: Staging never makes the target ineligible before overwriting it
+
+- Severity: critical
+- Raised: 2026-08-11, from [RES-0014](../../research/comparisons/embedded-ab-update-field-evidence.md).
+  Not part of the 2026-08-09 adversarial review.
+- Claim: the failure table already requires that interrupted staging leave
+  "inactive partial bytes ineligible", but no step in the staging sequence
+  produces that result. Step 2 chooses an inactive slot pair and step 3
+  immediately writes. On a first update the claim holds for free, because the
+  inactive slot is empty. On a second update that slot holds the previous
+  **eligible** deployment -- the retained fallback step 8 promises to keep --
+  and the first byte written destroys it while its eligibility marker still
+  stands.
+- Failure or cost if true: between the first byte of step 3 and its verify,
+  the retained fallback is a partial image that the selection mechanism still
+  considers a candidate. Boot-attempt exhaustion under SYS-038 could select it.
+  This is C-001's authenticated hybrid reached through ordinary operation
+  rather than an exotic interruption, and it is what SYS-050 forbids when it
+  says partial staging must not "expose a boot entry".
+- Prior art: RAUC's documented order is verify the bundle, **mark the target
+  slots non-bootable**, then write, precisely so that an interruption mid-write
+  cannot leave a slot the bootloader still treats as a candidate.
+- Requirement effect: **none.** SYS-050 already forbids the outcome. Note that
+  SYS-050 preserves the booted deployment plus *capacity for* one candidate or
+  eligible fallback, so overwriting the previous fallback with a new candidate
+  is permitted; the defect is the surviving eligibility marker, not the
+  overwrite.
+- Proposed amendment, awaiting acceptance: insert a step between the current
+  steps 2 and 3 of "Staging and selection" --
+
+  > 3. Mark the chosen slot pair ineligible for selection, durably, before
+  >    writing any byte into it. The previous occupant stops being a retained
+  >    fallback at this point rather than when it is overwritten.
+
+  -- renumbering the remainder, and add a failure-table row: "Ineligibility
+  marking interrupted | Target remains ineligible or the marking is not
+  observed at all; never a slot marked eligible with foreign bytes in it".
+  Durability is the load-bearing word: marking held only in memory leaves the
+  window unchanged across power loss.
+- Author response: none recorded.
+- Disposition: open.
+- Residual risk: the mechanism for durable ineligibility is not chosen here and
+  interacts with the ESP failure domain raised in C-011 and RES-0014, since
+  systemd-boot's counters live as filenames on the same FAT filesystem as the
+  artifacts they select.
+
+### C-015: Nothing bounds oscillation between deployments that all fail
+
+- Severity: major
+- Raised: 2026-08-11, from [RES-0014](../../research/comparisons/embedded-ab-update-field-evidence.md).
+- Claim: the design carries only half of SYS-038. The requirement reads
+  "Exhaustion must select an eligible normal fallback **or stop with an
+  attributable diagnosis**"; the design says "boot attempt exhaustion may
+  select only a retained eligible normal deployment" and never designs the
+  stop. Nothing describes what happens when the deployment selected by
+  exhaustion also boots and also fails role-health assessment.
+- Failure or cost if true: two eligible deployments that both boot and both
+  fail assessment can alternate indefinitely, each with a fresh attempt
+  counter. The machine is powered, unattended, and never converges. On the
+  router this is the difference between a diagnosable dead machine and one that
+  looks alive over IPMI while cycling.
+- Prior art: Mender persists update state across reboots with a
+  `state_data_store_count` whose only purpose is to detect state loops and
+  force termination into a failure state rather than rebooting again.
+- Requirement effect: **none, under the reading that SYS-038's "or stop with an
+  attributable diagnosis" clause makes the terminal state already required.**
+  This is an interpretation and belongs to the owner: SYS-038 bounds attempt
+  accounting *per trial boot*, and whether "durable bounded" also bounds the
+  cross-deployment loop is not stated. If the narrower reading is taken, the
+  loop is unrequired and this becomes a decision-backlog item rather than a
+  design amendment.
+- Proposed amendment, awaiting acceptance: extend the fallback paragraph so
+  that exhaustion-driven selection is itself bounded, and terminate in the stop
+  SYS-038 already permits --
+
+  > Selection driven by exhaustion is itself durably counted. When every
+  > eligible normal deployment has been selected by exhaustion and failed
+  > assessment, the machine stops with an attributable diagnosis naming each
+  > deployment and its failure, rather than selecting again. It does not enter
+  > recovery automatically, as SYS-038 requires.
+
+  -- and add a failure-table row: "Every eligible deployment boots and fails
+  assessment | Bounded, attributable stop naming each deployment tried; no
+  further automatic selection; no automatic recovery entry".
+- Author response: none recorded.
+- Disposition: open.
+- Residual risk: the counter is state, and state is exactly what may be damaged
+  in the scenarios that trigger it. Where it lives, and whether it survives the
+  failure modes it exists to bound, is unresolved.
+
 ## Missing alternatives or evidence
 
 - A measured comparison with a single versioned root-image-file store rather
@@ -320,6 +410,9 @@ remains in review and must:
 1. Keep root format, recovery packaging, workstation mutable filesystem,
    router target disk, and exact TPM policy explicitly gated by experiments.
 2. Add the multi-resource hybrid, capacity exhaustion, recovery-material loss,
-   hostile state, `/etc` writer, and full-storage cases to the spike plan.
+   hostile state, `/etc` writer, and full-storage cases to the spike plan,
+   together with the second-update overwrite of a retained eligible fallback
+   (C-014) and the case where every eligible deployment fails assessment
+   (C-015).
 3. Do not accept a production router claim until hardware-bound unlock and
    independent console recovery are physically exercised.

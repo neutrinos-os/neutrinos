@@ -353,7 +353,62 @@ root for the fixture, and build determinism kept as one of eight criteria with
 no single winner. **C-006 carries forward as the standing risk**: task 03 draws
 the first confext path carve and builds the first confext tooling, both marked
 candidate, and that protection is procedural rather than structural until
-DES-0005 takes the carve back.
+ DES-0005 takes the carve back.
+
+**PLN-0002-01 is complete and the gate is not triggered.** The `/usr`-only boot
+path C-013 accepted works: an EROFS `/usr` authenticated by dm-verity, its root
+hash on a signed UKI's command line, mounted read-only onto a **tmpfs root with
+no persistent storage at all**, reaching `multi-user.target`. The verity
+generator derives both partition UUIDs from the root hash itself, so the command
+line names a hash and the hash finds its own partitions.
+`systemd-confext-sysroot.service` runs in the initrd, merges a confext into
+`/sysroot/etc` before switch-root, and the merge survives. See the [early-boot
+record](spike-early-boot-record.md). An inputs defect was found and ruled first:
+Fedora 44 ships systemd 259.5 and stays on the 259.x series, while
+`systemd-confext-sysroot.service` is new in 261, so the declared closure could
+not exercise the mechanism C-013 names. **Owner ruling 2026-08-11**: take the
+OBS `system:systemd` Fedora 44 build as a local package overlay, retained with
+digests, so `LocalMirror=` keeps enforcing the single frozen repository by
+construction; one fixture, no split. The overlay was verified to have landed in
+both the manifest and pid 1 rather than assumed, F-RES-01 being the recorded
+case of a substitution passing unnoticed. **Three findings are handed back and
+none is taken by the drafter.** A tmpfs root leaves a separately delivered
+signed confext nowhere to live, because the only search path that survives is
+inside the authenticated artifact -- and a confext delivered beside the UKI
+reaches only the initrd's `/etc`, which is discarded at switch-root. Read-only
+`/etc` makes first-boot presets fail wholesale, so `dbus.socket` was never
+enabled and four units failed; runtime unit enablement is therefore unavailable
+and must move to composition or to a confext. And systemd announced `Missing
+/etc/machine-id and /etc/ is read-only`, booting on a transient identity that
+changes every boot, which is evidence for C-013's `L-003` deferral rather than a
+resolution of it. The read-only `/etc` in all three is C-006 working as ruled --
+and it holds **only while a confext is merged**, since without one `/etc` is an
+ordinary writable tmpfs and the silent non-durability C-006 names would
+return -- which was then measured directly, not argued: the refused-confext run
+is the reference boot with one difference, and in it the write probe succeeded
+and all twenty preset failures disappeared.
+
+Failure capture is established for the rest of PLN-0002 (PR-0030 C-009), and
+**two of three induced failures did not fail as the plan assumed**. A byte
+flipped inside the authenticated `/usr` **booted normally**: dm-verity verifies
+lazily, per block, on read, so nothing checked the block nothing read. The
+diagnostic is precise once the block is touched -- `device-mapper: verity: 253:2:
+data block 1000 is corrupted`, with `EIO` on the specific file -- but the
+consequence is architectural: **a successful boot is not a statement about the
+artifact**, for either format, so the harness now reads every file in `/usr` and
+the reference does so cleanly. A refused confext, its base compatibility
+declaring `ID=debian`, was correctly refused and **failed silently**: the unit
+reported `Finished`, nothing failed, and the machine booted unconfigured, so
+DES-0005's per-confext required/optional policy needs a mechanism that does not
+exist in what was observed. Withholding the modules initrd fails closed in the
+initrd at `Timed out waiting for device dev-mapper-usr.device`; an
+EROFS-specific exclusion could not be expressed through mkosi v26's module
+patterns in two attempts, both of which booted clean, so that case carries to
+PLN-0002-09. Emergency mode is reached but unusable (`the root account is
+locked`), and notify-vsock readiness does not apply to a pre-`/usr` failure,
+which is why the harness treats a timeout as a result. Evidence retained outside
+the repository at 416 KiB across 8 files with one SHA-256 each, unsafe-output
+scan clean; the synthetic keys are deliberately kept for PLN-0002-10.
 
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since

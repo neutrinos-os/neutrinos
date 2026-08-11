@@ -108,7 +108,7 @@ Ordered so the plan's most likely falsification runs first (PR-0030 C-007).
 
 | Task | Status | Depends on | Output/evidence | Next action |
 | --- | --- | --- | --- | --- |
-| PLN-0002-01 | pending | — | **Early-boot spike, one format, throwaway.** What is consumed before `/usr` is verified; whether `systemd-confext-initrd`/`systemd-confext-sysroot` behave as C-013 assumed; the named failure-capture path for every later task | Build the smallest thing that boots `/usr`-only and instrument the initrd stage. **If C-013's early-boot assumption is false, stop and return to DES-0006 review before anything else is built** |
+| PLN-0002-01 | **complete** | — | **Early-boot spike, one format, throwaway.** What is consumed before `/usr` is verified; whether `systemd-confext-initrd`/`systemd-confext-sysroot` behave as C-013 assumed; the named failure-capture path for every later task | Complete 2026-08-11. **The assumption holds and the gate is not triggered**: the `/usr`-only path boots on a tmpfs root, and `systemd-confext-sysroot.service` merges a confext into `/sysroot/etc` before switch-root. See the [early-boot record](../project/spike-early-boot-record.md). Owner ruling 2026-08-11: systemd 261 arrives as a local package overlay from OBS `system:systemd`, because Fedora 44 stays on 259.x and the unit is new in 261. Three findings are handed back and taken nowhere: a tmpfs root leaves a separately delivered confext with nowhere to live, read-only `/etc` breaks first-boot presets so runtime unit enablement is unavailable, and `/etc/machine-id` has no home |
 | PLN-0002-02 | pending | 01 | `/usr`-only composition from the PLN-0001 closure, release defaults in `/usr/lib`, declaration and retention mechanisms intact | Extend `compose.sh`; record what moved out of the flattened root |
 | PLN-0002-03 | pending | 01 | Confext build path and a minimal path carve, both **marked candidate and handed back** to DES-0005 and the ADR-0003 spike | Produce the signed confext the boot needs; record the carve as the first drawn, not the reference |
 | PLN-0002-04 | pending | 01 | Disposable layout: ESP, one `/usr` slot, one Verity slot, **tmpfs root partition**, one confext. Fixture status recorded in the work register at creation | Build `systemd-repart` definitions. **Owner ruling 2026-08-11: tmpfs, which is the preferred direction and avoids the first draft's contradiction of the accepted C-008 ruling.** `/var` is tmpfs-backed and nothing persists; no machine-state volume is built, so C-008 is respected by not implementing the thing it governs |
@@ -132,7 +132,9 @@ available tooling; or a task needs a mechanism selection `S-004` or `C-009` has
 not made.
 
 **Failure capture is named before it is needed** (PR-0030 C-009). Task 01
-establishes, and every later task uses: how the journal is recovered when the
+established it on 2026-08-11 by inducing three failures; see the
+[early-boot record](../project/spike-early-boot-record.md). Every later task
+uses: how the journal is recovered when the
 machine never reaches userspace, which PLN-0001 had to do offline from a disk
 copy; the console path, given PLN-0001's composition amendments were reverted;
 whether notify-vsock readiness applies to a pre-`/usr` failure, which it does
@@ -161,7 +163,7 @@ rather than measured: a half-built `/usr` is the hybrid C-001 warns about.
 | --- | --- | --- |
 | C-013's early boot is its own stated residual risk | Task 01 may falsify part of an accepted amendment | Scheduled first for exactly that reason. A falsification returns to DES-0006 review; it is not worked around |
 | The initrd cannot be identical across arms, since each needs its own filesystem driver | Boot and memory partly measure the initrd, not the format | Task 05 declares the asymmetry and which arm it advantages; task 13 names it as a threat to the finding |
-| mkosi may not express a `/usr`-only artifact with Verity as directly as PLN-0001's flattened root | Task 02 cost, possibly a different composition path | Test in task 01; if the fixture cannot express it, stop for review rather than hand-rolling a second composition path |
+| mkosi may not express a `/usr`-only artifact with Verity as directly as PLN-0001's flattened root | Task 02 cost, possibly a different composition path | **Closed by task 01, 2026-08-11.** It expresses it directly through `mkosi.repart` definitions, and parses the root hash out of repart's JSON to inject `usrhash=` into the UKI itself. No second composition path is needed |
 | Task 03 draws the first confext path carve and builds the first confext tooling | Both become the reference by being first -- the implementation-accident failure mode | Marked candidate at creation and handed back to DES-0005 and ADR-0003. The plan states it does not own them |
 | The tmpfs root partition is a fixture, and the persistence question DES-0006 records as open stays open | A fixture could look like a decision | Task 04 records fixture status in the register at creation. tmpfs is the cheaper and less committal of the two, which is why the owner chose it |
 | The comparison could be decided by `mkfs` flags rather than by the formats | Wrong answer to C-007 -- the failure C-007 predicts | Task 05 declares every parameter before task 06 builds; an undeclared parameter invalidates the comparison |

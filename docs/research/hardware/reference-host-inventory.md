@@ -1,8 +1,13 @@
 ---
 id: RES-0004
 status: in-review
-last_updated: 2026-08-09
+last_updated: 2026-08-11
 evidence_cutoff: 2026-08-09
+evidence_cutoff_scope: |
+  The 2026-08-09 cutoff covers every live-inspection observation. Two later
+  additions are not live inspection: the router TPM module recorded as acquired
+  on 2026-08-10 is owner input, and the note on Haswell-era Intel PTT versions
+  is vendor and secondary documentation. Neither changes an observed row.
 decision_gates: [P-004, S-004, S-005, S-006]
 ---
 
@@ -162,7 +167,7 @@ version-controlled NixOS intent but not confirmed on the running machine.
 | systemd-boot | Unknown current bootloader | Files observed; active selection unverified | Files observed; active selection unverified |
 | Secure Boot enabled | Observed no | Observed no | Observed no |
 | Owner-controlled platform keys | Not currently enrolled; capability untested | Not currently enrolled; capability untested | Not currently enrolled; capability untested |
-| TPM capability | TPM 2.0 advertised; operation untested | No firmware TPM evidence; compatible discrete TPM 2.0 modules documented but not observed | Intel PTT documented; not exposed to Linux and version/operation unverified |
+| TPM capability | TPM 2.0 advertised; operation untested | No firmware TPM evidence; a documented discrete TPM 2.0 module was acquired 2026-08-10 but is not installed, so the capability remains absent per PR-0005 | Intel PTT documented; not exposed to Linux and version/operation unverified. Vendor sources do not establish whether Haswell-era PTT presents TPM 1.2 or 2.0 |
 | Authenticated immutable root | Not present or demonstrated | Not configured or demonstrated | Not configured or demonstrated |
 | Storage encryption | Not visible; confirmation needed | No LUKS/dm-crypt mapping observed | No LUKS/dm-crypt mapping observed |
 | Unattended reboot | Not yet a stated workstation requirement | Required in principle; mechanism unverified | Unknown |
@@ -196,14 +201,21 @@ version-controlled NixOS intent but not confirmed on the running machine.
 - test owner-key enrollment and firmware reset behavior;
 - inventory removable-media and firmware-console recovery;
 - define the storage-encryption migration and data-preservation boundary; and
-- record acceptable interactive versus unattended unlock behavior.
+- record acceptable interactive versus unattended unlock behavior. The routine
+  unlock policy is ruled: **TPM2 + PIN** (DES-0006 C-003, 2026-08-11). What
+  remains is exercising it, since TPM operation is untested, Secure Boot is
+  off, and owner keys are not enrolled.
 
 ### `router`
 
 - state acceptable outage and whether every normal reboot must be unattended;
-- decide whether to acquire a compatible discrete TPM 2.0 module, after
-  checking orientation and chassis clearance, or retain TPM absence as an
-  explicit initial hardware constraint;
+- install and qualify the discrete TPM 2.0 module acquired 2026-08-10, after
+  checking orientation and chassis clearance. Until it is installed and
+  exercised the capability stays absent per PR-0005, and the installation is
+  physical work on the host carrying the development network, so R-054 applies
+  and out-of-band access must be proven first. This replaces the earlier item,
+  which asked whether to acquire a module or retain TPM absence as an explicit
+  initial hardware constraint;
 - verify the active firmware boot entry and systemd-boot update behavior;
 - exercise IPMI power control and remote console without depending on the
   router's data-plane network;
@@ -216,7 +228,16 @@ version-controlled NixOS intent but not confirmed on the running machine.
 - defer detailed collection until the server role enters active design unless
   its hardware can cheaply provide evidence relevant to the common trust path;
 - inspect firmware security settings for Intel PTT and, if enabled, verify the
-  interface, TPM version, PCR banks, event log, and clear/recovery behavior;
+  interface, TPM version, PCR banks, event log, and clear/recovery behavior.
+  The TPM version is the decisive question and cannot be settled from vendor
+  documentation: Intel's D54250WYK specification states PTT support without a
+  version, PTT on Haswell existed only on low-power chipsets such as this
+  board's i5-4250U, and broad PTT compliance with TPM 2.0 dates from Skylake,
+  with Haswell-era implementations commonly presenting TPM 1.2. Enable PTT in
+  firmware, then read `/sys/class/tpm/tpm0/tpm_version_major` and check for
+  `/dev/tpmrm0`, which exists only for TPM 2.0. If the answer is 1.2, the
+  capability is unusable for `systemd-cryptenroll --tpm2` and `misc` has no
+  hardware-bound unlock path;
 - verify the active firmware boot entry and systemd-boot update behavior; and
 - inventory its physical recovery path before it becomes a qualification host.
 

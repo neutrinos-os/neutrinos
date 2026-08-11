@@ -109,9 +109,38 @@ the paper mapping proven.
   TPM2+PIN/FIDO2 for the workstation.
 - Author response: the design repeats PR-0005's narrow claim and keeps session
   authentication, revocation, and compromise recovery separate.
-- Disposition: mitigated at the claim level; owner policy remains open.
+- Already settled elsewhere, and not reopened here: the permitted claim, fixed
+  by PR-0005 C-001 -- hardware-bound unlock protects against offline extraction
+  and unauthorized boot substitution under the platform assumption, while
+  session authentication and revocation protect the running machine. The router
+  is likewise settled by PR-0005: without a proven hardware-bound secret
+  facility it may be a development target but does not meet the production
+  confidentiality objective.
+- Owner ruling, 2026-08-11: the workstation target is **TPM2 + PIN**. It
+  defeats the scenario this challenge names, a stolen intact machine that
+  decrypts itself with nobody present, and the inventory records that
+  unattended reboot is not a stated workstation requirement, so the cost is a
+  typed secret rather than a lost capability. Unattended TPM2 alone was
+  rejected for the workstation.
+- Enabling conditions, stated so this is not mistaken for an available
+  capability: `desktop-jason` advertises TPM 2.0 but its **operation is
+  untested**, Secure Boot is **off**, and owner platform keys are **not
+  enrolled**. This is a migration target that PR-0005 C-002's mandatory
+  exercises gate, not a setting to turn on.
+- Consequence for C-005: the PIN joins the recovery-material inventory. A PIN
+  that is forgotten is an availability event, so the independently retained
+  high-entropy recovery method is load-bearing rather than ceremonial.
+- Hardware facts changed 2026-08-11: the documented discrete TPM 2.0 module for
+  the router has been **acquired but not installed**. PR-0005 requires treating
+  the capability as absent until a module is installed and exercised, so no
+  inventory row or confidentiality claim moves yet. Installation is physical
+  work on the machine carrying the development network, which is R-054's first
+  concrete instance.
+- Disposition: **workstation policy resolved 2026-08-11, accepted by Jason
+  Tarasovic.** Router unchanged pending module installation and qualification.
 - Residual risk: an authorized pre-login vulnerability can expose unlocked
-  data.
+  data. A PIN moves part of the protection into something memorized, which
+  fails differently from a sealed secret and fails at the worst time.
 
 ### C-004: Signed PCR policy creates another high-value signer
 

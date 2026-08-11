@@ -235,6 +235,27 @@ exhaustion counter and known-good record live, given that state is what may be
 damaged in the scenarios that trigger them, and what a machine running in an
 unassessed condition is permitted to keep doing, router traffic in particular.
 
+**C-008 is resolved and took the glossary with it**, accepted by Jason
+Tarasovic on 2026-08-11. `/var` belongs to the machine-state volume, and every
+remaining volume must name the custody, unlock, recovery, preservation, or
+destruction difference that justifies it or be collapsed. Encryption scope was
+never the question: `/usr` is public release content, dm-verity authenticated
+and deliberately unencrypted, and `repart` cannot combine `Verity=` and
+`Encrypt=` anyway. The actual defect was vocabulary -- C-013 left the word
+**root** naming the superseded authenticated root, the new writable partition,
+and the dm-verity root hash at once, and the glossary still defined only the
+first. `root image` and `root slot` are retired in favor of release artifact
+image and `/usr` slot, `root partition` is defined as the unauthenticated
+writable filesystem holding the regenerated `/etc`, and bare **root** joins the
+discouraged terms. Retained pre-amendment records and quoted upstream text keep
+the old words; other designs still using `root image` generically are a
+separate unswept surface. One question is recorded rather than absorbed:
+whether the root partition needs to persist at all, since a tmpfs would leave
+nothing durable outside the ESP and the named state volumes and would enforce
+the "nothing durable in `/etc`" rule by construction, against ParticleOS's
+persistent encrypted `btrfs` root with `/var` as a subvolume. It changes the
+partition count, so it is a decision, not a detail.
+
 **PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
 the exit-criteria assessment drafted in the plan, including its qualification
 that criterion 5 is met for six of seven injected faults. One owner decision

@@ -244,8 +244,11 @@ Format-specific artifact terms retain their upstream meanings:
 - **UKI**: A UAPI Unified Kernel Image: a UEFI PE file combining a boot stub,
   kernel, optional initrd, and related resources.
 - **DDI**: A UAPI Discoverable Disk Image: a self-describing GPT disk image.
-- **root image**: A DDI or other explicitly named filesystem image used as the
-  immutable release-owned root.
+- **release artifact image**: A DDI or other explicitly named filesystem image
+  carrying immutable release-owned system content. Under DES-0006's 2026-08-11
+  amendment that content is `/usr`, not a complete root, so **root image** is
+  retired as a NeutrinOS term; it survives only in retained pre-amendment
+  records and in upstream text quoted unchanged.
 - **system extension image** or **sysext**: A UAPI extension image for `/usr`
   or `/opt`.
 - **configuration extension image** or **confext**: A UAPI extension image for
@@ -262,12 +265,20 @@ Format-specific artifact terms retain their upstream meanings:
 - **storage slot**: A bounded destination capable of holding one version of a
   deployment artifact. A slot name, number, partition label, or position is a
   locator, not artifact or deployment identity.
-- **root slot**: A storage slot holding one immutable root image. When dm-verity
-  is used, its matching Verity data is part of the deployment closure even if
-  stored in a separate slot.
+- **`/usr` slot**: A storage slot holding one immutable release artifact image.
+  When dm-verity is used, its matching Verity data is part of the deployment
+  closure even if stored in a separate slot. Supersedes **root slot**, which is
+  retired for the same reason as **root image**.
 - **root hash**: The trusted top-level dm-verity digest that authenticates one
-  exact root data and hash-tree combination. A root hash is an artifact binding,
-  not release authorization or qualification.
+  exact release artifact data and hash-tree combination. A root hash is an
+  artifact binding, not release authorization or qualification. It is named for
+  the root of the hash tree and has nothing to do with a root filesystem or the
+  root partition.
+- **root partition**: The writable filesystem that the UAPI Discoverable
+  Partitions Specification types as root, into which the authenticated `/usr`
+  is mounted. It carries no release content and is not authenticated. It holds
+  the regenerated `/etc` and, subject to DES-0006, may or may not hold `/var`.
+  Its persistence is a live design question, so it must not be assumed durable.
 - **state volume**: A block volume or filesystem holding one or more persistent
   state-contract namespaces with compatible custody, unlock, preservation,
   recovery, and destruction policy.
@@ -510,8 +521,11 @@ Status properties must remain distinct:
 - Use **layer** only in a qualified upstream term such as **OCI layer**. Use
   configuration source, configuration scope, deployment artifact, project
   surface, or another exact term for other meanings.
-- Qualify **image** and **manifest**, for example root image, OCI image, or
-  deployment manifest.
+- Qualify **image** and **manifest**, for example release artifact image, OCI
+  image, or deployment manifest.
+- Never use bare **root**. It now has three unrelated referents: the
+  authenticated release artifact and its `/usr` slot, the unauthenticated
+  writable root partition, and the dm-verity root hash. Name which one.
 - Qualify **scope**, **role**, and **state** when more than one kind is in play.
 - Avoid **installed** and **active** for deployment lifecycle status; use
   acquired, staged, selected, booted, or blessed.

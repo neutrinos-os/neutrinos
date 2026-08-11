@@ -389,7 +389,37 @@ the paper mapping proven.
 - Author response: the proposal explicitly uses volumes by custody/unlock
   boundary, not by path or every state owner; the workstation's two-volume split
   follows separate physical disks and reprovisioning lifecycles.
-- Disposition: mitigated on paper; exercise required.
+- Owner review, 2026-08-11: the challenge got harder, not easier, between the
+  original review and this pass. C-013 introduced a writable root partition that
+  no volume count included, and the design did not say whether it *is* the
+  machine-state volume or a partition beside it. C-005 then priced every volume
+  at a recovery key, an independent header backup, a restore test, and an S-006
+  custody entry, and C-003 gave each one its own unlock question -- where
+  chaining one volume's unlock to another collapses exactly the compromise
+  boundary the split exists to create.
+- The confusion was terminological. The word **root** was carrying the
+  superseded read-only authenticated root, the new writable partition, and the
+  dm-verity root hash at once. [The glossary](../../project/glossary.md) was
+  corrected in the same pass: `root image` and `root slot` are retired,
+  `root partition` is defined, and bare `root` is now a discouraged term.
+- Encryption scope is not in question and never was. `/usr` is public release
+  content, authenticated by dm-verity and deliberately unencrypted; `repart`
+  cannot combine `Verity=` and `Encrypt=` on one partition in any case.
+  Confidentiality is owed to machine state -- journals, boot-assessment
+  evidence, update records, crash diagnostics -- not to release bytes.
+- Disposition: **Resolved 2026-08-11, accepted by Jason Tarasovic.** `/var`
+  belongs to the machine-state volume, under that volume's custody, unlock,
+  recovery, preservation, and destruction policy. It is the machine-lifecycle
+  content the state volume already enumerates and the content that wants
+  confidentiality. Separately, the design must enumerate each volume with the
+  specific custody, unlock, recovery, preservation, or destruction **difference**
+  that justifies its existence, and collapse any volume that cannot name one.
+  A volume boundary is earned by a policy difference, not by a path, a disk, or
+  a state owner.
+- Opened by this ruling: if `/etc` holds nothing durable and `/var` lives in the
+  machine-state volume, the root partition may not need to persist at all. See
+  "Risks and unresolved questions" in the design; this is a partition-count
+  decision and is recorded rather than absorbed.
 - Residual risk: later per-user or workload encryption can expand the matrix.
 
 ### C-009: Btrfs features may not justify their operating cost everywhere

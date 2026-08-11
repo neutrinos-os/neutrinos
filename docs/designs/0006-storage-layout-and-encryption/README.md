@@ -731,7 +731,22 @@ The project-level review accepts SYS-048 through SYS-056:
 - Does the router's compatible discrete TPM module fit, enumerate, and support
   the needed policy commands?
 - Which exact state namespaces share each volume, and which `/etc` writers need
-  controlled persistent exceptions?
+  controlled persistent exceptions? Partly answered: `/var` is in the
+  machine-state volume (C-008, ruled 2026-08-11), and each remaining volume must
+  name the custody, unlock, recovery, preservation, or destruction difference
+  that justifies it.
+- Does the root partition need to persist at all? Raised by C-008,
+  2026-08-11, and open. With `/etc` holding nothing durable and `/var` in the
+  machine-state volume, a tmpfs root partition would leave nothing durable
+  outside the ESP and the named state volumes, enforcing the "nothing durable"
+  rule by construction and removing one partition's header, custody, backup, and
+  recovery burden -- the exact cost C-008 objects to. Against it: ParticleOS, the
+  closest executable reference, persists an encrypted `btrfs` root with `/var` as
+  a subvolume, which is the same fold-in with somewhere to land content not yet
+  classified. Deciding this changes the partition count, so it is not a
+  presentation detail. Early boot is the constraint to test either way, because
+  the root partition is unauthenticated and is consumed before `/usr` is
+  verified.
 - Does workstation hibernation enter initial scope?
 - Which filesystem wins the workstation user/workload exercise?
 - Does the router keep its 16 GB system disk or move the complete lifecycle to

@@ -267,44 +267,62 @@ the "nothing durable in `/etc`" rule by construction, against ParticleOS's
 persistent encrypted `btrfs` root with `/var` as a subvolume. It changes the
 partition count, so it is a decision, not a detail.
 
-**DES-0005 was checked against the confext lifecycle and does not cover it.**
-C-013 made signed confexts the only configuration delivery mechanism and
-recorded that every one of them inherits SYS-123 in full, naming DES-0005 as
-the home of that lifecycle. DES-0005 contains no occurrence of confext, sysext,
-or extension. Against SYS-123's nine obligations it covers three -- exact
-content identity, authorization, and qualification -- through the composition
-record and the rule that the deployment variant rather than the input files is
-what gets qualified. The other six are unowned, and they are unowned for one
-coherent reason: **DES-0005 was written while configuration lived inside the
-deployment artifact**, where these questions cannot arise. Base compatibility
-has no analogue -- the design has platform compatibility and state-contract
-compatibility, but nothing matching an extension to a base `/usr` version,
-because content shipped inside an artifact cannot mismatch its own base.
-Activation ordering exists only as build-time precedence, `common < role <
-machine`; runtime merge order across several confexts, and across the two-stage
-initrd and sysroot activation the C-013 amendment names, is a different axis.
-Health qualifies deployments and blesses locally with nothing for one confext
-of several failing to merge. Rollback is deployment rollback, and whether
-configuration may roll back independently depends on an unstated question --
-whether confexts version with the deployment manifest or separately. Retention
-has a storage home in DES-0006's Configuration artifacts region but no
-generation or garbage-collection policy. Effective-deployment status asks
-whether the machine matches its expected composition record but never
-enumerates merged extensions.
+**DES-0005 now owns the confext lifecycle**, amended and accepted by Jason
+Tarasovic on 2026-08-11. C-013 had made signed confexts the only configuration
+delivery mechanism and named DES-0005 as the home of the SYS-123 lifecycle,
+but DES-0005 contained no occurrence of confext, sysext, or extension and
+covered three of nine obligations -- content identity, authorization, and
+qualification. The other six were unowned for one coherent reason: the design
+was written while configuration lived inside the deployment artifact, where
+they cannot arise.
 
-**The structural problem is an authority crossing, and it is the owner's to
-resolve.** DES-0005's own open question -- can a separately immutable
-configuration artifact satisfy boot-time binding, fallback, and garbage
-collection more simply than flattened variants? -- was answered "yes, signed
-confexts" from inside DES-0006. That question named exactly the three things
-still missing: boot-time binding is base compatibility plus activation
-ordering, fallback is rollback, garbage collection is retention. DES-0005
-correctly identified what it was deferring; C-013 adopted the mechanism without
-answering them. DES-0005 is **accepted**, so it now carries a hole it did not
-have when PR-0008 accepted it, and closing that hole is an amendment to an
-accepted design rather than drafting work. Nothing here reopens C-013: its
-requirement-effect analysis concerned accepted requirements, and it flagged
-this obligation explicitly.
+The accepted amendment settles all nine. **A deployment variant resolves to a
+set of confexts, not one.** A 1:1 draft was rejected by the owner in the same
+pass: it fused two costs, and while 1:1 is linear in fleet size rather than
+combinatorial, binding each confext to an exact deployment identity forced
+every machine's configuration to be rebuilt and re-signed on every `/usr`
+release that changed nothing it contained, and made sharing impossible by
+construction. Base compatibility is therefore a **guard**, not an identity
+binding: `extension-release.d` declares a base level and blocks activation
+against an incompatible `/usr`, while the deployment manifest continues to bind
+the literal tuple, which is already C-001's answer to the hybrid problem. A
+`/usr` release now requires re-qualification, not a rebuild.
+
+**The split is by disjoint path ownership along consumer lines, never by
+scope.** Splitting along `common`/`role`/`machine` would fail, because those
+scopes overlap by construction -- machine scope exists to override role scope
+for the same key -- so resolving them would need activation-time precedence,
+which is the boot-time machine assembly DES-0005 already rejected and which
+stays rejected. Precedence resolves at build time within each confext, and two
+confexts claiming the same path is a composition-time error. Disjointness is
+what makes merge order unable to change the effective result, so ordering
+becomes a scheduling question rather than a semantic one. Reuse comes from two
+machines legitimately having byte-identical subsystem configuration, which the
+composition record can prove.
+
+**Failure policy is declared per confext**, on owner direction, which is what
+gives the split meaning beyond transport: required fails the trial boot,
+optional marks the deployment degraded and unblessable, and neither may fall
+back to `/usr/lib` defaults and report success. The declaration is authored in
+the fleet inventory and only carried by the image, because an artifact
+declaring its own criticality would authorize its own failure handling;
+disagreement with the manifest is substitution and fails the gate. Unclassified
+defaults to required. Rollback follows the deployment and never happens
+independently. **Retention became a reference count** -- a confext lives while
+any retained deployment names it -- and that is the one place sharing adds
+machinery: collecting one because a single deployment was dropped could strip a
+retained fallback that still needs it, which is C-014's SYS-050 violation
+arriving through garbage collection instead of staging. Status enumerates every
+merged confext and its declared policy rather than inferring them.
+
+Left unsettled and named as such: confext build tooling, which belongs with the
+ADR-0003 spike; per-machine identity and secrets, still `L-003`; the
+unqualified-configuration test path, which genuinely conflicts with
+`image_policy_confext_strict`; whether `Mutable=` could ever be argued back on
+its own evidence; and **the actual path carve**, which is mechanically checkable
+once drawn but which nobody has drawn. Verification items 11-19 were added,
+including proving order-invariance by merging a set in several orders and
+comparing effective configuration byte for byte.
 
 **PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
 the exit-criteria assessment drafted in the plan, including its qualification

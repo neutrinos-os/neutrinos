@@ -355,8 +355,11 @@ the paper mapping proven.
 - Handed on, not closed by this: the confext lifecycle SYS-123 demands, and the
   mechanism satisfying both the fail-loudly guarantee and the experimentation
   path. `confext` currently appears in no design but this one, so C-013 created
-  an obligation that the configuration design has not yet absorbed. DES-0005 is
-  its home; the governing open decision stays backlog item `C-002`. The experimentation path additionally conflicts with
+  an obligation the configuration design had not absorbed. **DES-0005 absorbed
+  it on 2026-08-11**, accepting an amendment that settles all nine SYS-123
+  obligations for a set of disjoint confexts. The governing open decision stays
+  backlog item `C-002`, and the experimentation path is explicitly among the
+  things that amendment left unsettled. The experimentation path additionally conflicts with
   `image_policy_confext_strict`, which requires signed extensions, so its scope
   is a production/non-production role distinction of the kind SYS-030 draws.
 - Residual risk: exceptions can accumulate until `/etc` is effectively mutable.

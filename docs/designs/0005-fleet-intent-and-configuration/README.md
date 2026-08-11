@@ -6,7 +6,7 @@ owners: [Jason Tarasovic]
 reviewers: [Codex]
 created: 2026-08-09
 last_updated: 2026-08-11
-amendment_proposed: 2026-08-11
+amended: 2026-08-11
 depends_on: [DES-0001, DES-0002, DES-0003, DES-0006]
 decision_backlog: [S-003, C-001, C-002, L-003]
 related_adrs: [ADR-0003]
@@ -130,11 +130,11 @@ libraries. Operator records remain data, native settings do not wait for a
 project schema, defaults are materialized, unknown intent fails, and no
 inventory-supplied code implements validation or composition.
 
-## Amendment, proposed 2026-08-11: configuration is delivered as a signed confext
+## Amendment 2026-08-11: configuration is delivered as signed confexts
 
-**Status: proposed, drafted by an agent, not accepted.** It amends an accepted
-design and requires Jason Tarasovic's acceptance before any part of it is
-policy. Until then the accepted text above stands.
+**Accepted by Jason Tarasovic on 2026-08-11.** It amends an accepted design and
+is policy from that date. The 1:1 draft it replaces was rejected by the owner
+in the same pass and survives only in git history.
 
 DES-0006 C-013, accepted 2026-08-11, made the authenticated release artifact
 `/usr` rather than a complete root, and made signed confexts the **only**
@@ -675,7 +675,7 @@ demonstrate:
 10. one configuration change traced through composition, deployment identity,
     qualification, selection, runtime status, and deliberate rollback.
 
-If the proposed confext amendment is accepted, it adds:
+The confext amendment adds:
 
 11. two confexts in one deployment claiming the same path failing at
     composition time, not being resolved by activation order;
@@ -751,9 +751,9 @@ The following requirements were accepted through
   binding, fallback, and garbage collection more simply than flattened
   variants?~~ Answered by DES-0006 C-013 on 2026-08-11: yes, a signed confext,
   and flattened variants are foreclosed rather than merely beaten. The
-  proposed amendment above settles the three parts this question named. **The
-  answer arrived from outside this design**, which is why it is recorded as a
-  proposed amendment awaiting acceptance rather than as a resolved question.
+  amendment above settles the three parts this question named. **The answer
+  arrived from outside this design**, which is why it was brought back here and
+  accepted as an amendment rather than left as a storage decision.
 - Is Ignition worth supporting for the reference VM, or should first
   provisioning use a smaller systemd-native path?
 

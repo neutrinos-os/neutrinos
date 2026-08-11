@@ -53,8 +53,9 @@ performing any migration on the reference machines.
 - Finalize the confext lifecycle that delivers configuration, the
   administrator-override surface, or the bounded experimentation path for
   unqualified configuration. Ownership and delivery remain decision-backlog
-  item `C-002`; the lifecycle SYS-123 demands belongs to DES-0005. This design
-  states only what storage must guarantee.
+  item `C-002`; the lifecycle SYS-123 demands belongs to DES-0005, which
+  accepted it as an amendment on 2026-08-11. This design states only what
+  storage must guarantee.
 - Select the workstation hibernation policy, backup product, or workload
   volume format without representative exercises.
 - Design a general storage-server, RAID, NAS, or ZFS role.
@@ -262,8 +263,11 @@ Consequences this amendment accepts:
   and must be exercised, not assumed.
 - Every confext inherits SYS-123 in full: content identity, base compatibility,
   authorization, qualification, activation ordering, health, rollback,
-  retention, and effective-deployment status. No design owns that lifecycle
-  yet; DES-0005 is its home.
+  retention, and effective-deployment status. **DES-0005 took ownership on
+  2026-08-11** and its accepted amendment settles all nine: a set of confexts
+  with disjoint path ownership, base compatibility as a level guard rather than
+  an identity binding, per-confext required/optional failure policy authored in
+  the fleet inventory, and retention by reference count.
 - Routine configuration change becomes a release-artifact operation. A bounded
   path for testing unqualified configuration is therefore required, and it must
   be non-durable by construction rather than by discipline, visibly marked

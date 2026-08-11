@@ -40,6 +40,7 @@ Initial research tracks:
 - [VM test harness comparison](comparisons/vm-test-harness.md)
 - [embedded A/B updater field evidence](comparisons/embedded-ab-update-field-evidence.md)
 - [configuration delivery on a stateless `/etc`](comparisons/stateless-etc-configuration-delivery.md)
+- [maintaining the record corpus: approvals, artifact lifecycle, and a derived graph](comparisons/record-corpus-maintenance.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

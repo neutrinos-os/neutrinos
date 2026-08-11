@@ -247,9 +247,20 @@ and the dm-verity root hash at once, and the glossary still defined only the
 first. `root image` and `root slot` are retired in favor of release artifact
 image and `/usr` slot, `root partition` is defined as the unauthenticated
 writable filesystem holding the regenerated `/etc`, and bare **root** joins the
-discouraged terms. Retained pre-amendment records and quoted upstream text keep
-the old words; other designs still using `root image` generically are a
-separate unswept surface. One question is recorded rather than absorbed:
+discouraged terms. A sweep followed and DES-0006's live prose is normalized,
+with a note in the amendment explaining how to read the sections retained as
+superseded record and why `root/Verity` is deliberate where recovery is
+discussed -- the `/usr`-only scope was decided for normal deployments and was
+never argued for recovery, which may still be a complete root. **Three surfaces
+were deliberately left alone and are the owner's call.** Accepted requirements
+SYS-030, SYS-049, and SYS-090 say "release-owned root content" and
+"root/Verity"; C-013 already ruled that none needs amending because SYS-049
+never fixed the scope, so editing their wording now would be a requirement
+change dressed as a typo fix. DES-0001's artifact definition and DES-0008 use
+`root image` generically, and rewriting another design's vocabulary from inside
+a storage ruling is a scope crossing. Research, exercises, reviews, plans, and
+slice records are evidence and history and keep the words they were written
+with. One question is recorded rather than absorbed:
 whether the root partition needs to persist at all, since a tmpfs would leave
 nothing durable outside the ESP and the named state volumes and would enforce
 the "nothing durable in `/etc`" rule by construction, against ParticleOS's

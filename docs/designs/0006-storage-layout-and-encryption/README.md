@@ -22,7 +22,8 @@ sensitive data, and recover after failed updates or lost unlock hardware.
 A conventional mutable root conflates release and state. Whole-disk snapshots
 conflate OS rollback with data rollback. Full-disk encryption alone conflates
 public release content with several data-custody and recovery boundaries. A/B
-partitions alone do not prove that a UKI, root image, Verity tree, and exact
+partitions alone do not prove that a UKI, release artifact image, Verity tree,
+and exact
 configuration belong to the same qualified deployment.
 
 This design defines those boundaries before choosing partition byte counts or
@@ -80,7 +81,7 @@ ADR-0001 prefers systemd/UAPI mechanisms. RES-0006 establishes that GPT/DPS,
 
 1. An interrupted update must not overwrite the booted deployment or expose a
    boot entry for incomplete root content.
-2. The booted UKI and root/Verity pair must be joined by authenticated content,
+2. The booted UKI and `/usr`/Verity pair must be joined by authenticated content,
    not a mutable slot name or version label.
 3. Replacing a deployment must not rewrite machine identity, user data,
    workload data, or diagnostics.
@@ -114,10 +115,11 @@ the root artifact. Persistent mutable data resides in LUKS2 volumes separated
 when custody, unlock timing, recovery authority, preservation, or destruction
 policy differs.
 
-**The flattening sentence is superseded 2026-08-11 by the C-013 resolution:
-the authenticated artifact is `/usr`, and configuration is delivered by signed
-confexts rather than flattened into it. See
-[the amendment](#amendment-2026-08-11-the-authenticated-artifact-is-usr).**
+**Two sentences above are superseded 2026-08-11 by the C-013 resolution.** The
+authenticated artifact is `/usr`, not "one read-only root filesystem image",
+and configuration is delivered by signed confexts rather than flattened into
+it. See
+[the amendment](#amendment-2026-08-11-the-authenticated-artifact-is-usr).
 
 Btrfs is the leading mutable-filesystem candidate, reflecting the
 [original design goal](../../background/2026-08-09-design-session-transcript.md)
@@ -236,6 +238,17 @@ than a hard failure on a system whose claim is attributability, because it is
 discovered at the next reboot rather than at the change. Storage therefore
 requires that `/etc` present no writable durable surface in normal operation;
 the mechanism that guarantees it belongs to DES-0005.
+
+**How to read the retained pre-amendment prose.** This document was written
+when "root" named one thing. It now names three, so
+[the glossary](../../project/glossary.md) retires `root image` and `root slot`,
+defines `root partition` for the unauthenticated writable filesystem, and
+discourages the bare word (C-008, 2026-08-11). Live prose in this design was
+normalized to `/usr` slot and `/usr`/Verity pair. Sections retained as
+superseded record keep their original wording, and where recovery is discussed
+`root/Verity` is deliberate: an independently authorized recovery artifact may
+still be a complete root, because the `/usr`-only scope was decided for normal
+deployments and was never argued for recovery.
 
 Consequences this amendment accepts:
 
@@ -514,8 +527,9 @@ power-loss, and rollback plan.
 ## Recovery behavior
 
 The recovery environment is separately authorized and retained independently
-of both normal root slots. It may be a local signed UKI plus root/Verity pair,
-an appropriately self-contained recovery UKI, or exercised owner-controlled
+of both normal `/usr` slots. It may be a local signed UKI plus a recovery
+root/Verity pair, an appropriately self-contained recovery UKI, or exercised
+owner-controlled
 removable/IPMI media. The exact packaging is selected by the capacity spike.
 
 Recovery boots with normal mutable volumes locked. It first inspects platform,
@@ -558,7 +572,7 @@ layout schema, and state mounts.
 
 Filesystem feature upgrades that an older retained deployment cannot read are
 forward-only state migrations. They cross an explicit commit barrier under
-SYS-023. A snapshot, root slot, or recovery image does not undo an incompatible
+SYS-023. A snapshot, `/usr` slot, or recovery image does not undo an incompatible
 filesystem feature flag.
 
 Backup and restore operate on state-contract consistency boundaries. A raw
@@ -620,7 +634,7 @@ Machine status must expose at least:
 - physical layout schema and drift;
 - boot artifact filesystem identity, health, and free space, including whether
   an optional XBOOTLDR is present and why;
-- each root/Verity slot's artifact identities and verification result;
+- each `/usr`/Verity slot's artifact identities and verification result;
 - which deployment references each slot and which references protect it from
   garbage collection;
 - LUKS volume identity, enrolled unlock mechanism types, recovery/header-backup
@@ -757,6 +771,6 @@ The project-level review accepts SYS-048 through SYS-056:
 ## Review disposition
 
 The design is in adversarial review. RES-0006 supports the mechanism choices,
-and EX-0008 applies them to the reference machines. The root format,
+and EX-0008 applies them to the reference machines. The `/usr` artifact format,
 workstation mutable filesystem, router target disk, recovery packaging, and
 exact TPM policy remain bounded evidence gates rather than hidden assumptions.

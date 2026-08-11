@@ -1,7 +1,7 @@
 ---
 id: PLN-0001
 title: Reference-VM evidence slice
-status: active
+status: complete
 owner: Jason Tarasovic
 created: 2026-08-10
 last_updated: 2026-08-11
@@ -187,8 +187,9 @@ PLN-0000's stop conditions apply unchanged and are the authority. In addition:
 
 ### Assessment, 2026-08-11
 
-Drafted by PLN-0001-08 and **not an acceptance**. Whether these are satisfied is
-the owner's judgment; this records what was measured against each.
+Drafted by PLN-0001-08 and **accepted by Jason Tarasovic on 2026-08-11**,
+including the three qualifications the drafter raised against it (criteria 2,
+4, and 5). This records what was measured against each.
 
 1. **Met.** Eight tasks complete, none cancelled, none moved.
 2. **Met, with the trace corrected downward twice.** Every demonstrated and
@@ -215,10 +216,17 @@ the owner's judgment; this records what was measured against each.
    `L-003`, `L-004`, `C-002`, `S-004`, and `W-002`, or deferred to G2 by named
    row.
 
-Two things are deliberately left open rather than closed by this assessment:
-the plan's `status` field, and whether G1's approval should be revisited
-against the corrected trace, which [PR-0029](../project/reviews/0029-g1-gate-approval.md)
-records as post-acceptance evidence.
+**Accepted 2026-08-11. PLN-0001 is complete**; its `status` field is set
+accordingly. The acceptance covers the assessment as drafted, including
+criterion 5, which is met for six of seven injected faults: the
+undeclared-repository fault identified nothing because nothing failed, SYS-059
+remains partial, and the guards added afterwards do not retroactively make that
+run pass.
+
+One thing is **not** closed by this acceptance: whether G1's approval should be
+revisited against the corrected trace, which
+[PR-0029](../project/reviews/0029-g1-gate-approval.md) records as
+post-acceptance evidence and carries as an open owner question.
 
 ## Decision
 

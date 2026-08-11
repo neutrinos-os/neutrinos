@@ -4,7 +4,7 @@ last_updated: 2026-08-11
 source_snapshot_revision: cc87b1d
 current_gate: G1
 target_gate: G2
-active_plan: PLN-0001
+active_plan: none (PLN-0001 complete 2026-08-11; no accepted successor)
 ---
 
 # Current project context
@@ -181,10 +181,11 @@ build, and the 2026-08-11 offline rebuild from retention -- is byte-identical
 at 13240 entries with the same UKI on both ESPs. See the
 [evidence bundle record](slice-evidence-bundle.md).
 
-**Two owner decisions are open and neither is taken by the drafter**: whether
-PLN-0001 is complete, which its `status` field still reports as `active`, and
-whether G1's approval should be revisited against the corrected trace. An
-exit-criteria assessment is drafted in the plan.
+**PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
+the exit-criteria assessment drafted in the plan, including its qualification
+that criterion 5 is met for six of seven injected faults. One owner decision
+stays open and is not taken by the drafter: whether G1's approval should be
+revisited against the corrected trace.
 
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since

@@ -3,6 +3,7 @@ id: PR-0029
 subject: G1 gate approval and PRE-018
 reviewer: Claude implementation pass
 date: 2026-08-10
+last_updated: 2026-08-11
 status: accepted
 ---
 
@@ -145,3 +146,33 @@ Accepted by Jason Tarasovic on 2026-08-10. G1 is satisfied and PRE-018 is
 recorded. PLN-0000 is complete; PLN-0001 becomes the active plan. All seven
 carried challenges remain open, with C-005 the standing risk to monitor for the
 duration of G1.
+
+## Post-acceptance evidence
+
+Recorded 2026-08-11. Three requirement rows in PLN-0001's trace were
+`Demonstrated` when this gate was approved and are now `Partial`, accepted as
+such by Jason Tarasovic on 2026-08-11:
+
+- **SYS-018** — failure attribution never identifies configuration scope, for
+  the structural reason that the slice has one machine, one role, and no
+  precedence conflict. Measured by PLN-0001-06.
+- **SYS-059** — the undeclared-repository half was refuted by measurement, not
+  merely unproven: a complete artifact was built from a repository the
+  declaration excludes and passed every check the slice then had. Measured by
+  PLN-0001-06. Two guards were added on 2026-08-11 and neither restores the
+  requirement, because what it asks for is per-package repository attribution
+  in the retained composition record, which mkosi's manifest cannot carry.
+- **SYS-041** — only the acquisition half is exercised; the lifecycle control
+  path has no path to test in this slice. Measured by PLN-0001-07.
+
+This amends the evidence basis of an approved gate rather than the decision.
+The gate's criteria are unchanged and none of the three was a G1 criterion; the
+downgrades are carried into G2 as inherited obligations, and each names why it
+cannot be closed in a VM-only slice. Whether that is sufficient, or whether G1's
+approval should be revisited against the corrected trace, is an owner question
+left open here rather than settled by the drafter.
+
+C-005 is worth re-reading in this light. SYS-059's downgrade is the first hard
+evidence bearing on mechanism selection -- it is a limit of mkosi's manifest,
+not of this configuration -- and it belongs to `P-001`, `L-001`, and `L-004`
+rather than to this gate.

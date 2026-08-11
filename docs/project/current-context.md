@@ -107,12 +107,15 @@ inexact -- and built a complete artifact with 45 of its 104 packages from it.
 `LocalMirror=` construction is still present, and the retained manifest carries
 no per-package repository attribution, so no check could verify sourcing even if
 one wanted to. **SYS-059 is downgraded from demonstrated to partial and SYS-018
-from demonstrated to partial; both downgrades are drafted in PLN-0001 and await
-owner acceptance.** A second finding: the two mixed-branch faults fail closed on
+from demonstrated to partial; both were accepted at `Partial` by Jason
+Tarasovic on 2026-08-11.** A second finding: the two mixed-branch faults fail closed on
 Fedora's per-release GPG keys, not on anything in `src/slice` comparing an input
 against its declaration -- an inherited guarantee, not an enforced one, and one
-that does not survive a change of distribution. Two mitigations are proposed in
-the evidence record and neither is accepted.
+that does not survive a change of distribution. Two mitigations were proposed in
+the evidence record and both were implemented on 2026-08-11; neither restores
+SYS-059, because what the requirement asks for is per-package repository
+attribution in the retained composition record and mkosi's manifest cannot
+carry it.
 
 PLN-0001-07 is complete and confirmed the identity claims while finding the
 offline claim weaker than recorded. The artifact, both output directories, and
@@ -154,8 +157,16 @@ VM through QMP `query-kvm`, so a silent fallback to emulation is visible in the
 evidence. `check:fast` is 8/0 and `check:complete` 12/0.
 
 **None of this amends a requirement status.** SYS-018, SYS-059, and SYS-041
-remain drafted at `Partial` and await owner acceptance; the guards are new, the
-measurements that produced the downgrades stand. PLN-0001-08, the evidence
+were **accepted at `Partial` by Jason Tarasovic on 2026-08-11**: the guards are
+new, the measurements that produced the downgrades stand. SYS-018 cannot be
+closed in a VM-only slice at all -- it needs a second role or machine -- and
+SYS-059's gap is a limit of mkosi's manifest rather than of this configuration,
+which makes it the first hard evidence bearing on mechanism selection and gives
+it to `P-001`, `L-001`, and `L-004`. All three carry into G2 as inherited
+obligations. The amendment to an approved gate's evidence basis is recorded as
+post-acceptance evidence in [PR-0029](reviews/0029-g1-gate-approval.md); whether
+G1's approval should be revisited against the corrected trace is left open
+there. PLN-0001-08, the evidence
 bundle and requirement-trace update, is next.
 
 A hygiene breach was found and closed alongside it.

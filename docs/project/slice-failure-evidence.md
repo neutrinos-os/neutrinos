@@ -294,10 +294,9 @@ refuses to launder an undeclared input into a declared one by copying it
 forward. That was verified by feeding it one of the `updates` RPMs PLN-0001-06
 left behind.
 
-**This does not restore SYS-059 to demonstrated.** The requirement trace below
-still reports the measured state. What changed is that the fail-open now has
-guards at two layers; whether that satisfies SYS-059 is the owner's call, and
-the trace is not amended here.
+**This does not restore SYS-059 to demonstrated**, and the owner accepted that
+reading on 2026-08-11. The requirement trace below reports the measured state.
+What changed is that the fail-open now has guards at two layers.
 
 ## Requirement trace effect
 
@@ -310,8 +309,10 @@ the trace is not amended here.
   refuted by measurement: F-RES-01 built a complete artifact from an undeclared
   repository and passed every registered check.
 
-Both changes are drafted in [PLN-0001](../plans/0001-reference-vm-slice.md) and
-await owner acceptance.
+Both changes are recorded in [PLN-0001](../plans/0001-reference-vm-slice.md) and
+were **accepted by Jason Tarasovic on 2026-08-11**. The two mitigations above
+do not reverse either: SYS-059 asks for per-package repository attribution in
+the retained composition record, and mkosi's manifest cannot carry it.
 
 ## Retained evidence
 

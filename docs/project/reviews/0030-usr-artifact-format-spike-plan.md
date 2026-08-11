@@ -320,3 +320,36 @@ measurement design and the trace both need work before this authorizes source.
 - The risk table names the implementation-accident risk against itself rather
   than only against fixtures, which is the right instinct even though C-003
   argues the stated mitigation does not achieve it.
+
+## Revision verification, 2026-08-11
+
+A light verification pass checked the revised plan against each challenge above.
+It re-reviewed nothing else and accepted nothing.
+
+**All twelve challenges are substantively resolved**, most through
+restructuring rather than labeling: the early-boot spike moved to task 01 with
+a hard stop-and-return gate, parameter declaration became a task that gates the
+builds, and corruption injection, negative evidence, check registration, and a
+recovery disposition became tasks that did not previously exist. Two were
+resolved by owner ruling on 2026-08-11 -- the tmpfs fixture for C-005 and
+determinism as one of eight criteria for C-002.
+
+One defect was introduced by the revision and is fixed. Inserting the
+corruption task shifted the later task numbers without updating references to
+them, leaving five cross-references pointing at the wrong task: three at task 09
+where task 10 was meant, in the non-goals, the SYS-049 trace row, and task 06's
+output; and two at task 10 where task 11 was meant, in the PLN-0001 dependency
+row and the SYS-018/041/059 trace row. Cosmetic in isolation, but a reader
+following the trace to verify SYS-049's covered cells would have landed on the
+corruption task, and the inherited-partial row pointed at negative evidence
+rather than at check registration. All five are corrected.
+
+**C-006 remains the challenge to watch after acceptance.** The reclassification
+to partial and the hand-back to DES-0005 and ADR-0003 are correct as far as they
+go, but task 03 still draws the first confext path carve and builds the first
+confext tooling. Marking both candidate is weak protection against first-drawn
+becoming the reference, which is this project's named failure mode. The
+protection is procedural, not structural, and depends on DES-0005 actually
+taking the carve back.
+
+Nothing else was found broken, and no undeclared scope growth was found.

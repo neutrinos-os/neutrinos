@@ -175,6 +175,65 @@ This is DES-0006's step 6 -- independently bind the actual UKI, root, and Verity
 bytes to the selected deployment identity -- implemented in a shipping system,
 and confirmation that the step is load-bearing rather than paranoid.
 
+### What the field does when every deployment fails
+
+Added 2026-08-11, after the first pass raised the loop-breaker question but not
+its answer. Five implementations converge on the same terminal state: **stop
+selecting, keep running, be loud.** None halts the machine.
+
+**greenboot** (Fedora IoT and bootc, the closest analogue to the systemd/UAPI
+path) runs a three-stage ladder on a `boot_counter` GRUB environment variable
+initialized to `GREENBOOT_MAX_BOOT_ATTEMPTS`, default 3:
+
+- `boot_counter > 0`: reboot and retry.
+- `boot_counter == 0`: **stop rebooting**; log that fallback is awaited.
+- next boot sets it to `-1`, which triggers `bootc rollback` or
+  `rpm-ostree rollback` via `greenboot-rpm-ostree-grub2-check-fallback.service`.
+
+If the rolled-back deployment also fails, `redboot-auto-reboot.service`
+declines to reboot again and reports that manual intervention is required. The
+machine keeps running. Failure is announced through logs and the MOTD, and
+through operator scripts in `/usr/lib/greenboot/red.d/` and
+`/etc/greenboot/red.d/`, which run on the failure path in relaxed mode. The
+notification hook lives in the running degraded system, where network
+configuration and credentials already exist, rather than in a separate boot
+artifact.
+
+**openSUSE MicroOS health-checker** contributes the sharpest idea in this
+comparison: it asks whether the current snapshot was **ever known-good**, and
+branches on the answer.
+
+- Never booted successfully: this is a bad update. Roll back.
+- Booted successfully before: the cause is most likely transient. Reboot once.
+- Booted successfully before *and* already retried: **stop.** Rebooting again
+  cannot help.
+
+Boot counting is per-snapshot via `/etc/kernel/tries`, default 3, and the
+bootloader orders known-failing snapshots last. The value of the known-good
+test is diagnostic, not just terminating: a deployment that worked before and
+fails now indicts the environment rather than the image, and rollback is
+therefore the wrong response.
+
+**Android Rescue Party** escalates rather than stopping, triggered by
+`system_server` restarting more than five times in five minutes or a
+persistent system app crashing more than five times in thirty seconds. Each
+level clears progressively more state. The final level boots to recovery and
+**prompts the user** for a factory reset rather than performing one. Even the
+most aggressive design in this set will not destroy data unattended.
+
+**ChromeOS** is the outlier that enters recovery automatically: firmware
+demotes an exhausted kernel's priority to 0 and moves to the next, and when
+none remains it enters recovery mode running only read-only firmware and
+requiring signed removable media. This is viable because a human is physically
+present. **SYS-038 rejects this model** -- exhaustion "must not enter recovery
+automatically" -- and the unattended router is why: a machine demanding
+recovery media is stranded.
+
+**Mender** remains the loop-breaker precedent proper, terminating in an
+explicit failure state via `state_data_store_count` rather than rebooting.
+
+Consequences recorded as challenge [C-015](../../designs/0006-storage-layout-and-encryption/review.md).
+
 ## What does not transfer
 
 - **Bootloader environment redundancy** (`CONFIG_ENV_OFFSET_REDUND`, EFI Boot
@@ -232,3 +291,15 @@ Proposed design responses, for the owner rather than taken here:
   GPT kernel priority/tries/successful attributes
 - [Android A/B updates](https://source.android.com/docs/core/ota/ab/ab_implement)
   boot control HAL, `update_verifier` full verity read before marking success
+
+Added 2026-08-11 for the terminal-state section:
+
+- [greenboot](https://github.com/fedora-iot/greenboot) `boot_counter` ladder,
+  `redboot-auto-reboot.service`, `red.d`/`green.d` task runners
+- [openSUSE health-checker](https://github.com/openSUSE/health-checker/blob/master/README.md)
+  known-good branch and reboot-once rule;
+  [transactional-update](https://kubic.opensuse.org/documentation/man-pages/transactional-update.8.html)
+- [Android Rescue Party](https://source.android.com/docs/core/tests/debug/rescue-party)
+  escalation ladder and user-prompted factory reset
+- [ChromiumOS recovery mode](https://www.chromium.org/chromium-os/chromiumos-design-docs/recovery-mode/)
+  read-only firmware path entered when no kernel remains eligible

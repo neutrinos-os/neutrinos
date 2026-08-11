@@ -334,23 +334,40 @@ the paper mapping proven.
   observed at all; never a slot marked eligible with foreign bytes in it".
   Durability is the load-bearing word: marking held only in memory leaves the
   window unchanged across power loss.
+- Owner ruling, 2026-08-11, on what "durably" must survive. Three levels were
+  put to the owner: (1) power loss; (2) power loss plus an unreadable ESP,
+  which forbids ineligibility living solely as a filename on the filesystem
+  holding the artifacts; (3) both, plus hostile offline modification, meaning
+  the marking is authenticated rather than merely present. The ruling is
+  **level 3 is the target, level 2 is the accepted fallback, and level 1 is
+  acceptable only with a recorded reason** for why level 2 was untenable.
+  Ordering matters here: level 1 is the ESP-only marking C-011 challenges as a
+  shared failure domain, so landing there must be a stated finding rather than
+  a discovery that it was easiest.
 - Author response: none recorded.
-- Disposition: open.
+- Disposition: open. The ordering fix is not contested; the durability level is
+  ruled and the mechanism is deferred to the spike, which owes an answer on
+  level 3's feasibility rather than stopping at the first thing that works.
 - Residual risk: the mechanism for durable ineligibility is not chosen here and
   interacts with the ESP failure domain raised in C-011 and RES-0014, since
   systemd-boot's counters live as filenames on the same FAT filesystem as the
-  artifacts they select.
+  artifacts they select. Level 3 additionally interacts with whether the
+  bootloader's own attempt counters are trustworthy, which is a larger question
+  than staging order and is not opened here.
 
 ### C-015: Nothing bounds oscillation between deployments that all fail
 
 - Severity: major
 - Raised: 2026-08-11, from [RES-0014](../../research/comparisons/embedded-ab-update-field-evidence.md).
-- Claim: the design carries only half of SYS-038. The requirement reads
-  "Exhaustion must select an eligible normal fallback **or stop with an
-  attributable diagnosis**"; the design says "boot attempt exhaustion may
-  select only a retained eligible normal deployment" and never designs the
-  stop. Nothing describes what happens when the deployment selected by
-  exhaustion also boots and also fails role-health assessment.
+- Claim: the design carries only one branch of SYS-038's exhaustion clause. The
+  requirement reads "Exhaustion must select an eligible normal fallback **or
+  stop with an attributable diagnosis**"; the design says "boot attempt
+  exhaustion may select only a retained eligible normal deployment" and never
+  designs the stop. Nothing describes what happens when the deployment selected
+  by exhaustion also boots and also fails role-health assessment. Under the
+  narrow reading ruled below this is not a requirement violation, because each
+  deployment's own accounting is correct; it is a gap in the design's coverage
+  of its own failure space.
 - Failure or cost if true: two eligible deployments that both boot and both
   fail assessment can alternate indefinitely, each with a fresh attempt
   counter. The machine is powered, unattended, and never converges. On the
@@ -359,31 +376,70 @@ the paper mapping proven.
 - Prior art: Mender persists update state across reboots with a
   `state_data_store_count` whose only purpose is to detect state loops and
   force termination into a failure state rather than rebooting again.
-- Requirement effect: **none, under the reading that SYS-038's "or stop with an
-  attributable diagnosis" clause makes the terminal state already required.**
-  This is an interpretation and belongs to the owner: SYS-038 bounds attempt
-  accounting *per trial boot*, and whether "durable bounded" also bounds the
-  cross-deployment loop is not stated. If the narrower reading is taken, the
-  loop is unrequired and this becomes a decision-backlog item rather than a
-  design amendment.
-- Proposed amendment, awaiting acceptance: extend the fallback paragraph so
-  that exhaustion-driven selection is itself bounded, and terminate in the stop
-  SYS-038 already permits --
+- Why an immutable deployment stops working, since the loop looks impossible
+  otherwise: assessment is not a function of the image. It evaluates the
+  machine in an environment that moves, so the causes that matter are the ones
+  **common to both slots** -- an expired certificate, a state schema migrated
+  beyond what the older deployment can read, PCR values changed by a firmware
+  update so no deployment can unlock state, failing hardware, or a health check
+  that depends on reaching something. Fallback only helps when the failure was
+  caused by the thing being fallen back from. In every case above it supplies a
+  second thing to try, indefinitely.
+- Requirement effect: **none.** Owner ruling, 2026-08-11: SYS-038 is read
+  **narrowly** -- "every trial boot" governs each deployment's own attempt
+  accounting, and the cross-deployment loop is outside it. The requirement is
+  unchanged and this behavior is **not required by it**. The amendment below is
+  therefore a **design commitment beyond the requirement floor**, adopted
+  because the owner directed that the system be designed and built for the
+  broader behavior, and it must not be cited as evidence of satisfying SYS-038.
+- Field evidence: [RES-0014](../../research/comparisons/embedded-ab-update-field-evidence.md)
+  records five implementations converging on the same terminal state -- stop
+  selecting, keep running, be loud -- and **none halts the machine**. greenboot
+  stops rebooting and reports through logs, MOTD, and `red.d` operator scripts
+  in the still-running system. MicroOS branches on whether the snapshot was
+  ever known-good. Android prompts rather than resetting unattended. ChromeOS
+  alone enters recovery automatically, which SYS-038 forbids and which the
+  unattended router makes untenable.
+- Proposed amendment, awaiting acceptance: replace the fallback sentence in
+  "Root filesystem and `/etc`" with a bounded ladder --
 
-  > Selection driven by exhaustion is itself durably counted. When every
-  > eligible normal deployment has been selected by exhaustion and failed
-  > assessment, the machine stops with an attributable diagnosis naming each
-  > deployment and its failure, rather than selecting again. It does not enter
-  > recovery automatically, as SYS-038 requires.
+  > Selection driven by exhaustion is itself durably counted, and a deployment
+  > that has already been selected by exhaustion and failed assessment is not
+  > selected that way again.
+  >
+  > Response depends on whether the failing deployment has ever passed
+  > assessment. A deployment that has never passed is unproven, and exhaustion
+  > selects an eligible fallback. A deployment that has passed before indicts
+  > the environment rather than the image, so at most one further attempt is
+  > made before stopping; falling back cannot address a cause the fallback
+  > shares.
+  >
+  > When no eligible normal deployment remains unselected, automatic selection
+  > stops. The machine does not halt: the last deployment continues running,
+  > degraded and reachable, and reports an attributable diagnosis naming each
+  > deployment tried and its failure. Recovery is not entered automatically, as
+  > SYS-038 requires, and the stop is a terminal state for selection only.
 
   -- and add a failure-table row: "Every eligible deployment boots and fails
-  assessment | Bounded, attributable stop naming each deployment tried; no
-  further automatic selection; no automatic recovery entry".
+  assessment | Automatic selection stops; last deployment keeps running and
+  remains reachable; attributable diagnosis names each deployment tried; no
+  automatic recovery entry".
+- Rejected alternative: a minimal notification image in the ESP, raised by the
+  owner as an aside and **not adopted**. It would need a credential to notify
+  while running precisely when sealed state may be unavailable, contradicting
+  the design position that the ESP holds no secrets; it would sit in the ESP
+  failure domain C-011 challenges; and it would add a third signed boot artifact
+  and authorization path. greenboot's `red.d` demonstrates that notification
+  belongs to the degraded running system, which already has network
+  configuration and credentials.
 - Author response: none recorded.
 - Disposition: open.
-- Residual risk: the counter is state, and state is exactly what may be damaged
-  in the scenarios that trigger it. Where it lives, and whether it survives the
-  failure modes it exists to bound, is unresolved.
+- Residual risk: the exhaustion counter and the known-good record are both
+  state, and state is what may be damaged in the scenarios that trigger them.
+  Where they live, and whether they survive the failure modes they exist to
+  bound, is unresolved. A machine kept running while failing assessment is also
+  a machine running in an unassessed condition; what it is permitted to keep
+  doing in that state is not defined here.
 
 ## Missing alternatives or evidence
 

@@ -208,10 +208,23 @@ selectable -- the outcome SYS-050 forbids, reached through ordinary operation.
 C-015: the design carries only half of SYS-038, selecting a fallback on
 exhaustion but never designing the "or stop with an attributable diagnosis"
 half, so deployments that all fail assessment can alternate indefinitely.
-Neither needs a requirement change, but C-015 rests on an owner interpretation
-of whether SYS-038's bounded accounting reaches the cross-deployment loop or
-only a single trial boot. Both amendments are drafted verbatim in the review
-and are not in the design until accepted.
+Neither needs a requirement change. Two owner rulings on 2026-08-11 shaped
+them, and neither accepts the amendments themselves. On C-014, durable
+ineligibility targets surviving power loss, an unreadable ESP, **and** hostile
+offline modification; surviving the first two is the accepted fallback, and
+power loss alone is acceptable only with a recorded reason. On C-015, SYS-038
+is read **narrowly** -- its bounded accounting governs each deployment's own
+trial boots, not the cross-deployment loop -- so the loop breaker is a design
+commitment beyond the requirement floor and must not be cited as satisfying
+SYS-038. RES-0014 was extended with the terminal-state evidence behind it:
+greenboot, MicroOS health-checker, Android Rescue Party, and ChromeOS converge
+on stop selecting, keep running, be loud, and none halts the machine; MicroOS
+additionally branches on whether the deployment was ever known-good, since a
+previously-good deployment failing indicts the environment rather than the
+image. A minimal ESP notification image was raised and rejected: it needs a
+credential exactly when sealed state may be unavailable, and notification
+belongs to the degraded running system. Both amendments are drafted verbatim
+in the review and are not in the design until accepted.
 
 **PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
 the exit-criteria assessment drafted in the plan, including its qualification

@@ -122,8 +122,14 @@ confexts rather than flattened into it. See
 Btrfs is the leading mutable-filesystem candidate, reflecting the
 [original design goal](../../background/2026-08-09-design-session-transcript.md)
 of using reflinks, subvolumes, checksums, send/receive, quotas, and compression
-to improve container, VM, backup, and state workflows. ext4 is the conservative
-role-specific challenger. EROFS is the leading immutable image format for the
+to improve container, VM, backup, and state workflows. **XFS and ext4 are both
+challengers, and the comparison is three-way** (C-009, 2026-08-11): XFS
+provides reflink, which is the motivating feature, without Btrfs's low-space
+behavior, while lacking data checksums; ext4 provides neither reflink nor data
+checksums and is the conservative floor. ZFS and bcachefs are excluded as
+out-of-tree, and LVM thin provisioning is noted as the alternative snapshot
+path. Because this design's non-goals already exclude filesystem snapshots as a
+rollback or backup mechanism, snapshot capability is not a selection driver. EROFS is the leading immutable image format for the
 authenticated `/usr` artifact, with ext4+dm-verity retained as a mandatory
 challenger under C-007.
 
@@ -388,9 +394,11 @@ a snapshot.
 
 The router uses one encrypted state volume for protected machine and service
 state unless a credential has an independently managed hardware token or
-external authority. Btrfs is the common leading candidate; ext4 may win for
-this role if its simpler space and recovery behavior outweighs Btrfs features
-the router does not use. Public release artifacts remain outside the state
+external authority. Btrfs is the common leading candidate; XFS or ext4 may win
+for this role if simpler space and recovery behavior outweighs Btrfs features
+the router does not use. The router uses no reflink, container, or VM
+workflow, so its case rests on data checksums alone -- which XFS does not
+provide and ext4 does not either. Public release artifacts remain outside the state
 volume. Logs and network metadata receive explicit sensitivity, quota, and
 retention decisions.
 

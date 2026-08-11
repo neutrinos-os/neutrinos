@@ -406,9 +406,58 @@ the paper mapping proven.
 - Author response: Btrfs is the leading candidate because the owner explicitly
   wants filesystem-assisted container and VM workflows; ext4 remains a
   role-specific challenger rather than the project default.
-- Disposition: open.
+- Owner challenge, 2026-08-11: the design went to two candidates without
+  justifying the exclusion of the rest. Sustained. The candidate set is
+  corrected below before any comparison is run.
+- **XFS was the substantive omission.** It supports **reflink**, the
+  copy-on-write file cloning that is the stated motivation for Btrfs here, and
+  it carries no ENOSPC pathology comparable to Btrfs's nor the `nodatacow`
+  tension. It lacks data checksums (metadata CRC only), snapshots, and
+  send/receive. Recorded against it: CVE-2026-64600, an XFS reflink race
+  enabling local privilege escalation, published 2026-07 -- patched, but
+  evidence that reflink is the newer surface.
+- **ext4 has no reflink at all**, which is a stronger statement than the design
+  makes. It cannot serve the container and VM workflow that motivates this
+  choice; it is a conservative option that forgoes the motivating feature.
+- **ZFS is excluded, with reasons rather than silence.** It is the strongest
+  candidate on integrity, snapshots, and send/receive. Against it: out-of-tree,
+  CDDL, DKMS, and lagging kernel releases, which contradicts a project built on
+  upstream-native systemd mechanisms, a signed `/usr` image, and reproducible
+  builds. Since P-007 made this repository public, redistributing CDDL binaries
+  alongside a GPL kernel raises a question this review flags rather than
+  resolves. Note that DES-0006's non-goals excluded a ZFS *role*, not ZFS as a
+  state filesystem; the distinction was never argued.
+- **bcachefs is excluded on current facts.** Marked externally maintained in
+  Linux 6.17 and **removed from the tree in 6.18**; it is now DKMS-only. Same
+  out-of-tree cost as ZFS without ZFS's maturity.
+- **LVM thin provisioning** is the one structural alternative: snapshots under
+  ext4 or XFS without Btrfs, at the cost of an extra layer and its own
+  thin-pool exhaustion hazards.
+- Finding that reshapes the comparison: DES-0006's non-goals already state that
+  filesystem snapshots are **not** a generic rollback or backup mechanism, so
+  snapshots are not a design driver. Removing them, Btrfs's remaining case is
+  reflink (XFS has it), data checksums (XFS does not), subvolumes, compression,
+  and send/receive. That is a narrower advantage than the design text implies,
+  and it puts XFS genuinely in contention.
+- Also weakened, from C-002: the "small state volume" premise. Under EX-0008
+  R-A the router's writable root and `/var` sit on the 1 TB device, not the
+  16 GB one, so Btrfs's worst operational failure mode is far less likely for
+  that role than when this challenge was written.
+- Tension worth carrying into the measurement: Btrfs CoW fragments VM images
+  and databases, and the standard mitigation, `nodatacow`, **also disables
+  checksums** on exactly those files. The workloads motivating Btrfs are the
+  ones most likely to be excluded from its integrity benefit.
+- Owner ruling, 2026-08-11: **defer to the spike, with the corrected candidate
+  set.** ext4, XFS, and Btrfs are measured; ZFS and bcachefs are recorded as
+  considered and excluded above; LVM thin is noted as the alternative snapshot
+  path. A-007's assumption that Btrfs is a suitable general default is
+  therefore under test rather than presumed.
+- Disposition: open, deferred to the substrate spike with a three-candidate
+  comparison.
 - Residual risk: role-specific filesystem choices increase the qualification
-  matrix.
+  matrix. Added: a three-way comparison costs more than the two-way one it
+  replaces, and the exclusions above rest on project facts and upstream status
+  that can change.
 
 ### C-010: Mutable state remains vulnerable to offline tampering
 

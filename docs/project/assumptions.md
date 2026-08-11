@@ -1,6 +1,6 @@
 ---
 status: draft
-last_updated: 2026-08-09
+last_updated: 2026-08-11
 ---
 
 # Assumption register
@@ -16,7 +16,7 @@ yet been accepted as requirements or decisions.
 | A-004 | Mutable state can remain compatible across OS rollback. | Define state schemas and exercise forward/backward transitions. |
 | A-005 | Existing upstream tooling can provide most of the image lifecycle. | Gap analysis against bootc, mkosi, repart, sysupdate, boot tooling, and fleet rollout needs. |
 | A-006 | Stable UID and subordinate-ID policy is sufficient for initial rootless-container workflows. | Test bind mounts, backup/restore, multi-machine use, and user namespace modes. |
-| A-007 | Btrfs is a suitable general default for mutable state. | Workload, failure, repair, quota, encryption, and operational comparison. |
+| A-007 | Btrfs is a suitable general default for mutable state. | Workload, failure, repair, quota, encryption, and operational comparison. Under test rather than presumed since DES-0006 C-009 (2026-08-11): the comparison is three-way against XFS, which provides the motivating reflink feature without Btrfs's low-space behavior, and ext4, which provides neither reflink nor data checksums. |
 | A-008 | A common, data-first configuration model can express both desktop and network-appliance roles without becoming a general-purpose language or gating native upstream configuration. | Produce representative workstation and router inputs, resolved outputs, and tests; reject the model if ordinary use requires open-ended operator-authored logic. |
 | A-009 | A production-supported bootc path may eventually satisfy accepted SYS-030 and the failed-boot requirements. | Reevaluate upstream production support and exercise boot-to-root integrity, signed update, boot assessment, fallback, rollback, and recovery; until then bootc is not the default substrate candidate. |
 | A-010 | The accepted manual platform-signing and release-authorization ceremony will remain practical for the initial personal fleet, including an urgent release. | Owner accepted the operating cost on 2026-08-09; test the remaining practicality assumption with a timed disposable-key promotion, emergency gate, and signer-replacement exercise. |

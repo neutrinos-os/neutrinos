@@ -3,6 +3,7 @@ id: ADR-0002
 title: Separate routine, exceptional, machine, and data authorities
 status: accepted
 date: 2026-08-09
+amended: 2026-08-11
 deciders: [Jason Tarasovic]
 designs: [DES-0004]
 supersedes: []
@@ -39,6 +40,19 @@ NeutrinOS separates these authority and recovery custody classes:
    hardware-bound normal unlock credential.
 4. Data-recovery secrets have an independent lifecycle and are not derived from
    any signing, platform, enrollment, or machine authority.
+5. Measurement-policy authority is a distinct custody class. It signs predicted
+   platform measurements so that a TPM will release a sealed secret, and it is
+   therefore a data-unlock authority despite operating as a signing key. It
+   occupies its own runtime compromise compartment, separate from
+   release-authorization and normal-platform custody. No ordinary host,
+   coordinator, or build environment may invoke both measurement-policy signing
+   and release authorization. Its scope, rotation, revocation, and replacement
+   are exercised as a distinct compromise scenario, not as a variant of routine
+   signer compromise.
+
+Amended 2026-08-11 to add class 5. The class did not previously exist because
+the model was written before a signed-measurement mechanism was selected. See
+[C-004](../designs/0006-storage-layout-and-encryption/review.md).
 
 Routine promotion signs a platform artifact before qualification. Release
 authorization independently validates an immutable bundle and names the exact
@@ -110,7 +124,10 @@ sign and promote its own output.
 ### Costs and constraints
 
 - Even one maintainer must operate two independently enforced routine signing
-  compartments.
+  compartments, and a third for measurement-policy signing where sealed unlock
+  is used. Because that key is produced during the same build that produces a
+  UKI, keeping it out of the release-signing compartment is deliberate work
+  rather than a default.
 - Promotion requires literal-artifact qualification followed by independent
   release authorization.
 - Offline custody needs an independently retained and exercised recovery copy

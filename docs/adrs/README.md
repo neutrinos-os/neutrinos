@@ -14,7 +14,7 @@ annotated, but changing a decision requires a new ADR with explicit
 | ADR | Status | Decision |
 | --- | --- | --- |
 | [ADR-0001](0001-systemd-first.md) | Accepted | Prefer systemd ecosystem mechanisms; require strong justification for overlapping alternatives. |
-| [ADR-0002](0002-separate-authority-and-recovery.md) | Accepted | Separate routine, exceptional, machine, and data authorities while keeping recovery independently usable. |
+| [ADR-0002](0002-separate-authority-and-recovery.md) | Accepted; amended 2026-08-11 | Separate routine, exceptional, machine, and data authorities while keeping recovery independently usable. The amendment adds measurement-policy authority as a fifth custody class. |
 | [ADR-0003](0003-bounded-fleet-intent-representation.md) | Accepted | Use bounded TOML records and exact native configuration, with JSON Schema validation and generated JSON evidence. |
 
 Strong preferences from the design-session transcript remain stated directions

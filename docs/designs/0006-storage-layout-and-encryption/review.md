@@ -228,7 +228,13 @@ the paper mapping proven.
   present to re-enrol. Platform-key policy belongs to DES-0003 and DES-0004,
   not to a storage review. PCR binding of 7+11 becomes viable on every role
   once owner keys are enrolled.
-- Still open, and the actual C-004 decision: **does the PCR-policy signing key
+- Owner ruling, 2026-08-11: **add a fifth class.** ADR-0002 is amended to
+  enumerate **measurement-policy authority** -- a signing key that is a
+  data-unlock authority, in its own runtime compromise compartment, which no
+  ordinary host, coordinator, or build environment may invoke together with
+  release authorization, and whose compromise is exercised as a distinct
+  scenario rather than a variant of routine signer compromise. The question
+  answered was: **does the PCR-policy signing key
   become its own enumerated authority class in ADR-0002?** It fits none of the
   four existing classes yet functions as a data-unlock authority. Clause 4 says
   data-recovery secrets are not derived from any signing authority; this key is
@@ -238,9 +244,15 @@ the paper mapping proven.
   signed, because `systemd-measure` runs during the UKI build -- at which point
   the host that signs releases can also mint policies that make TPMs release
   volume keys, and the release/data separation holds on paper while being gone
-  in practice. Amending an accepted ADR is owner authority alone.
-- Disposition: open on the authority-class question; mechanism and platform-key
-  dependencies recorded.
+  in practice.
+- Inherited by the amendment, and not discharged here: DES-0004 must absorb the
+  new class, S-006 must produce its custody mechanism alongside the other
+  signing keys, and the EX-0001 authority-loss and EX-0002 promotion-
+  substitution exercises must cover measurement-policy compromise, loss, and
+  replacement as their own scenario.
+- Disposition: **Resolved 2026-08-11, accepted by Jason Tarasovic**, by
+  amending ADR-0002 rather than recording an analogy in this design. Mechanism
+  and platform-key dependencies recorded; custody mechanism remains S-006.
 - Residual risk: separate policy signing adds ceremony and update failure modes.
 
 ### C-005: Recovery keys and LUKS header backups increase theft surface

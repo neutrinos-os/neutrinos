@@ -37,6 +37,7 @@ Initial research tracks:
 - [representative software placement, shadowing, and rollback exercise](exercises/0015-software-placement-and-shadowing.md)
 - [agent context comprehension and instruction-loading exercise](exercises/0016-agent-context-and-instruction-loading.md)
 - [EX-0016 agent-context results](results/0016-agent-context-and-instruction-loading.md)
+- [VM test harness comparison](comparisons/vm-test-harness.md)
 - systemd/UAPI image-building and update capability gaps
 - update rollback versus mutable-state migration implementation
 - rootless containers, stable identity, and idmapped mounts

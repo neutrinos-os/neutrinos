@@ -28,6 +28,18 @@ document is the comparison that was skipped, recorded before repeated
 successful use turns it into a decision -- the failure
 [PR-0029](../../project/reviews/0029-g1-gate-approval.md) C-005 names.
 
+**Restored 2026-08-10, dropped when this document was first written: the
+original recommendation was not to pick a winner.** Roles 1 and 2 have opposite
+requirements -- one needs firmware state, measured boot, and a vTPM, the other
+needs to start hundreds of times quickly -- and the candidates sort cleanly
+along that line rather than dominating each other. So the recommendation was
+**two harnesses for two jobs**: QEMU with pflash and swtpm for boot integrity,
+a throughput-oriented runner for the many-short-boots work, and no dependency
+taken on either beyond what the job needs. `P-009` should be read as a question
+about which runner fills which role, not about which single runner wins.
+Nothing forces one answer, and answering it as one choice is how a fixture
+becomes a decision by default.
+
 ## Candidates
 
 ### QEMU
@@ -73,9 +85,29 @@ separate executable is the conventionally safe use. That is an owner call, not
 an agent call. Nothing in this document copies its code; the techniques below
 are interface facts.
 
+**Provenance of the implementation, recorded because this repository's licence
+discipline requires it.** The notify-vsock readiness in
+`tools/validation/slice_boot.py` was written against two sources, neither of
+them test.thing: systemd's documented `vmm.notify_socket` credential, and
+mkosi's `mkosi/qemu.py`, which is **LGPL-2.1-or-later** and is already a
+declared build input of this slice. What was taken from mkosi is the
+`VHOST_VSOCK_SET_GUEST_CID` ioctl number, which is a Linux UAPI constant, and
+the `vsock-stream:CID:PORT` address spelling, which is systemd's wire format.
+Both are interface facts on the same standard applied to test.thing above; the
+surrounding code -- CID selection, the accept loop, the fallback, the reporting
+-- is independent. No mkosi or test.thing code was copied. Anyone revisiting
+the licence question should verify this claim rather than inherit it.
+
 It also uses `-bios OVMF_CODE.fd` rather than pflash, and contains no TPM
 support at all. It requires `qemu-kvm` with `accel=kvm` and `-cpu host`, so it
 has no TCG path either.
+
+**Evidence basis, recorded 2026-08-10 because it was missing.** The three
+claims above come from reading the sdist during the original research. Neither
+the version read nor a copy was retained, and nothing here pins one. So they
+are unverifiable as written: anyone relying on them should re-read the source
+and pin what they read. This is a real weakness in a document that otherwise
+argues from exact identities.
 
 ## What test.thing does that we should do
 
@@ -96,6 +128,16 @@ regex better than the hand-rolled one used in PLN-0001-04.
 The keyless-access row is the most significant. A project whose thesis is
 separated authority (ADR-0002) should not need a passwordless root account in
 its qualification artifact, and with ephemeral vsock keys it does not.
+
+**Restored 2026-08-10, dropped when this document was first written:
+`systemd-ssh-generator` requires systemd >= 256 and the guest has 259, so the
+generator side of keyless access is already satisfied by the composed
+artifact.** This matters because the cost argument against keyless access was
+made without it. The remaining cost is real -- an ssh *server* means
+`openssh-server` in the image, changing the 104-package closure and every
+digest the composition record pins -- but it is one package rather than an
+unmet systemd requirement, and the recommendation should be argued on that
+basis rather than on a feasibility doubt that does not exist.
 
 ## Measured 2026-08-10: both techniques work under TCG
 
@@ -147,10 +189,28 @@ outside, leaving the artifact byte-identical.
 available. The six settings were removed, the rebuild reproduced the
 pre-amendment UKI `575c847d...` and initrd `e7061e25...` exactly, and
 `T4-SLICE-001` still reached a login prompt under a harness-supplied hostname
-with no failed units. The ssh-over-vsock half of the decision is **not** done:
-`Autologin=` is gone and the harness still waits on the serial `login:` marker,
-which it can do because the marker is the prompt itself rather than a shell.
-Driving commands inside the guest remains unimplemented.
+with no failed units.
+
+**Notify-vsock readiness was implemented the same day** and replaces the serial
+marker: `READY=1` at 13.2 seconds against the marker's 15.4, with the hostname
+read from `X_SYSTEMD_HOSTNAME` instead of the login banner. It needs nothing in
+the image, because pid 1 reading `vmm.notify_socket` is stock systemd. Two
+findings worth carrying: each sd_notify is a separate connection, so a listener
+that accepts once sees only the early `X_SYSTEMD_SIGNALS_LEVEL` handshake and
+waits forever for a readiness message that arrived on a socket nobody was
+accepting; and the stream carries the full `X_SYSTEMD_UNIT_ACTIVE` transcript,
+which is a structured alternative to regex-matching unit failures out of serial
+text and is **not** yet used -- failures are still read from the log.
+
+**The ssh-over-vsock half of the decision is not done, and should be reconsidered
+rather than simply scheduled.** It requires `openssh-server` in the image, which
+changes the 104-package closure and every digest the composition record pins.
+That is the shape of the amendment just reverted -- the artifact carrying
+something it does not need so that a test can drive it -- only larger, since it
+is a network service rather than a config line. Whether the guest should be
+drivable at all, or whether readiness plus the artifact's own identity is the
+evidence PLN-0001 actually needs, is an owner question. Nothing currently
+depends on running commands inside the guest.
 
 Dropping
 `Autologin=` leaves a `login:` prompt that a human can use and a script cannot,
@@ -211,6 +271,20 @@ worth checking once the flag is enabled.
 
 Until then TCG is the only option, which rules out cloud-hypervisor and
 test.thing entirely and makes all three roles above untestable at speed.
+
+**Resolved 2026-08-10.** SVM was enabled in firmware setup and every statement
+in this section is now historical. `svm` is present, `kvm_amd` and `kvm` are
+loaded, and `/dev/kvm` is mode 0666 as predicted, so the group question never
+bit and is closed. KVM is confirmed in use rather than inferred from speed: QMP
+`query-kvm` returns `{"enabled": true, "present": true}` on the harness's own
+flag set, and the `kvm` module's reference count rises for the duration of a
+boot. `T4-SLICE-001` runs at 18 seconds against 72 under TCG.
+
+The consequence for this comparison is narrower than it looks. TCG no longer
+being mandatory does not put cloud-hypervisor and test.thing back in
+contention on their own terms: the writable-varstore and TPM findings above are
+independent of the accelerator, and only the "cannot run here at all"
+objection lifts. `P-009` stays open on the same grounds it was opened.
 
 ## Nested virtualization
 

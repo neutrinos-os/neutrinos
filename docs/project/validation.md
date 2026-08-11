@@ -111,7 +111,7 @@ and blocked fails the profile. A complete run that reported green while
 silently omitting its artifact evidence would be worse than one that fails.
 `check:fast` is unaffected and needs no artifact.
 `T4-SLICE-001` boots that artifact in a disposable VM and asserts three things:
-it reaches a login prompt under a hostname the **harness** supplied, so the
+it signals readiness under a hostname the **harness** supplied, so the
 first-boot configuration demonstrably arrived from outside the image; no unit
 failed on the way, read from the serial log; and the artifact is byte-identical
 afterwards. It is booted directly under `snapshot=on` with no copy made, so a
@@ -126,9 +126,25 @@ changed. The retained result records `accelerator_requested` and **not** which
 accelerator was actually obtained, so a silent fallback to TCG would still
 report passing and nothing in the run would say so.
 
-Guest-driven readiness over a notify vsock is the intended replacement for
-waiting on a serial marker. It remains unimplemented, and with emulation no
-longer dominating the wall clock it is now the largest remaining cost; see
+Readiness is guest-driven over a notify vsock, implemented 2026-08-10. The
+harness reserves a guest CID, listens on an ephemeral vsock port, and passes
+the address to the guest as the `vmm.notify_socket` credential; stock systemd
+connects back and says `READY=1`. **Nothing is added to the image** -- no
+agent, no notify client, no extra package -- so the artifact whose digests the
+composition record pins is the artifact that runs. Measured at 13.2 seconds
+against the serial `login:` marker's 15.4, and it asserts something stronger:
+a prompt is a getty having started, `READY=1` is pid 1 declaring the boot
+transaction complete. The hostname is now read from the notify stream's
+`X_SYSTEMD_HOSTNAME` rather than pattern-matched out of the login banner.
+
+Each sd_notify is its own connection, so the listener accepts in a loop;
+accepting once yields only systemd's early handshake and never the readiness
+message. Where `/dev/vhost-vsock` is unavailable -- a container, a locked-down
+CI runner -- the test falls back to the serial marker and records
+`readiness_source: serial-marker`, so a degraded run is legible as one. Both
+paths and both new assertions were verified failure-sensitive. Driving commands
+inside the guest, the ssh-over-vsock half of the RES-0013 decision, remains
+unimplemented and would require adding a package to the image; see
 [RES-0013](../research/comparisons/vm-test-harness.md).
 `T5-VAL-001` runs the hostile validation-runner probes. `T5-VAL-002` starts
 with an isolated empty mise cache and runs the registered `check:list` task

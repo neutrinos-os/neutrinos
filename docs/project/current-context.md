@@ -140,7 +140,8 @@ cloud-hypervisor and `test.thing` offer neither, and `test.thing` is
 GPL-3.0-or-later, so its code cannot be copied into this Apache-2.0 repository.
 Four of its techniques should still be adopted independently -- guest-driven
 readiness over a notify vsock, SMBIOS Type 11 credentials, ssh over vsock with
-ephemeral keys, and `snapshot=on` disposability. Two were measured working
+ephemeral keys, and `snapshot=on` disposability. Three are now adopted; ssh
+over vsock is the one held back, and for a reason recorded below. Two were measured working
 under TCG against the literal pre-amendment artifact: `snapshot=on` leaves it
 byte-identical, and SMBIOS credentials plus
 `io.systemd.stub.kernel-cmdline-extra` take it from a blocking prompt to a
@@ -159,13 +160,24 @@ pre-amendment UKI, initrd, kernel, and manifest digests **exactly**, which is
 what establishes the amendment was the only difference. `check:complete` is
 `passing=10 failing=0` against the reverted artifact.
 
-Two parts of that decision are **not** done and should not be read as closed.
-The vsock-ssh half is unimplemented: `Autologin=` is gone, and the harness
-still waits on the serial `login:` marker, which works only because the marker
-is the prompt rather than a shell. Nothing drives commands inside the guest.
-And the retained `T4-SLICE-001` result records `accelerator_requested` but not
-which accelerator was obtained, so a silent fallback to TCG would still report
-passing. `W-002` no longer blocks `P-009` on hardware grounds.
+**Notify-vsock readiness landed the same day.** `T4-SLICE-001` now waits for
+`READY=1` from pid 1 over a vsock rather than for a `login:` string in the
+serial log -- 13.2 seconds against 15.4, and a stronger claim, since a prompt
+is a getty starting while `READY=1` is the boot transaction completing. The
+hostname is read from `X_SYSTEMD_HOSTNAME`. It adds nothing to the image: the
+guest side is stock systemd reading the `vmm.notify_socket` credential. Hosts
+without `/dev/vhost-vsock` fall back to the serial marker and say so in
+`readiness_source`.
+
+Two things remain open and should not be read as closed. **ssh over vsock is
+not done and is now a question rather than a task**: it needs `openssh-server`
+in the image, which changes the closure and every pinned digest, and it is the
+same shape as the amendment just reverted -- the artifact carrying something it
+does not need so a test can drive it. Nothing currently depends on it. And the
+retained `T4-SLICE-001` result still records `accelerator_requested` but not
+which accelerator was obtained, so a silent fallback to TCG would report
+passing; the vsock fallback deliberately does not have that defect.
+`W-002` no longer blocks `P-009` on hardware grounds.
 
 `P-008` is open and blocks nothing under G1: the required `canonical profiles`
 check cannot report on an unpushed commit, so direct pushes to `main` are

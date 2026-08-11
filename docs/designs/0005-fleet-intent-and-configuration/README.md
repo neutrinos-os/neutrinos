@@ -5,8 +5,9 @@ status: accepted
 owners: [Jason Tarasovic]
 reviewers: [Codex]
 created: 2026-08-09
-last_updated: 2026-08-09
-depends_on: [DES-0001, DES-0002, DES-0003]
+last_updated: 2026-08-11
+amendment_proposed: 2026-08-11
+depends_on: [DES-0001, DES-0002, DES-0003, DES-0006]
 decision_backlog: [S-003, C-001, C-002, L-003]
 related_adrs: [ADR-0003]
 ---
@@ -128,6 +129,114 @@ canonicalization spike before production identity depends on concrete
 libraries. Operator records remain data, native settings do not wait for a
 project schema, defaults are materialized, unknown intent fails, and no
 inventory-supplied code implements validation or composition.
+
+## Amendment, proposed 2026-08-11: configuration is delivered as a signed confext
+
+**Status: proposed, drafted by an agent, not accepted.** It amends an accepted
+design and requires Jason Tarasovic's acceptance before any part of it is
+policy. Until then the accepted text above stands.
+
+DES-0006 C-013, accepted 2026-08-11, made the authenticated release artifact
+`/usr` rather than a complete root, and made signed confexts the **only**
+mechanism that delivers configuration. That answers this design's own deferred
+question -- whether a separately immutable configuration artifact beats
+flattened variants -- in the affirmative, but it answers it from outside. The
+question named boot-time binding, fallback, and garbage collection, and C-013
+adopted the mechanism without settling any of them. SYS-123 now applies in full
+to every confext, and this design is its home.
+
+### One confext per deployment variant
+
+A deployment variant resolves to **exactly one** configuration extension image.
+It is built from the already-resolved configuration of the existing
+`common < role < machine` composition, and it is named by the deployment
+manifest.
+
+This is not an efficiency choice. Several confexts merged at activation time
+would carry their own precedence, which relocates scope resolution from build
+time to boot time -- precisely the "generic role image plus boot-time machine
+assembly" this design already rejected, and for the same reason: it lets
+activation order create effective behavior that was never the literal
+qualification subject. Precedence stays where it is. The confext is a transport
+for an already-decided result, not a layer with semantics of its own.
+
+The accepted cost is transfer efficiency. Common and role configuration shared
+across machines is rebuilt and retransmitted inside each machine's confext
+rather than shipped once. For a three-machine fleet this is negligible, and it
+is the correct trade against reintroducing runtime composition. If fleet size
+ever makes it material, the answer is content-addressed transfer of identical
+blocks, not a second precedence surface.
+
+### The SYS-123 obligations
+
+Three are already satisfied by the accepted design and are restated rather than
+added. **Exact content identity** is the composition record plus the rendered
+artifact identities. **Authorization** and **qualification** follow from the
+rule that the deployment variant, not the input files in isolation, is what
+gets qualified and authorized.
+
+The remaining six are new, and each is new because this design was written
+while configuration lived inside the deployment artifact, where the question
+could not arise:
+
+- **Base compatibility.** The confext declares, through
+  `extension-release.d`, the exact deployment identity it belongs to. Binding
+  is to that identity, not to a compatibility range: a confext built for one
+  deployment variant must refuse to activate against any other. A range would
+  permit combinations that were never jointly qualified, which is the C-001
+  hybrid failure arriving through the configuration door. This is stricter than
+  systemd's `SYSEXT_LEVEL` convention allows for, and the strictness is
+  deliberate.
+- **Activation ordering.** With one confext there is no inter-extension order
+  to define. What remains is ordering against consumers: the confext must be
+  merged before any unit that reads its content starts, and the two-stage
+  initrd and sysroot activation named by the C-013 amendment means "before" has
+  two distinct meanings. Configuration consumed before `/usr` is verified is
+  outside the integrity boundary, so the split between what must be present in
+  the initrd stage and what may wait for sysroot is an integrity boundary, not
+  a convenience. This design states the requirement; DES-0006 owns the boot
+  chain that realizes it.
+- **Health.** A failed merge is a failed deployment, not a degraded one. With
+  one confext there is no partial-merge state to represent: either the
+  configuration the deployment was qualified with is in effect, or the machine
+  is not running that deployment and must fail its trial boot rather than
+  proceed on release defaults. Silently falling back to `/usr/lib` defaults
+  would run a configuration nobody qualified.
+- **Rollback.** Configuration does **not** roll back independently. Because the
+  confext is named by the deployment manifest and bound to one deployment
+  identity, rolling back configuration means selecting the earlier deployment.
+  This follows from the binding above rather than being an additional rule, and
+  it is what keeps a rolled-back OS from running forward configuration.
+- **Retention.** A confext is retained exactly as long as the deployment that
+  names it, and is collected with it. It is a deployment-set member for
+  retention purposes, so SYS-050's guarantee -- one complete current deployment
+  plus one complete candidate or fallback -- covers configuration without a
+  separate policy. DES-0006's Configuration artifacts region is its storage
+  home, and its bytes count against the capacity formula C-002 produces.
+- **Effective-deployment status.** Machine status must report the merged
+  confext's identity and whether it matches the one the running deployment
+  names. The existing inspection surface asks whether the machine matches its
+  expected composition record; that question is now answerable only if the
+  active extension is enumerated, not inferred.
+
+### What this amendment does not settle
+
+- Whether the confext is built by the same tooling that renders configuration
+  today, or is a separate packaging step with its own identity. It is a
+  build-pipeline question, not a semantic one, and belongs with the ADR-0003
+  spike.
+- Per-machine identity and secrets, which cannot live in `/etc` under C-013 and
+  must be projected from state or delivered as credentials. That remains
+  `L-003` and is not resolved by having a confext available.
+- The bounded path for testing unqualified configuration. C-013 requires it to
+  be non-durable by construction, visibly marked, and either unavailable on
+  production physical roles or attributable when used. `/run/confexts/` and the
+  `ephemeral` modes are the assembly, but it conflicts with
+  `image_policy_confext_strict`, so the role distinction must be drawn
+  explicitly rather than assumed.
+- Whether `Mutable=` remains forbidden in every case. C-013 forbids it for
+  release-owned configuration; this amendment does not create an exception and
+  does not rule out one being argued later on its own evidence.
 
 ## Authoritative intent model
 
@@ -510,6 +619,19 @@ demonstrate:
 10. one configuration change traced through composition, deployment identity,
     qualification, selection, runtime status, and deliberate rollback.
 
+If the proposed confext amendment is accepted, it adds:
+
+11. a confext built for one deployment variant refusing to activate against any
+    other, including against a deployment that differs only in configuration;
+12. a failed confext merge failing the trial boot rather than proceeding on
+    `/usr/lib` release defaults;
+13. rollback to an earlier deployment carrying its own configuration, with no
+    path by which a rolled-back OS runs forward configuration;
+14. configuration retained and collected with the deployment that names it,
+    under SYS-050's current-plus-fallback guarantee; and
+15. machine status reporting the merged extension's identity and its agreement
+    with the running deployment, enumerated rather than inferred.
+
 [EX-0007](../../research/exercises/0007-native-configuration-and-inspection.md)
 now exercises representative native systemd, networkd, sysctl, tmpfiles,
 sysusers, nftables, mount, and kernel-command-line inputs; complete-file
@@ -556,8 +678,13 @@ The following requirements were accepted through
 - Which security invariants may a machine scope never override?
 - Which late-bound values fit systemd credentials, and which belong to network,
   enrollment, platform, user, or workload mechanisms?
-- Can a separately immutable configuration artifact satisfy boot-time binding,
-  fallback, and garbage collection more simply than flattened variants?
+- ~~Can a separately immutable configuration artifact satisfy boot-time
+  binding, fallback, and garbage collection more simply than flattened
+  variants?~~ Answered by DES-0006 C-013 on 2026-08-11: yes, a signed confext,
+  and flattened variants are foreclosed rather than merely beaten. The
+  proposed amendment above settles the three parts this question named. **The
+  answer arrived from outside this design**, which is why it is recorded as a
+  proposed amendment awaiting acceptance rather than as a resolved question.
 - Is Ignition worth supporting for the reference VM, or should first
   provisioning use a smaller systemd-native path?
 

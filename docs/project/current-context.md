@@ -267,6 +267,45 @@ the "nothing durable in `/etc`" rule by construction, against ParticleOS's
 persistent encrypted `btrfs` root with `/var` as a subvolume. It changes the
 partition count, so it is a decision, not a detail.
 
+**DES-0005 was checked against the confext lifecycle and does not cover it.**
+C-013 made signed confexts the only configuration delivery mechanism and
+recorded that every one of them inherits SYS-123 in full, naming DES-0005 as
+the home of that lifecycle. DES-0005 contains no occurrence of confext, sysext,
+or extension. Against SYS-123's nine obligations it covers three -- exact
+content identity, authorization, and qualification -- through the composition
+record and the rule that the deployment variant rather than the input files is
+what gets qualified. The other six are unowned, and they are unowned for one
+coherent reason: **DES-0005 was written while configuration lived inside the
+deployment artifact**, where these questions cannot arise. Base compatibility
+has no analogue -- the design has platform compatibility and state-contract
+compatibility, but nothing matching an extension to a base `/usr` version,
+because content shipped inside an artifact cannot mismatch its own base.
+Activation ordering exists only as build-time precedence, `common < role <
+machine`; runtime merge order across several confexts, and across the two-stage
+initrd and sysroot activation the C-013 amendment names, is a different axis.
+Health qualifies deployments and blesses locally with nothing for one confext
+of several failing to merge. Rollback is deployment rollback, and whether
+configuration may roll back independently depends on an unstated question --
+whether confexts version with the deployment manifest or separately. Retention
+has a storage home in DES-0006's Configuration artifacts region but no
+generation or garbage-collection policy. Effective-deployment status asks
+whether the machine matches its expected composition record but never
+enumerates merged extensions.
+
+**The structural problem is an authority crossing, and it is the owner's to
+resolve.** DES-0005's own open question -- can a separately immutable
+configuration artifact satisfy boot-time binding, fallback, and garbage
+collection more simply than flattened variants? -- was answered "yes, signed
+confexts" from inside DES-0006. That question named exactly the three things
+still missing: boot-time binding is base compatibility plus activation
+ordering, fallback is rollback, garbage collection is retention. DES-0005
+correctly identified what it was deferring; C-013 adopted the mechanism without
+answering them. DES-0005 is **accepted**, so it now carries a hole it did not
+have when PR-0008 accepted it, and closing that hole is an amendment to an
+accepted design rather than drafting work. Nothing here reopens C-013: its
+requirement-effect analysis concerned accepted requirements, and it flagged
+this obligation explicitly.
+
 **PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
 the exit-criteria assessment drafted in the plan, including its qualification
 that criterion 5 is met for six of seven injected faults. One owner decision

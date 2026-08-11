@@ -167,7 +167,80 @@ the paper mapping proven.
   to release and platform authorities before enrollment.
 - Author response: ADR-0002 prohibits collapsing release and data authority;
   exact policy-key custody remains an S-006 mechanism decision.
-- Disposition: open.
+- Mechanism established 2026-08-11, because the challenge is only meaningful
+  once it is clear the key is unavoidable. Baking predicted PCR values into a
+  release **is** signed policy: `systemd-measure sign` pre-computes expected
+  PCR 11 values for a UKI and signs them, `ukify` embeds the result as
+  `.pcrsig` with the public key in `.pcrpkey`, and
+  `systemd-cryptenroll --tpm2-public-key=` enrols a volume against any PCR
+  state for which that key can produce a signature. A TPM accepts either
+  literal PCR values enrolled per machine or a signature over predicted ones;
+  an unsigned prediction carries no authority. The key is therefore implied by
+  wanting updates that do not reseal, not chosen.
+- What can be signed over: **PCR 11**, plus 12, 13, and 14 -- the UKI content
+  systemd-stub measures. Not predictable at build time, and therefore not
+  signable by us: **0-7** firmware and UEFI, **8-9** bootloader and loader
+  configuration, **15** runtime. Signing over more does not extend the
+  guarantee; it makes the signature machine-specific and invalid after routine
+  platform change. `systemd-pcrlock` addresses 0-7 by predicting local values
+  into a TPM NV index, but it **cannot be combined with signed policies** and
+  upstream marks it experimental, so it is not an escape from this choice.
+- Correction to an earlier claim in this pass: `systemd-cryptenroll` does
+  **not** silently add a literal PCR 7 policy. The manual states that binding
+  to no PCRs at all is the default when `--tpm2-pcrs=` is unused; 7, 11, and 14
+  are a documented recommendation, and 0 and 2 are advised against. Binding
+  PCR 7 is a deliberate choice with consequences, not an inherited default.
+- Consequence of binding PCR 7, which matters because signed policy covers only
+  PCR 11: PCR 7 must be bound **literally**, so any change to it is not a
+  release re-sign but a **re-enrolment of every volume on every machine**. On
+  the roles ruled unattended under C-003 that is an IPMI session and an outage
+  per occurrence, which makes the frequency of PCR 7 changes an availability
+  property rather than a security detail.
+- Owner-controlled platform keys largely dissolve that frequency problem, and
+  they are already architecture: ADR-0002 clause 1 enumerates an owner-platform
+  authority, and all three hosts currently sit in setup mode with Secure Boot
+  disabled. With only the owner certificate in `db`, Microsoft's revocations
+  are irrelevant and dbx updates can be declined for free, so PCR 7 changes
+  only when the owner deliberately changes it.
+- Hardware constraint discovered while establishing that: option ROMs on PCIe
+  cards are validated against `db` when Secure Boot is enabled and are
+  typically signed by the Microsoft 3rd Party UEFI CA. Removing it can prevent
+  a card initialising. `desktop-jason` pairs a discrete Radeon PRO W6600 with a
+  Ryzen 7 3700X, which has no integrated graphics, so a failed option ROM
+  leaves no display and no route into firmware setup. `router` has BMC video
+  and IPMI, an independent console. `misc` has integrated graphics and no
+  discrete card. Enrolment order must therefore be VM, then the host with an
+  out-of-band console, then the workstation, with its firmware recovery path
+  confirmed before enrolment rather than after. Recorded as R-055.
+- The middle path -- own PK/KEK/db while retaining the Microsoft 3rd Party
+  UEFI CA for option ROMs -- is weaker than pure owner keys but **not in the
+  way first argued here**. PCR 7 records, through `EV_EFI_VARIABLE_AUTHORITY`,
+  the specific `db` entry that validated each loaded image, so MS-signed code
+  booting produces a different PCR 7 and the sealed key does not release. The
+  middle path permits MS-signed code to **boot**; it does not permit it to
+  **unlock**. Its true cost is that Microsoft's revocations become relevant
+  again, so dbx updates stop being free to decline and each one becomes a
+  fleet-wide re-enrolment.
+- Recommended, and explicitly a dependency rather than a decision taken here:
+  pure owner keys on `router` and `misc`, which have no option ROM exposure and
+  are the machines that cannot be re-enrolled without an outage; the middle
+  path on `desktop-jason`, where the soft-brick risk is real and a human is
+  present to re-enrol. Platform-key policy belongs to DES-0003 and DES-0004,
+  not to a storage review. PCR binding of 7+11 becomes viable on every role
+  once owner keys are enrolled.
+- Still open, and the actual C-004 decision: **does the PCR-policy signing key
+  become its own enumerated authority class in ADR-0002?** It fits none of the
+  four existing classes yet functions as a data-unlock authority. Clause 4 says
+  data-recovery secrets are not derived from any signing authority; this key is
+  a signing authority whose signatures release data, so it falls between two
+  clauses each written assuming it did not exist. The hazard of leaving it
+  unnamed is clause 2: unnamed, it naturally lives wherever releases are
+  signed, because `systemd-measure` runs during the UKI build -- at which point
+  the host that signs releases can also mint policies that make TPMs release
+  volume keys, and the release/data separation holds on paper while being gone
+  in practice. Amending an accepted ADR is owner authority alone.
+- Disposition: open on the authority-class question; mechanism and platform-key
+  dependencies recorded.
 - Residual risk: separate policy signing adds ceremony and update failure modes.
 
 ### C-005: Recovery keys and LUKS header backups increase theft surface

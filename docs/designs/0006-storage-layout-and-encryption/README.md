@@ -431,7 +431,17 @@ the latter turns every normal update into resealing choreography.
 Exact PCR selection, policy signing custody, firmware-update behavior, and
 TPM2+PIN use remain physical qualification results. `systemd-pcrlock` may be
 compared in the spike but is not a production dependency while upstream marks
-it experimental.
+it experimental, and it cannot be combined with signed policy in any case.
+
+Signed policy covers only what the build can predict: **PCR 11**, with 12, 13,
+and 14, all measured by `systemd-stub` from UKI content. Firmware and UEFI
+(0-7), bootloader and loader configuration (8-9), and runtime (15) cannot be
+predicted by a release and are not signed over. Binding PCR 7 is therefore a
+**literal** binding, and any change to it re-enrolls every volume on every
+machine rather than re-signing a release. Owner-controlled platform keys make
+that frequency tractable by removing any reason to apply third-party
+revocations; the enrollment itself carries R-055 and belongs to DES-0003 and
+DES-0004. See [C-004](review.md).
 
 ### Workstation
 

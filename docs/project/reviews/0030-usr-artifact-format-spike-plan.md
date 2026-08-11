@@ -4,7 +4,8 @@ subject: Authenticated `/usr` artifact format comparison plan
 plan: PLN-0002
 reviewer: Claude adversarial pass
 date: 2026-08-11
-status: open
+last_updated: 2026-08-11
+status: accepted
 ---
 
 # Authenticated `/usr` artifact format comparison plan review
@@ -353,3 +354,14 @@ protection is procedural, not structural, and depends on DES-0005 actually
 taking the carve back.
 
 Nothing else was found broken, and no undeclared scope growth was found.
+
+## Disposition, 2026-08-11
+
+**PLN-0002 accepted by Jason Tarasovic on 2026-08-11** with the revision above.
+All twelve challenges are dispositioned by that acceptance: ten by the revision,
+and C-002 and C-005 by the owner rulings the revision records. The review is
+closed.
+
+C-006's residual concern is not closed by acceptance and carries forward as a
+standing risk on the plan: the confext path carve and confext tooling task 03
+draws stay candidate until DES-0005 takes the carve back.

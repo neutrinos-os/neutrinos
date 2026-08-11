@@ -1,13 +1,14 @@
 ---
 id: PLN-0002
 title: Authenticated `/usr` artifact format comparison
-status: proposed
+status: accepted
 owner: Jason Tarasovic
 created: 2026-08-11
 last_updated: 2026-08-11
 gate: G1
 depends_on: [PLN-0001]
 reviews: [PR-0030]
+accepted: 2026-08-11
 ---
 
 # Authenticated `/usr` artifact format comparison

@@ -4,7 +4,7 @@ last_updated: 2026-08-11
 source_snapshot_revision: cc87b1d
 current_gate: G1
 target_gate: G2
-active_plan: none (PLN-0001 complete 2026-08-11; PLN-0002 proposed, not accepted)
+active_plan: PLN-0002 (accepted 2026-08-11; PLN-0001 complete 2026-08-11)
 ---
 
 # Current project context
@@ -23,9 +23,10 @@ satisfies PRE-018 and completes PLN-0000
 (`docs/plans/0000-pre-implementation-readiness.md`, status `complete`).
 
 NeutrinOS source implementation is now **authorized, and only** for the
-disposable VM/lab scope of accepted PLN-0001
-(`docs/plans/0001-reference-vm-slice.md`), which is the **active plan** and the
-sole active implementation slice. Both conditions of PLN-0000's mutation
+disposable VM/lab scope of accepted PLN-0002
+(`docs/plans/0002-usr-artifact-format-spike.md`), which is the **active plan**
+and the sole active implementation slice; PLN-0001 preceded it and is
+complete. Both conditions of PLN-0000's mutation
 boundary — G1 plus an accepted follow-on plan — now hold. Physical-host
 mutation, production authority, and any mechanism ADR remain unauthorized, and
 no candidate fixture became a decision.
@@ -330,6 +331,30 @@ that criterion 5 is met for six of seven injected faults. One owner decision
 stays open and is not taken by the drafter: whether G1's approval should be
 revisited against the corrected trace.
 
+**PLN-0002 is accepted** by Jason Tarasovic on 2026-08-11 and is the active
+plan and the sole active implementation slice, succeeding PLN-0001. It answers
+DES-0006 C-007 by measurement: the same package closure built as an EROFS
+`/usr` artifact and an ext4 `/usr` artifact, each authenticated through
+dm-verity with the root hash carried by a signed UKI, booted in a disposable
+VM, measured against all eight criteria DES-0006 verification item 2 names,
+plus a stated disposition for recovery behavior. It selects no package
+ecosystem, no partition layout, and no mechanism, and it does not accept its
+own recommendation. It runs under PLN-0000's mutation boundary, whose two
+conditions -- G1 plus an accepted follow-on plan -- hold: disposable VM/lab
+scope only, no physical-host mutation, no production authority, no mechanism
+ADR. Task 01 is an early-boot spike with a hard stop-and-return gate, so the
+`/usr`-only boot path C-013 accepted is proven or the plan returns to review
+before anything else is built. Its first task order matters because the initrd
+runs before the boot record the rest of the plan depends on.
+[PR-0030](reviews/0030-usr-artifact-format-spike-plan.md) is accepted and
+closed: twelve challenges found the first draft not fit to accept, the revision
+resolved ten by restructuring, and two by owner ruling on 2026-08-11 -- a tmpfs
+root for the fixture, and build determinism kept as one of eight criteria with
+no single winner. **C-006 carries forward as the standing risk**: task 03 draws
+the first confext path carve and builds the first confext tooling, both marked
+candidate, and that protection is procedural rather than structural until
+DES-0005 takes the carve back.
+
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since
 `f54c217`, committed in the forty-minute window before `.gitignore` existed,
@@ -461,7 +486,8 @@ open either for a cold status report.
 - PLN-0000's readiness model and fixture/defer classifications are accepted.
   PRE-001 through PRE-018 are satisfied and the plan is complete.
 - **G1 is approved** (2026-08-10, PR-0029). It authorizes disposable VM/lab
-  implementation under PLN-0001 and nothing else. PRE-018 records an authority
+  implementation under an accepted follow-on plan and nothing else -- PLN-0001,
+  now complete, and currently PLN-0002. PRE-018 records an authority
   act rather than evidence; the gate is a readiness gate, not a capability
   gate. Seven review challenges are carried open, not closed: PR-0026 C-003 and
   C-005, PR-0027 C-002 and C-006, PR-0028 C-002's residual class, C-003, and
@@ -493,7 +519,7 @@ architecture.
 Currently allowed:
 
 - NeutrinOS source implementation and reference-VM work within the bounded
-  scope of active PLN-0001, under its named tasks, using disposable VM disks,
+  scope of active PLN-0002, under its named tasks, using disposable VM disks,
   firmware variables, virtual TPM state, and test networks;
 - synthetic signing, enrollment, identity, and credential fixtures;
 - build caches and artifacts in declared development locations;
@@ -504,7 +530,7 @@ Currently allowed:
 
 Currently prohibited:
 
-- implementation outside PLN-0001's accepted task scope, or any work reaching
+- implementation outside PLN-0002's accepted task scope, or any work reaching
   for G2 qualification claims;
 - mutation of `desktop-jason`, `router`, `misc`, or another physical host;
 - use of production credentials, signing keys, enrollment state, recovery

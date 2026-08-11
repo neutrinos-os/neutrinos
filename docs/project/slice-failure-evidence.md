@@ -1,6 +1,6 @@
 ---
 status: active
-last_updated: 2026-08-10
+last_updated: 2026-08-11
 governing_plan: PLN-0001
 ---
 
@@ -265,8 +265,39 @@ is taken here.
   carry the field, so this needs another source — an `rpm -qi`-level query
   against the closure, or a different composition mechanism.
 
-Both are proposed. Neither is accepted, and the requirement trace below reports
-the measured state rather than the intended one.
+**Both were taken on 2026-08-11 at owner request, and both are implemented.**
+
+- The cheap one is `T2-SLICE-002`, a new T2 in the `fast` and `complete`
+  profiles. It asserts the `LocalMirror=` construction and the absence of
+  `Mirror=` and `Repositories=` as proposed, and two things beyond the
+  proposal: that `Distribution=` and `Release=` match the declaration, which
+  converts the mixed-branch guarantee from an inherited property of Fedora's
+  per-release GPG keys into an enforced one; and that the values `compose.sh`
+  duplicates agree with the declaration, closing the drift PLN-0001-02 recorded
+  as possible and unguarded. Verified failure-sensitive against the literal
+  F-RES-01 mutation, a branch drift, and a `compose.sh` commit drift.
+- The expensive one is `T3-SLICE-002`. It does not use the source the
+  recommendation guessed at: an `rpm -qi` query names no repository either, so
+  attribution is established against the declared repository's **own published
+  index** instead. Every NEVRA in the shipped closure must appear in it. This
+  needed the repository subset to be retained, which `compose.sh` now does as a
+  build step -- so the mitigation and PLN-0001-07's retention finding closed
+  together. Verified failure-sensitive by adding `coreutils-9.10-5.fc44`, a
+  real `updates` package, to a copied manifest: the exact signature F-RES-01
+  produced. Its limit is stated in the test's own output: an identical NEVRA
+  rebuilt elsewhere would pass, because the manifest carries no per-package
+  checksum.
+
+Retention itself now fails closed on a package the declared repository does not
+publish, which is a third guard the recommendation did not anticipate: it
+refuses to launder an undeclared input into a declared one by copying it
+forward. That was verified by feeding it one of the `updates` RPMs PLN-0001-06
+left behind.
+
+**This does not restore SYS-059 to demonstrated.** The requirement trace below
+still reports the measured state. What changed is that the fail-open now has
+guards at two layers; whether that satisfies SYS-059 is the owner's call, and
+the trace is not amended here.
 
 ## Requirement trace effect
 

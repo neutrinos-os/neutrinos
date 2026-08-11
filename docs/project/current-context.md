@@ -133,8 +133,30 @@ acceptance**, and only its acquisition half was exercised in any case. Second,
 repository -- `fc43` packages and `updates` builds left behind by PLN-0001-06's
 injected faults -- so a cache shared across fault injection is not a retention
 store. Nothing consumed them here. See the
-[reconstruction record](slice-reconstruction-record.md). PLN-0001-08, the
-evidence bundle and requirement-trace update, is next.
+[reconstruction record](slice-reconstruction-record.md).
+
+Both findings, and the two F-RES-01 mitigations PLN-0001-06 had proposed, were
+closed on 2026-08-11 at owner request. `compose.sh` now retains the declared
+repository's metadata and the packages it resolved as a build step, into
+`inputs/repository` under the build root, and **fails closed** on any package
+that repository does not publish -- so retention is a check as well as a copy,
+and the shared cache it used to draw from is out of the path. An offline
+rebuild from that retention reproduced all four stable digests with one flag,
+`--local-mirror=file://...`, and no assembled harness. Two tests were
+registered: `T2-SLICE-002` asserts the composition mechanism still enforces the
+declaration -- `LocalMirror=`, no `Mirror=` or `Repositories=`, matching branch,
+and agreement of the values `compose.sh` duplicates -- and `T3-SLICE-002`
+attributes every NEVRA in the shipped closure to the declared repository's own
+published index, anchored to the declared `metadata_digest`. Both were verified
+failure-sensitive, `T3-SLICE-002` against the exact `updates` package F-RES-01
+admitted. `T4-SLICE-001` now records `accelerator_used`, read from the running
+VM through QMP `query-kvm`, so a silent fallback to emulation is visible in the
+evidence. `check:fast` is 8/0 and `check:complete` 12/0.
+
+**None of this amends a requirement status.** SYS-018, SYS-059, and SYS-041
+remain drafted at `Partial` and await owner acceptance; the guards are new, the
+measurements that produced the downgrades stand. PLN-0001-08, the evidence
+bundle and requirement-trace update, is next.
 
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since

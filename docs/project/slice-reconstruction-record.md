@@ -130,6 +130,39 @@ packages actually retained. Anything the build needed but did not have would
 have failed rather than reached elsewhere -- which is the property that makes
 the identical result meaningful.
 
+### Closed 2026-08-11
+
+`compose.sh` now performs the retention it was found to be missing, at owner
+request. After a build it fetches the declared repository's `repodata/` once --
+the repository is declared frozen, so a retained copy is never refetched -- and
+hardlinks every package the build resolved into the paths that metadata names,
+under `inputs/repository` in the build root. It writes a `retained.json`
+recording the source URL, the metadata digest, and the package count.
+
+Retention **fails closed** on a package the declared repository does not
+publish, which makes it a check as well as a copy: it refuses to launder an
+undeclared input into a declared one by carrying it forward. Verified by
+feeding it one of the `updates` RPMs the shared cache still held.
+
+The offline rebuild is now one flag rather than an assembled harness, and it
+was measured rather than asserted. With the network removed:
+
+```sh
+./src/slice/compose.sh \
+    --local-mirror=file://"$HOME"/.cache/neutrinos/slice/inputs/repository \
+    --output-directory="$HOME"/.cache/neutrinos/slice/out-offline --force build
+```
+
+reproduced all four stable digests -- UKI `575c847d...`, kernel `4b37e4e5...`,
+initrd `e7061e25...`, manifest `cb438999...`. No loopback HTTP server and no
+hand-laid mirror: mkosi reads the retained repository directly through
+`file://`. Retention re-ran inside the same offline build and reached for
+nothing, because the declared repository is frozen and its metadata was already
+retained.
+
+`T3-SLICE-002` consumes the same directory to attribute the shipped closure.
+See the [validation notes](validation.md).
+
 ## Finding: the shared package cache is contaminated
 
 Of 179 RPMs in the retained cache, **58 are not in the declared repository's
@@ -153,12 +186,12 @@ detection; here, its output persists on disk afterwards.
 
 - **Reconstruction is not reproducibility of the disk image.** The `.raw`
   differs, for known reasons, and this exercise did not attempt to change that.
-- **The retention that made it work is not part of the fixture.** The
-  reconstruction ran offline; the *ability* to run offline was assembled by
-  hand. Until `compose.sh` retains the declared repository subset, "we can
-  rebuild this with the network removed" is true of this build root on this host
-  and is not a property of the slice. **Recommended, not accepted: SYS-041's
-  trace row should be downgraded from `Demonstrated` to `Partial`.**
+- **The retention that made it work was not part of the fixture.** On
+  2026-08-10 the reconstruction ran offline but the *ability* to run offline was
+  assembled by hand. That is closed as of 2026-08-11, and the offline rebuild
+  from the fixture's own retention is measured above. **SYS-041's row remains
+  `Partial` on a scope reading, recommended and not accepted**: only the
+  acquisition half of the requirement is exercised.
 - **SYS-041 is broader than what was measured.** The requirement covers the
   lifecycle control path -- health recording, blessing, fallback, deliberate
   rollback -- with named services unavailable. The slice has no blessing and no

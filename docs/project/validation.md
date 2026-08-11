@@ -1,6 +1,6 @@
 ---
 status: informative
-last_updated: 2026-08-10
+last_updated: 2026-08-11
 governed_by: PRE-015
 ---
 
@@ -86,6 +86,50 @@ means.
 the schema uses `$ref`, `allOf`, and `if`/`then`, and a hand-rolled subset
 checker that misread any of them would report a record as valid that the schema
 rejects.
+`T2-SLICE-002` and `T3-SLICE-002` are the two mitigations PLN-0001-06 proposed
+for the injected fault that did not fail, registered 2026-08-11.
+
+`T2-SLICE-002` asserts that the composition mechanism still enforces the
+declaration: `LocalMirror=` is set to the declared repository URL, neither
+`Mirror=` nor `Repositories=` appears, `Distribution=` and `Release=` match the
+declaration, and the values `compose.sh` duplicates -- repository URL, mkosi
+commit, tools-tree base image -- agree with it. The mixed-branch faults
+previously failed closed on Fedora's per-release GPG keys, an inherited
+guarantee that would not survive a change of distribution; the branch assertion
+makes it an enforced one. The `compose.sh` half closes the drift PLN-0001-02
+recorded as possible and unguarded. It reads the fixture, not the artifact, so
+it cannot speak for an image built somewhere else -- which is what
+`T3-SLICE-002` is for. Verified failure-sensitive against three injections: the
+literal `LocalMirror=`-to-`Mirror=` fault, a `Release=45` branch drift, and a
+`compose.sh` mkosi commit that disagrees with the declaration.
+
+`T3-SLICE-002` attributes the shipped closure. Every package in the retained
+manifest must exist, at its exact NEVRA, in the declared repository's own
+published index. mkosi's manifest carries no per-package repository field, so
+attribution is by content rather than by a label the builder wrote about
+itself. The index comes from the repository subset `compose.sh` now retains,
+declared to validation the same way the artifact is:
+
+```sh
+export NEUTRINOS_SLICE_REPOSITORY_DIR=/path/to/build-root/inputs/repository
+```
+
+The same directory is what an offline rebuild resolves against:
+`./src/slice/compose.sh --local-mirror=file://<build root>/inputs/repository`
+with the network removed. Measured 2026-08-11: all four stable digests
+reproduced.
+
+Its absence blocks rather than skips, on the same terms as the artifact. Two
+anchors keep the test honest: the retained metadata's SHA-256 must equal the
+`metadata_digest` the input set declares, and the retention record's source URL
+must be the declared repository, so attribution cannot be satisfied by whatever
+repository happens to sit in that directory. Verified failure-sensitive by
+adding a real `updates` package (`coreutils-9.10-5.fc44`) to a copied manifest,
+which is the exact signature of the fault that fail-opened, and by tampering
+with both anchors. **Its limit**: an identical NEVRA rebuilt and published
+elsewhere would pass, because the manifest carries no per-package checksum to
+compare.
+
 `T3-SLICE-001` inspects a composed artifact without booting it: the manifest's
 distribution, release, architecture, and output format must match the declared
 input set, every closure entry must be fully identified, the UKI must carry its
@@ -122,9 +166,12 @@ asked for `accel=kvm:tcg`: KVM where the host offers it, TCG where it does not,
 with the same evidence either way. Measured at 72 seconds wall clock under TCG,
 and at 18 seconds under KVM once SVM was enabled in firmware setup on
 2026-08-10. The evidence fields were identical across both; only the clock
-changed. The retained result records `accelerator_requested` and **not** which
-accelerator was actually obtained, so a silent fallback to TCG would still
-report passing and nothing in the run would say so.
+changed. The result records `accelerator_used` alongside `accelerator_requested`, read
+from the running VM through QMP `query-kvm` rather than inferred from the host,
+because `/dev/kvm` being present does not mean this guest used it. Emulation
+remains a permitted outcome and is recorded rather than asserted; what is no
+longer possible is a run that fell back to TCG and left evidence
+indistinguishable from a KVM run.
 
 Readiness is guest-driven over a notify vsock, implemented 2026-08-10. The
 harness reserves a guest CID, listens on an ephemeral vsock port, and passes

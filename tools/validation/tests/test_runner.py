@@ -162,6 +162,25 @@ def test_absent_slice_artifact_blocks_rather_than_passing(tmp_path: Path) -> Non
     assert check.capability_slice_artifact({check.SLICE_ARTIFACT_ENV: str(partial)}) is None
 
 
+def test_absent_retained_repository_blocks_rather_than_passing(tmp_path: Path) -> None:
+    """Attribution has nothing to check against without the retained repository."""
+    assert check.capability_retained_repository({}) == (
+        f"{check.SLICE_REPOSITORY_ENV} is not set"
+    )
+    retained = tmp_path / "repository"
+    retained.mkdir()
+    reason = check.capability_retained_repository(
+        {check.SLICE_REPOSITORY_ENV: str(retained)}
+    )
+    assert reason is not None and "repomd.xml" in reason
+    (retained / "repodata").mkdir()
+    (retained / "repodata" / "repomd.xml").write_bytes(b"")
+    assert (
+        check.capability_retained_repository({check.SLICE_REPOSITORY_ENV: str(retained)})
+        is None
+    )
+
+
 def test_blocked_capability_is_reported_and_fails_the_profile(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -221,9 +240,11 @@ def test_child_environment_is_allowlisted(monkeypatch: pytest.MonkeyPatch) -> No
     home = Path("/synthetic/home")
     cache = Path("/synthetic/cache")
     canary = check.make_synthetic_canary()
-    # The slice artifact declaration is optional and must reach the child only
-    # when the operator set it, so the closed set below is the unset case.
+    # The slice artifact and retained repository declarations are optional and
+    # must reach the child only when the operator set them, so the closed set
+    # below is the unset case.
     monkeypatch.delenv(check.SLICE_ARTIFACT_ENV, raising=False)
+    monkeypatch.delenv(check.SLICE_REPOSITORY_ENV, raising=False)
     environment = check.child_environment(home, cache, canary)
     assert set(environment) == {
         "GIT_CONFIG_GLOBAL",

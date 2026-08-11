@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""Retain the declared repository subset the build actually resolved against.
+
+PLN-0001-07 found that the slice retained packages and no repository metadata,
+so a rebuild with the network removed could not resolve at all: the declared
+repository was a URL, and the bytes behind it were retained only by accident,
+as a side effect of whichever build ran last. This makes retention a build step
+instead of an accident.
+
+What is retained: the declared repository's metadata exactly as published, and
+every package the build downloaded, laid out at the paths that metadata names.
+The metadata is upstream's and unmodified, so resolving against the retained
+copy is resolving against the declared repository -- restricted to what was
+retained. A package that was never retained fails the build rather than being
+reached for elsewhere.
+
+Retention fails closed on a package the declared repository does not contain.
+PLN-0001-06's injected faults left 58 such RPMs in a shared cache; a retention
+step that copied them forward would launder an undeclared input into a declared
+one.
+
+This is not a mirror of the repository. It is the subset one composition
+resolved, which is the only part reconstruction needs and the only part whose
+provenance this slice can state.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import urllib.request
+import xml.etree.ElementTree as ET
+from datetime import datetime, timezone
+from pathlib import Path
+
+COMMON_NS = "{http://linux.duke.edu/metadata/common}"
+REPO_NS = "{http://linux.duke.edu/metadata/repo}"
+RETENTION_RECORD = "retained.json"
+
+
+def fetch(url: str, destination: Path) -> bytes:
+    """Download one file and return its bytes, writing it under the retention root."""
+    with urllib.request.urlopen(url, timeout=120) as response:  # noqa: S310
+        payload = response.read()
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(payload)
+    return payload
+
+
+def decompress(path: Path) -> bytes:
+    if path.suffix == ".zst":
+        return subprocess.run(
+            ["zstd", "-dc", str(path)], check=True, stdout=subprocess.PIPE
+        ).stdout
+    if path.suffix == ".gz":
+        import gzip
+
+        return gzip.decompress(path.read_bytes())
+    return path.read_bytes()
+
+
+def digest(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as handle:
+        while chunk := handle.read(1 << 20):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def retain_metadata(repository: str, destination: Path) -> Path:
+    """Fetch `repomd.xml` and every file it references. Returns the primary index.
+
+    Everything `repomd.xml` names is retained, not just the primary index. A
+    later check may need the filelists, and a partial copy of a signed index is
+    a copy whose completeness nobody can verify.
+    """
+    repomd = destination / "repodata" / "repomd.xml"
+    if repomd.is_file():
+        # The declared repository is frozen, so its metadata cannot have moved.
+        # Re-fetching it every build would put a network dependency on the
+        # offline rebuild this retention exists to make possible.
+        primary = next(
+            (
+                path
+                for path in (destination / "repodata").glob("*primary.xml.*")
+                if path.suffix in (".zst", ".gz")
+            ),
+            None,
+        )
+        if primary is not None:
+            return primary
+    fetch(f"{repository}/repodata/repomd.xml", repomd)
+
+    primary: Path | None = None
+    for data in ET.fromstring(repomd.read_bytes()):
+        location = data.find(f"{REPO_NS}location")
+        if location is None:
+            continue
+        href = location.get("href")
+        if href is None:
+            continue
+        target = destination / href
+        fetch(f"{repository}/{href}", target)
+        if data.get("type") == "primary" and target.name.endswith(("primary.xml.zst", "primary.xml.gz")):
+            primary = target
+
+    if primary is None:
+        raise SystemExit("declared repository publishes no primary index this can read")
+    return primary
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repository", required=True, help="declared repository URL")
+    parser.add_argument("--cache", required=True, type=Path, help="package cache to retain from")
+    parser.add_argument("--destination", required=True, type=Path, help="retention root")
+    arguments = parser.parse_args()
+
+    destination: Path = arguments.destination
+    destination.mkdir(parents=True, exist_ok=True)
+
+    primary = retain_metadata(arguments.repository, destination)
+    locations: dict[str, str] = {}
+    for package in ET.fromstring(decompress(primary)):
+        location = package.find(f"{COMMON_NS}location")
+        if location is None:
+            continue
+        href = location.get("href")
+        if href:
+            locations[Path(href).name] = href
+
+    retained: list[str] = []
+    undeclared: list[str] = []
+    for rpm in sorted(Path(arguments.cache).rglob("*.rpm")):
+        href = locations.get(rpm.name)
+        if href is None:
+            undeclared.append(rpm.name)
+            continue
+        target = destination / href
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if not target.exists():
+            try:
+                os.link(rpm, target)
+            except OSError:
+                target.write_bytes(rpm.read_bytes())
+        retained.append(href)
+
+    if undeclared:
+        # Fail closed. A package in the build's own cache that the declared
+        # repository does not contain came from somewhere the declaration does
+        # not name, and retaining it would make it look declared next time.
+        print(
+            "packages in the build cache are absent from the declared repository:\n  "
+            + "\n  ".join(sorted(undeclared)),
+            file=sys.stderr,
+        )
+        return 1
+
+    record = {
+        "package_count": len(retained),
+        "repomd_sha256": digest(destination / "repodata" / "repomd.xml"),
+        "retained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "source_url": arguments.repository,
+    }
+    (destination / RETENTION_RECORD).write_text(
+        json.dumps(record, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    print(f"retained {len(retained)} packages and the repository metadata under {destination}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -125,6 +125,35 @@ def qmp_quit(socket_path: Path) -> None:
         pass
 
 
+def qmp_query_kvm(socket_path: Path) -> bool | None:
+    """Ask the running VM whether KVM is in use. `None` if it could not be asked.
+
+    The harness requests `kvm:tcg`, which means "KVM if you can, emulation
+    otherwise". That is deliberate -- TCG produces the same evidence more
+    slowly -- but until now the result recorded only what was requested, so a
+    silent fall back to emulation was indistinguishable from a KVM run in the
+    retained evidence. This asks the VM rather than inferring from the host:
+    `/dev/kvm` being present does not mean this guest used it.
+    """
+    try:
+        with socket.socket(socket.AF_UNIX) as client:
+            client.settimeout(5)
+            client.connect(str(socket_path))
+            stream = client.makefile("rw")
+            stream.readline()
+            stream.write(json.dumps({"execute": "qmp_capabilities"}) + "\n")
+            stream.flush()
+            stream.readline()
+            stream.write(json.dumps({"execute": "query-kvm"}) + "\n")
+            stream.flush()
+            answer = json.loads(stream.readline())
+    except (OSError, ValueError, json.JSONDecodeError):
+        return None
+    if not isinstance(answer, dict) or "return" not in answer:
+        return None
+    return bool(answer["return"].get("enabled"))
+
+
 @contextlib.contextmanager
 def notify_vsock() -> Any:
     """Reserve a guest CID and listen for the guest's notifications.
@@ -330,6 +359,10 @@ def check_boot() -> int:
                 if listener is None:
                     time.sleep(POLL_SECONDS)
 
+            # Asked while the guest is still running: a dead VM answers
+            # nothing, and the answer is about this run rather than the host.
+            kvm_enabled = qmp_query_kvm(qmp) if qemu.poll() is None else None
+
             if not reached:
                 # A VMM that refuses to start and one that boots into silence
                 # are different defects, and the difference is in QEMU's own
@@ -365,6 +398,13 @@ def check_boot() -> int:
                 failures.append("units failed: " + "; ".join(unit_failures[:10]))
             report = {
                 "accelerator_requested": "kvm:tcg",
+                # What was requested is not what was obtained. Emulation is a
+                # permitted outcome, not a failure, so this is recorded rather
+                # than asserted -- but a result that names only the request
+                # cannot tell a KVM run from a fallback afterwards.
+                "accelerator_used": (
+                    "unknown" if kvm_enabled is None else "kvm" if kvm_enabled else "tcg"
+                ),
                 "hostname_from_harness": HARNESS_HOSTNAME,
                 "readiness_source": readiness_source,
                 "ready_seconds": ready_seconds if listener is not None else marker_seconds,

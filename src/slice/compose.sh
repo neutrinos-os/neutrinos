@@ -54,8 +54,32 @@ if [ ! -d "$build_root/tools" ]; then
     touch "$build_root/tools/etc/resolv.conf"
 fi
 
+# The package cache lives inside this build root, not in the user's shared mkosi
+# cache. PLN-0001-07 found 58 RPMs in the shared cache that the declared
+# repository does not contain -- fc43 packages and `updates` builds left behind
+# by PLN-0001-06's injected faults. Nothing consumed them, but a cache shared
+# across fault injection is not a retention store, and a build that resolves
+# from one cannot say where its inputs came from.
 cd "$root/composition"
-PYTHONPATH="$build_root/mkosi" exec python3 -m mkosi \
+PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
     --tools-tree="$build_root/tools" \
+    --package-cache-directory="$build_root/pkgcache" \
     --output-directory="$build_root/out" \
     "$@"
+
+# Retention is a build step, not something to remember afterwards. Without it
+# the declared repository is a URL and the bytes behind it survive only as a
+# side effect of the last build's cache, which is what made PLN-0001-07's first
+# offline rebuild impossible. Retention fails closed on a package the declared
+# repository does not contain, so this step is also the check that nothing
+# undeclared entered the cache.
+#
+# It runs only when a build produced an image: `mkosi clean`, `--help`, and the
+# other verbs have nothing to retain, and fetching metadata for them would put
+# a network dependency on operations that have none.
+if [ -f "$build_root/out/neutrinos-slice.manifest" ]; then
+    python3 "$root/retain-repository.py" \
+        --repository="$repository_url" \
+        --cache="$build_root/pkgcache" \
+        --destination="$build_root/inputs/repository"
+fi

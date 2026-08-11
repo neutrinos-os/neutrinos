@@ -44,6 +44,7 @@ UV_INSTALL_ENV = "NEUTRINOS_VALIDATION_UV_INSTALL"
 UV_CACHE_ENV = "NEUTRINOS_VALIDATION_UV_CACHE"
 BETTERLEAKS_ENV = "NEUTRINOS_VALIDATION_BETTERLEAKS"
 SLICE_ARTIFACT_ENV = "NEUTRINOS_SLICE_ARTIFACT_DIR"
+SLICE_REPOSITORY_ENV = "NEUTRINOS_SLICE_REPOSITORY_DIR"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -79,6 +80,9 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         # failing preflight, so a checkout with no composed artifact still runs
         # every test that does not need one.
         SLICE_ARTIFACT_ENV,
+        # Optional on the same terms: the retained repository subset that
+        # composition writes, against which the shipped closure is attributed.
+        SLICE_REPOSITORY_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -237,6 +241,40 @@ TESTS = (
         ),
         cleanup_owner="validation runner",
         function="check_slice_input_set",
+    ),
+    Test(
+        id="T2-SLICE-002",
+        level="T2",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("PLN-0001/PLN-0001-06", "SYS-059", "SYS-057", "SYS-018"),
+        capabilities=(),
+        fixtures=(
+            "src/slice/composition/mkosi.conf",
+            "src/slice/compose.sh",
+            "src/slice/input-set.toml",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_composition",
+    ),
+    Test(
+        id="T3-SLICE-002",
+        level="T3",
+        profiles=("complete",),
+        timeout_seconds=300,
+        traces=("PLN-0001/PLN-0001-06", "SYS-059", "SYS-058", "SYS-041"),
+        capabilities=(
+            "declared slice artifact",
+            "retained declared repository",
+            "zstd reader",
+        ),
+        fixtures=(
+            "composed package manifest",
+            "retained repository metadata",
+            "src/slice/input-set.toml",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_repository_attribution",
     ),
     Test(
         id="T3-SLICE-001",
@@ -1007,6 +1045,22 @@ def check_slice_input_set() -> int:
     return check_input_set()
 
 
+def check_slice_composition() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_composition import check_composition_fixture
+
+    return check_composition_fixture()
+
+
+def check_slice_repository_attribution() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_composition import check_repository_attribution
+
+    return check_repository_attribution()
+
+
 def check_slice_artifact() -> int:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -1025,6 +1079,8 @@ def check_slice_boot() -> int:
 
 CHECKS: dict[str, Callable[[], int]] = {
     "check_slice_input_set": check_slice_input_set,
+    "check_slice_composition": check_slice_composition,
+    "check_slice_repository_attribution": check_slice_repository_attribution,
     "check_slice_artifact": check_slice_artifact,
     "check_slice_boot": check_slice_boot,
     "check_git_diff": check_git_diff,
@@ -1072,6 +1128,40 @@ def capability_slice_artifact(
     return None
 
 
+def capability_retained_repository(
+    environment: Mapping[str, str] = os.environ,
+) -> str | None:
+    """The retained subset of the declared repository, produced by composition.
+
+    `compose.sh` writes this; it is declared to validation the same way the
+    artifact is, because it is the same kind of thing -- a build output too
+    large to live in the checkout. Attribution has nothing to check against
+    without it, so its absence blocks rather than skips.
+    """
+    if not environment.get(SLICE_REPOSITORY_ENV):
+        return f"{SLICE_REPOSITORY_ENV} is not set"
+    try:
+        directory = declared_directory(SLICE_REPOSITORY_ENV, environment)
+    except ValueError as error:
+        return str(error)
+    if not (directory / "repodata" / "repomd.xml").is_file():
+        return "retained repository has no repodata/repomd.xml"
+    return None
+
+
+def capability_zstd_reader() -> str | None:
+    """Decompression for the declared repository's published primary index.
+
+    Fedora publishes it zstd-compressed. Python's standard library has no zstd
+    before 3.14's `compression.zstd`, and adding a third-party dependency to
+    read one file would widen the repository's only runtime dependency for the
+    sake of a decompressor the host already has.
+    """
+    if shutil.which("zstd") is None:
+        return "zstd unavailable on PATH"
+    return None
+
+
 def capability_virtualization() -> str | None:
     """A user-owned disposable VM, with no host-global mutation.
 
@@ -1107,6 +1197,8 @@ def capability_fat_reader() -> str | None:
 # missing from an otherwise valid checkout are probed here.
 CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
     "declared slice artifact": capability_slice_artifact,
+    "retained declared repository": capability_retained_repository,
+    "zstd reader": capability_zstd_reader,
     "user-owned disposable VM": capability_virtualization,
     "FAT reader": capability_fat_reader,
 }
@@ -1216,8 +1308,9 @@ def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, st
         UV_CACHE_ENV: os.environ[UV_CACHE_ENV],
         BETTERLEAKS_ENV: os.environ[BETTERLEAKS_ENV],
     }
-    if SLICE_ARTIFACT_ENV in os.environ:
-        environment[SLICE_ARTIFACT_ENV] = os.environ[SLICE_ARTIFACT_ENV]
+    for declared in (SLICE_ARTIFACT_ENV, SLICE_REPOSITORY_ENV):
+        if declared in os.environ:
+            environment[declared] = os.environ[declared]
     if "SYSTEMROOT" in os.environ:
         environment["SYSTEMROOT"] = os.environ["SYSTEMROOT"]
     return environment

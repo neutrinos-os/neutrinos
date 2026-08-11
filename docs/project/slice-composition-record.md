@@ -31,11 +31,14 @@ at the pinned commit, builds the tools tree from the pinned base image plus the
 declared packages from the frozen repository, and runs the composition. It
 resolves no floating reference.
 
-It does, however, require the network. PLN-0001-07 found that nothing here
-retains the declared repository's metadata, so a rebuild with the network
-removed cannot resolve until that metadata is retained separately. The
-[reconstruction record](slice-reconstruction-record.md) states what had to be
-assembled by hand and recommends the SYS-041 downgrade that follows from it.
+The first build requires the network; a rebuild does not. PLN-0001-07 found
+that nothing retained the declared repository's metadata, so an offline rebuild
+could not resolve at all. Since 2026-08-11 `compose.sh` retains that metadata
+and every package it resolved under `inputs/repository` in the build root,
+failing closed on any package the declared repository does not publish, and a
+rebuild resolves against it with
+`--local-mirror=file://<build root>/inputs/repository` and the network removed.
+See the [reconstruction record](slice-reconstruction-record.md).
 
 ## Output identity
 

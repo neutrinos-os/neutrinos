@@ -166,8 +166,25 @@ it to `P-001`, `L-001`, and `L-004`. All three carry into G2 as inherited
 obligations. The amendment to an approved gate's evidence basis is recorded as
 post-acceptance evidence in [PR-0029](reviews/0029-g1-gate-approval.md); whether
 G1's approval should be revisited against the corrected trace is left open
-there. PLN-0001-08, the evidence
-bundle and requirement-trace update, is next.
+there. PLN-0001-08 is complete, and with it **all eight tasks of PLN-0001**. The
+evidence bundle is retained outside the repository at
+`~/.cache/neutrinos/slice/evidence/pln-0001-08/` -- 6310 KiB, 64 files, one
+SHA-256 per file, scanned clean by canonical validation's own unsafe-output
+patterns -- carrying the declaration, the mechanism, the resolved manifest, the
+retention record, every output digest, three gzipped tree manifests, and both
+profile runs in full. It carries no image: those are reconstructible from
+declared inputs, and the commands that rebuild them are recorded instead. The
+requirement trace is updated from planned to observed results. **Closing
+measurement**: the shipped tree extracted from three separately produced disk
+images -- the 2026-08-10 offline reconstruction, the 2026-08-11 networked
+build, and the 2026-08-11 offline rebuild from retention -- is byte-identical
+at 13240 entries with the same UKI on both ESPs. See the
+[evidence bundle record](slice-evidence-bundle.md).
+
+**Two owner decisions are open and neither is taken by the drafter**: whether
+PLN-0001 is complete, which its `status` field still reports as `active`, and
+whether G1's approval should be revisited against the corrected trace. An
+exit-criteria assessment is drafted in the plan.
 
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since

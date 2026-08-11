@@ -350,7 +350,7 @@ runs before the boot record the rest of the plan depends on.
 closed: twelve challenges found the first draft not fit to accept, the revision
 resolved ten by restructuring, and two by owner ruling on 2026-08-11 -- a tmpfs
 root for the fixture, and build determinism kept as one of eight criteria with
-no single winner. **C-006 carries forward as the standing risk**: task 03 draws
+no single winner. **C-006 carries forward as the standing risk**: task 03a draws
 the first confext path carve and builds the first confext tooling, both marked
 candidate, and that protection is procedural rather than structural until
  DES-0005 takes the carve back.
@@ -409,6 +409,145 @@ locked`), and notify-vsock readiness does not apply to a pre-`/usr` failure,
 which is why the harness treats a timeout as a result. Evidence retained outside
 the repository at 416 KiB across 8 files with one SHA-256 each, unsafe-output
 scan clean; the synthetic keys are deliberately kept for PLN-0002-10.
+
+**PLN-0002-02 is done as work and blocked on evidence.** The composition now
+produces a `/usr`-only tree: 1352 entries left `/etc`, which is where every one
+of the PLN-0001 closure's release defaults landed and where a `/usr`-only
+artifact would have lost them. A finalize script classifies each into one of
+three dispositions and fails if it cannot -- relocated where the release
+already has a `/usr` search path, so `*.wants` enablement moves to
+`/usr/lib/systemd/system` and stops depending on the writable `/etc`
+PLN-0002-01 found unavailable; discarded where the content configures building
+rather than running; and otherwise moved to a generated tmpfiles factory that
+replays it into `/etc` at boot. `/etc` is empty afterwards and the script
+asserts it, so a package that later installs there fails the build instead of
+vanishing from the artifact. Two defects were found by measurement rather than
+review: a relative symlink that escaped its relocated tree shipped silently
+broken, and merging into `/usr/share/factory/etc` silently overwrote four
+package-owned files the closure itself ships there, so this task's content now
+lives in `/usr/share/factory/neutrinos-etc` and every replay line names its
+source. Measured after the fix, 1906 symlinks resolve and the two that do not
+were already dangling in the flattened root. The systemd 261 overlay became a
+**declared input**: schema version 3 adds `packages.overlays`, pinned file by
+file with a SHA-256 and carrying a required `reason`, and acquisition reads
+that declaration rather than a copy of it and fails closed before the build.
+Retention keeps the two sources apart rather than mixing an overlay package
+into the repository copy. See the [composition
+record](usr-artifact-composition.md). **What is not verified is the artifact**:
+`dl.fedoraproject.org` began returning 403 for the declared repository on
+2026-08-11, and the tools tree -- rebuilt to gain `createrepo_c` -- can only be
+built from it, so no build has resolved the closure and the overlay together.
+The retained repository copy is what made the day's measurements possible at
+all, which is the second time retention has been the difference between a
+stalled afternoon and a stalled plan. Handed back: a factory-replayed `/etc` is
+a populated tmpfs and still does not satisfy C-006.
+
+**PLN-0002-04 is partial and PLN-0002-03 was blocked, both on the same
+unruled question.** The disposable layout is promoted from the spike into the
+slice composition and recorded as a fixture at creation: ESP, `/usr`, and the
+verity partition, with the tmpfs root expressed as `root=tmpfs` on a kernel
+command line that PLN-0001 had deliberately stripped -- structural, since
+without it the artifact cannot mount its own `/usr`, and not a reversal of the
+first-boot amendments that were reverted on reachability grounds. The
+verity-signature partition is deferred to task 06 with the signing material it
+needs. **The confext partition is not placed**, because placing it decides
+where a separately delivered confext lives, and on a tmpfs root the only
+surviving search path is inside the authenticated `/usr` -- which fuses release
+and configuration and contradicts what DES-0005's amendment separates. Task 03
+hits the same wall. Options for all three task-01 findings are now drafted for
+owner ruling, with arguments and with what each would unblock, and none is
+taken: see the [early-boot findings](early-boot-findings-for-decision.md).
+Finding 2 is partly overtaken -- PLN-0002-02 moved release enablement into the
+vendor `*.wants` path, so the presets that failed in the spike are enabled by
+construction, which closes the symptom and not the general question.
+
+**Prior art was surveyed while the repository outage blocked everything else,
+and it weakened the drafted recommendation**
+([RES-0015](../research/comparisons/stateless-etc-configuration-delivery.md),
+2026-08-11). The crux question was stated before the survey ran: does anyone
+mount a discovered partition into a confext search path inside the initrd,
+before the merge? **No.** No surveyed image-based system delivers configuration
+as a separately signed artifact into a stateless `/etc`; each gives `/etc` a
+persistent writable backing instead. ParticleOS -- systemd's own reference
+distribution, same authors as the mechanism -- has a persistent TPM-encrypted
+btrfs root with `/var` as a subvolume, keeps `/etc` writable, presets units at
+first boot, and **uses no confexts at all**. Upstream names `/var/lib/confexts`
+as the primary install location, endorses `/run/confexts` for symlinks to
+images held elsewhere, and on medium-confidence evidence validates confexts
+against the same key as the EFI binaries -- which would buy independent
+delivery and not independent signing. So a separate confext partition is novel
+work rather than adoption, and the drafted argument was revised from "B for the
+design" to "A or the `/run` variant for the design", D for this plan unchanged.
+Extended the same day with a second question: a stateless `/etc` **is** run in
+the field -- NixOS impermanence, and systemd's own `systemd.volatile=yes`,
+which replaces the root with a tmpfs and mounts only `/usr` into it read-only,
+almost exactly what `root=tmpfs` produces by another spelling -- but always
+populated from a *generated* source rather than a delivered artifact. **No
+deployment was found running a stateless `/etc` fed by confexts.** The pairing
+NeutrinOS is building is unattested, which makes PLN-0002-01's early-boot
+record the primary source rather than confirmation of a pattern. NixOS's
+`system.etc.overlay.mutable = false` is the closest analogue and is marked
+experimental; what breaks there is the same failure NeutrinOS's finding 2
+records -- `systemctl enable` returning "Read-only file system", sysusers and
+`mutableUsers` forced to match `/etc`'s mutability. The answer that community
+gives adds a mechanism finding 2 did not have: **systemd generators**, writing
+unit symlinks into `/run/systemd/generator*` with no writable `/etc` at all.
+Two further things the survey found and NeutrinOS has no position on:
+`systemd.image_policy=` states per-partition integrity requirements on the
+signed command line, and ParticleOS's tmpfiles factory uses `L` symlinks rather
+than the `C` copies PLN-0002-02 generates, on the stated grounds that copies do
+not propagate across a `/usr` update. Both are in front of the owner and
+neither is taken.
+
+**Owner ruling 2026-08-11 on finding 1: option D for this plan.** The confext
+lives at `/usr/lib/confexts` as a declared measurement fixture; PLN-0002
+measures formats and not delivery. The design question is explicitly not
+settled and moves to the proposed PLN-0002-03b. The fixture must be declared in
+the task text of the task that builds it, and any later task whose argument
+depends on where the confext lives stops and returns to the finding.
+
+**PLN-0002-03 is split, accepted by Jason Tarasovic on 2026-08-11**:
+`03a` builds and carves on a delivery path declared a fixture in the task text
+and is unblocked once the repository is reachable; `03b` takes the delivery
+question with RES-0015 as its evidence and is on no other task's path. The task table and every downstream
+reference are updated; the reasoning is kept in the plan's amendment section.
+
+**A second amendment is accepted the same day: PLN-0002-05 is widened to the
+kernel command line.** Task 05 is the plan's declaration gate, and its
+enumerated parameter set is filesystem parameters only -- so the command line,
+which affects boot behavior and memory and which lives *inside the signed UKI*,
+would stay an inherited fixture through the measurements that decide C-007. It
+declares `root=tmpfs` against `systemd.volatile=yes`,
+`systemd.image_policy=`, `systemd.image_filter=`, `systemd.confext=`, and the
+`usrhash=` mkosi injects, each with the alternative not chosen and the reason.
+`systemd.image_policy=` matters most: NeutrinOS currently asserts `/usr`
+integrity by having mounted it, which PLN-0002-01 already showed to be the
+unsafe claim when a corrupt artifact booted normally because dm-verity is lazy.
+**Deadline before PLN-0002-06**, since a command-line change after 06 voids
+tasks 07 through 10.
+
+**`C` versus `L` is ruled: owner ruling 2026-08-11, the default is `L` and the
+exceptions stay open.** `mkosi.finalize` now states a disposition per path --
+60 linked against 8 copied on the retained closure -- so the paths a confext or
+a machine must contribute *into* rather than replace can be completed in
+PLN-0002-03a as a data change. Leaving the whole question open would not have
+been neutral: the script emitted `C` for everything, so copy would have won by
+inaction. The `C` exceptions are `machine-id`, the six `systemd-sysusers` files,
+`adjtime`, and `ld.so.cache`, each because a running system writes them. This
+partly overtakes the C-006 handback: a linked path resolves into read-only
+`/usr`, so the write fails on the artifact's integrity boundary rather than only
+while a confext is merged -- for 60 of 68 entries, and reasoned rather than
+measured until a build confirms it. The drafting found that ParticleOS's
+stated reason -- copies go stale against a later `/usr` -- **does not transfer**,
+because NeutrinOS regenerates `/etc` from the current factory at every boot. The
+two arguments that do apply are stronger: under `L` a write to `/etc` fails on
+the read-only verity boundary, which makes C-006 a property of the artifact
+rather than of the current overlay state, and copies occupy tmpfs while
+symlinks do not, which touches a measured criterion. The costs are granularity
+-- `L` on a directory forecloses per-machine contribution into it, which ties
+the decision to PLN-0002-03a's carve -- and the paths that must remain real
+files, `machine-id` above all -- which is why the exception list is expressed
+and left incomplete rather than closed. Confirmation waits on the repository.
 
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since

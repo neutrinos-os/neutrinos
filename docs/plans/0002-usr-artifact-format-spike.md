@@ -81,7 +81,7 @@ workstation reaches the network through it.
 | DES-0006 C-007 | Open; the question this plan answers | Its criteria define the comparison |
 | DES-0006 verification item 2 | Amended 2026-08-11 | Defines done; all eight criteria are in scope |
 | DES-0006 C-008 | **Accepted 2026-08-11**: `/var` belongs to the machine-state volume | Constrains the fixture; see task 04 |
-| DES-0005 confext amendment | Accepted 2026-08-11 | Requires a signed confext to boot; its tooling and path carve are **not** provided by it -- see task 03 |
+| DES-0005 confext amendment | Accepted 2026-08-11 | Requires a signed confext to boot; its tooling and path carve are **not** provided by it -- see task 03a |
 | PLN-0001 slice | Complete; declared Fedora 44 closure, `compose.sh`, retention, runner, five registered tests | Reused; task 11 owns keeping the tests true |
 | `S-004` layout, `C-009` state filesystem | Open | Fixtures only; task 04 states fixture status in the register when created |
 | mkosi v26, Fedora 44 | Candidate fixtures | Remain candidates; using them accepts nothing |
@@ -109,19 +109,123 @@ Ordered so the plan's most likely falsification runs first (PR-0030 C-007).
 | Task | Status | Depends on | Output/evidence | Next action |
 | --- | --- | --- | --- | --- |
 | PLN-0002-01 | **complete** | — | **Early-boot spike, one format, throwaway.** What is consumed before `/usr` is verified; whether `systemd-confext-initrd`/`systemd-confext-sysroot` behave as C-013 assumed; the named failure-capture path for every later task | Complete 2026-08-11. **The assumption holds and the gate is not triggered**: the `/usr`-only path boots on a tmpfs root, and `systemd-confext-sysroot.service` merges a confext into `/sysroot/etc` before switch-root. See the [early-boot record](../project/spike-early-boot-record.md). Owner ruling 2026-08-11: systemd 261 arrives as a local package overlay from OBS `system:systemd`, because Fedora 44 stays on 259.x and the unit is new in 261. Three findings are handed back and taken nowhere: a tmpfs root leaves a separately delivered confext with nowhere to live, read-only `/etc` breaks first-boot presets so runtime unit enablement is unavailable, and `/etc/machine-id` has no home |
-| PLN-0002-02 | pending | 01 | `/usr`-only composition from the PLN-0001 closure, release defaults in `/usr/lib`, declaration and retention mechanisms intact | Extend `compose.sh`; record what moved out of the flattened root |
-| PLN-0002-03 | pending | 01 | Confext build path and a minimal path carve, both **marked candidate and handed back** to DES-0005 and the ADR-0003 spike | Produce the signed confext the boot needs; record the carve as the first drawn, not the reference |
-| PLN-0002-04 | pending | 01 | Disposable layout: ESP, one `/usr` slot, one Verity slot, **tmpfs root partition**, one confext. Fixture status recorded in the work register at creation | Build `systemd-repart` definitions. **Owner ruling 2026-08-11: tmpfs, which is the preferred direction and avoids the first draft's contradiction of the accepted C-008 ruling.** `/var` is tmpfs-backed and nothing persists; no machine-state volume is built, so C-008 is respected by not implementing the thing it governs |
-| PLN-0002-05 | pending | 02, 04 | **Declared parameter set for both arms** and the pairing rule that justifies it: `mkfs.erofs` compression algorithm and level, EROFS cluster size, ext4 block size, inode ratio, reserved-block percentage and feature set, dm-verity hash block size and salt, and the initrd contents per arm with the asymmetry stated and its direction of advantage named | Declare before building. An undeclared parameter invalidates the comparison |
+| PLN-0002-02 | **blocked** | 01 | `/usr`-only composition from the PLN-0001 closure, release defaults in `/usr/lib`, declaration and retention mechanisms intact | Composition, declaration, and retention are done and recorded in the [composition record](../project/usr-artifact-composition.md): 1352 entries left `/etc`, the release's own `/usr` search paths take what they can and a generated tmpfiles factory replays the rest, `/etc` is empty and asserted so, and the systemd 261 overlay is now a declared input verified by digest before the build. **Blocked on evidence, not on work**: `dl.fedoraproject.org` returns 403 for the declared repository, so no build has resolved the closure and the overlay together. Complete when it does. Handed back: a factory-replayed `/etc` still does not satisfy C-006 |
+| PLN-0002-03a | pending | 01 | Confext build path and a minimal `/etc` path carve, both **marked candidate and handed back** to DES-0005 and the ADR-0003 spike. The delivery path is a **declared fixture in this task's text**: `/usr/lib/confexts`, per the owner ruling of 2026-08-11 on finding 1 option D. Also completes the `L`/`C` exception list, which is the same carve | Produce the signed confext the boot needs; record the carve as the first drawn, not the reference. Unblocked once the declared repository is reachable. If any argument in this task depends on where the confext lives, stop and return to the [findings](../project/early-boot-findings-for-decision.md) |
+| PLN-0002-03b | pending | 03a | **Confext delivery**: where a separately delivered confext lives and when it is merged, with [RES-0015](../research/comparisons/stateless-etc-configuration-delivery.md) as its evidence | Draft for owner ruling; the drafter does not accept it. Blocks the confext partition PLN-0002-04 left out and finding 2's option B. **No task in this plan depends on it.** Depends on `S-004` and touches `C-009` and `L-003`; if it cannot be answered without one of them, stop and return to review |
+| PLN-0002-04 | **partial** | 01 | Disposable layout: ESP, one `/usr` slot, one Verity slot, **tmpfs root partition**, one confext. Fixture status recorded in the work register at creation | Build `systemd-repart` definitions. **Owner ruling 2026-08-11: tmpfs, which is the preferred direction and avoids the first draft's contradiction of the accepted C-008 ruling.** `/var` is tmpfs-backed and nothing persists; no machine-state volume is built, so C-008 is respected by not implementing the thing it governs. **Partial, 2026-08-11**: ESP, `/usr`, and the verity partition are promoted from the spike into `src/slice/composition/mkosi.repart/` and recorded as fixtures ([composition record](../project/usr-artifact-composition.md)); the tmpfs root is expressed as `root=tmpfs` on a reintroduced kernel command line, which is structural rather than a reversal of PLN-0001's reverted first-boot amendments. The verity-signature partition is deferred to task 06 with the signing material it needs. **The confext partition is not placed**: doing so decides where a separately delivered confext lives, which is finding 1 of task 01 and is not ruled. See the [drafted findings](../project/early-boot-findings-for-decision.md) |
+| PLN-0002-05 | pending | 02, 04 | **Declared parameter set for both arms** and the pairing rule that justifies it. Filesystem: `mkfs.erofs` compression algorithm and level, EROFS cluster size, ext4 block size, inode ratio, reserved-block percentage and feature set, dm-verity hash block size and salt, and the initrd contents per arm with the asymmetry stated and its direction of advantage named. **Kernel command line** (amended 2026-08-11): `root=tmpfs` against `systemd.volatile=yes`, `systemd.image_policy=`, `systemd.image_filter=`, `systemd.confext=`, and the `usrhash=` mkosi injects | Declare before building. An undeclared parameter invalidates the comparison. The command line is inside the signed UKI, so it is part of the artifact and not a setting applied to one; it affects boot behavior and memory, two of the eight criteria |
 | PLN-0002-06 | pending | 05 | Two authenticated artifacts per arm: EROFS+dm-verity and ext4+dm-verity, each with Verity pair and synthetically signed UKI. Second same-format artifact per arm exists only as a task 10 substitution source. Signing key lifetime stated across the task graph | Build all four; retain digests |
 | PLN-0002-07 | pending | 06 | Offline measurements: image size, build wall time, **build determinism**, update transfer size, inspectability. Repetition count and accelerator state recorded for every timed measurement | Measure both arms identically |
 | PLN-0002-08 | pending | 06 | Boot records both arms: `/usr` read-only and verity-authenticated, `/etc` regenerated, no failed units, boot behavior and memory with repetition count and accelerator state | Boot each; PLN-0001 measured the same boot at 72s TCG and 18s KVM, so accelerator state is recorded per run |
 | PLN-0002-09 | pending | 06 | **Corruption behavior**: single-bit corruption injected into an authenticated region of each artifact, recording detection point, diagnostic, and blast radius per format. Compressed EROFS clusters versus ext4 blocks is where the formats are expected to diverge | Inject and record verbatim |
 | PLN-0002-10 | pending | 06 | **Negative evidence**: same-format `/usr` substitution, Verity substitution, confext substitution, manifest substitution, and a wrong-but-valid signing key, each failing closed with a diagnostic that discriminates root-hash mismatch from signature failure from mount failure. Covered cells of C-001's cross product enumerated | Inject each; record which mechanism rejected it and how that was determined |
-| PLN-0002-11 | pending | 02, 03, 04 | The five registered slice tests updated for the `/usr` artifact, plus new checks for root-hash-to-UKI binding, read-only `/usr`, and nothing durable in `/etc`. Each verified failure-sensitive as PLN-0001-05 did | Update `T2`/`T3`/`T4-SLICE-*` and register the new checks |
+| PLN-0002-11 | pending | 02, 03a, 04 | The five registered slice tests updated for the `/usr` artifact, plus new checks for root-hash-to-UKI binding, read-only `/usr`, and nothing durable in `/etc`. Each verified failure-sensitive as PLN-0001-05 did | Update `T2`/`T3`/`T4-SLICE-*` and register the new checks |
 | PLN-0002-12 | pending | 07, 08, 09, 10 | Recovery-behavior disposition: measured, or deferred with rationale naming where it goes. The `crypttab` element of item 2's early-boot clause is addressed against the encryption non-goal | Decide and record; a deferral is a proposed amendment to item 2 and is **the owner's**, not a task's |
 | PLN-0002-13 | pending | 11, 12 | C-007 recommendation with its evidence, stating which criteria decided it and which were inconclusive. **If task 08 produced no values, this task says so and recommends nothing** | Draft; **the drafter does not accept it** |
 | PLN-0002-14 | pending | 13 | Retained evidence bundle, updated requirement trace, work register, and DES-0006 disposition | Assemble as PLN-0001-08 did |
+
+## Amendments (drafted and **accepted by Jason Tarasovic on 2026-08-11**)
+
+Two amendments, independent of each other: splitting PLN-0002-03, and widening
+PLN-0002-05's declared parameter set to cover the kernel command line. Both are
+applied to the task table above. The reasoning is kept here because a table row
+records what a task is, not why the plan changed.
+
+## Amendment 1: split PLN-0002-03
+
+### Why
+
+PLN-0002-03 is blocked in full by a dependency that touches a fraction of it.
+The task is two things -- build the signed confext, and carve the minimal `/etc`
+path set -- and neither depends on where the confext lives. What depends on
+finding 1 is only the third thing the task must do implicitly in order to
+boot-test its output: put the bytes somewhere the merge finds them.
+
+Splitting separates a question PLN-0002 must answer from one it has no business
+answering. C-007 is a format comparison; none of its eight criteria is affected
+by confext delivery.
+
+### The tasks
+
+| Task | Depends | Deliverable | Completion |
+| --- | --- | --- | --- |
+| PLN-0002-03a | 01 | Confext build path and minimal `/etc` path carve, both **marked candidate and handed back** to DES-0005 and the ADR-0003 spike. Delivery path declared a **fixture in the task text**, not chosen | Produce the signed confext the boot needs; record the carve as the first drawn, not the reference. Unblocked once the declared repository is reachable |
+| PLN-0002-03b | 03a | **Confext delivery**: where a separately delivered confext lives and when it is merged, with [RES-0015](../research/comparisons/stateless-etc-configuration-delivery.md) as its evidence | Draft for owner ruling. Blocks the confext partition PLN-0002-04 left out and finding 2's option B. **Not on this plan's critical path** |
+
+Task 03b depends on `S-004` and touches `C-009` and `L-003`. If it cannot be
+answered without one of those, it stops and returns to review -- which is the
+existing "a task needs a mechanism `S-004` or `C-009` has not made" clause,
+applied deliberately rather than hit by accident.
+
+Downstream dependencies stated as `03` (tasks 11 and the confext substitution
+in task 10) now read `03a`. No task in the plan depends on `03b`.
+
+### What the split costs
+
+The fixture delivery path lands in 03a, and PR-0030 C-006 already flags that
+task's confext tooling and path carve as becoming the reference by being first.
+Three first-by-default artefacts in one task is the risk, and declaring the
+delivery path a fixture *in the task text* rather than in a record afterwards
+is the mitigation. It is a weaker mitigation than not having the problem.
+
+The delivery fixture is now settled: **owner ruling 2026-08-11, option D**, the
+confext at `/usr/lib/confexts`, declared as a fixture and deciding nothing about
+the design. That removes the reason 03 was blocked; the split is what lets 03a
+proceed without dragging 03b's unruled design question with it.
+
+## Amendment 2: widen PLN-0002-05 to the kernel command line
+
+### Why
+
+PLN-0002-05 is this plan's declaration gate -- "declare before building, an
+undeclared parameter invalidates the comparison." Its enumerated parameter set
+is **filesystem parameters only**: `mkfs.erofs` compression algorithm and
+level, EROFS cluster size, ext4 block size, inode ratio, reserved-block
+percentage and feature set, dm-verity hash block size and salt, and the initrd
+contents per arm.
+
+The kernel command line is not in that list, and it is a parameter of the
+comparison by the plan's own standard. It affects **boot behavior and memory**,
+two of C-007's eight criteria. It is also *inside the signed UKI*, so it is not
+a setting applied to an artifact -- it is part of the artifact.
+
+The practical consequence of leaving it out is that the command line stays a
+fixture inherited from PLN-0002-01 and PLN-0002-04 straight through the
+measurements that decide C-007. PR-0030 C-005 and C-006 name that pattern.
+
+### What was added to PLN-0002-05
+
+Each declared with the value chosen, the alternative not chosen, and the reason
+-- the same standard the filesystem parameters are held to.
+
+- **`root=tmpfs` versus `systemd.volatile=yes`.** mkosi's spelling versus
+  systemd's own, the latter with a documented per-mode contract (`yes`,
+  `state`, `overlay`) and the property that no mode physically removes
+  anything. PLN-0002-04 took the first without comparing. The two must not be
+  assumed identical.
+  ([RES-0015](../research/comparisons/stateless-etc-configuration-delivery.md))
+- **`systemd.image_policy=`.** Per-partition integrity requirements asserted on
+  the signed command line -- ParticleOS requires `usr=signed` this way. Today
+  NeutrinOS asserts `/usr` integrity by having mounted it successfully, which
+  is the weaker claim PLN-0002-01 already showed to be unsafe when it found
+  that dm-verity is lazy and a corrupt artifact booted normally. This is the
+  natural mechanism for making PLN-0002-10's negative evidence fail closed for
+  a stated reason rather than incidentally.
+- **`systemd.image_filter=`.** Partition selection by label. Becomes load-
+  bearing at task 06, which builds a second same-format artifact per arm as a
+  task-10 substitution source.
+- **`systemd.confext=`.** Whether the merge happens at all is a UKI-carried
+  assertion. Relevant to the finding-1 fixture and to whatever 03b decides.
+- **`usrhash=`**, which mkosi injects today. Declared rather than inherited, so
+  that the binding between root hash and UKI that PLN-0002-11 registers a check
+  for is a stated property and not an observed one.
+
+### Deadline
+
+**Before PLN-0002-06.** The command line is inside the UKI, so a change after
+06 means tasks 07 through 10 measured a different artifact and are void. Task
+05 already sits between 04 and 06, so this is a widening of scope and not a
+reordering.
 
 ## Failure, interruption, and cleanup
 

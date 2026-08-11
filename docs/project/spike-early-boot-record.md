@@ -351,7 +351,7 @@ the silent non-durability C-006 names as the worse outcome.
   and until it runs, nothing here shows the gate discriminates a substituted
   artifact from a corrupted one.
 - **No signed confext.** The confext was a plain directory. Signature
-  verification under `image_policy_confext_strict` is PLN-0002-03's.
+  verification under `image_policy_confext_strict` is PLN-0002-03a's.
 - **No Secure Boot enforcement.** The UKI is signed with a synthetic key and
   the firmware was not asked to check it. SYS-030 stays **not applicable**.
 - **No reproducibility claim.** The artifact was built repeatedly during

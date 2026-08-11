@@ -49,8 +49,11 @@ performing any migration on the reference machines.
 - Promise in-place conversion of the current workstation or router disks.
 - Make filesystem snapshots a generic rollback or backup mechanism.
 - Authenticate all mutable state cryptographically.
-- Finalize the controlled writable `/etc` exception and administrator-override
-  projection under C-002.
+- Finalize the confext lifecycle that delivers configuration, the
+  administrator-override surface, or the bounded experimentation path for
+  unqualified configuration. Ownership and delivery remain decision-backlog
+  item `C-002`; the lifecycle SYS-123 demands belongs to DES-0005. This design
+  states only what storage must guarantee.
 - Select the workstation hibernation policy, backup product, or workload
   volume format without representative exercises.
 - Design a general storage-server, RAID, NAS, or ZFS role.
@@ -218,6 +221,16 @@ Durable content discovered there is a fault to report, not state to preserve.
 This satisfies SYS-020's reconstruction obligation by construction rather than
 by inventory discipline.
 
+A durable write to `/etc` must **fail at the moment it is attempted**, whether
+or not a confext currently covers the path (C-006, ruled 2026-08-11). The
+default behavior of a regenerated tree is the opposite: an uncovered path is an
+ordinary writable directory, so the write succeeds, the service works, and the
+change disappears at the next boot. Silent non-durability is a worse outcome
+than a hard failure on a system whose claim is attributability, because it is
+discovered at the next reboot rather than at the change. Storage therefore
+requires that `/etc` present no writable durable surface in normal operation;
+the mechanism that guarantees it belongs to DES-0005.
+
 Consequences this amendment accepts:
 
 - Per-machine identity cannot live in `/etc`. It must be projected from state
@@ -230,7 +243,18 @@ Consequences this amendment accepts:
   and must be exercised, not assumed.
 - Every confext inherits SYS-123 in full: content identity, base compatibility,
   authorization, qualification, activation ordering, health, rollback,
-  retention, and effective-deployment status.
+  retention, and effective-deployment status. No design owns that lifecycle
+  yet; DES-0005 is its home.
+- Routine configuration change becomes a release-artifact operation. A bounded
+  path for testing unqualified configuration is therefore required, and it must
+  be non-durable by construction rather than by discipline, visibly marked
+  while active, and either unavailable on production physical roles or
+  attributable when used. `/run/confexts/` is a tmpfs search path and the
+  `ephemeral` mutable modes exist, so this is assembly of existing mechanism
+  rather than a question needing evidence. It conflicts with
+  `image_policy_confext_strict`, which requires signed extensions, so the scope
+  is a role distinction of the kind SYS-030 already draws. DES-0005 selects the
+  mechanism; storage only requires that nothing on this path becomes durable.
 - The release artifact is no longer a disk image, so the unreproducible btrfs
   and FAT bytes the
   [composition record](../../project/slice-composition-record.md) identified

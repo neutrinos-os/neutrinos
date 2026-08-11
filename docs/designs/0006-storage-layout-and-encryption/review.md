@@ -119,8 +119,48 @@ the paper mapping proven.
 - Author response: the design explicitly leaves the projection mechanism to
   C-002, reserves an attributable admin-state boundary, and treats unhandled
   writers as unsupported rather than silently weakening the model.
-- Disposition: open under C-002 and DES-0002 C-001.
+- Restated 2026-08-11, because C-013 removed the premise. `/etc` is no longer
+  flattened into an authenticated root; it is a regenerated tree on the
+  writable root with signed confexts overlaid. The original failure -- writes
+  rejected by a read-only filesystem -- is no longer the main risk. The risk
+  moved and sharpened: where a confext is merged, `systemd-confext` makes
+  `/etc` read-only and a write fails visibly, which is the acceptable case;
+  where **no confext covers the path**, `/etc` is an ordinary writable
+  directory, so the write succeeds, the service works, and the change vanishes
+  at the next boot. The live question is therefore not whether read-only `/etc`
+  blocks operation but whether writable-but-volatile `/etc` **silently discards
+  operator and service state**.
+- The restatement also exposes a cost: SYS-123 puts every confext under full
+  artifact lifecycle, so adding an SSH key or changing a sysctl becomes a
+  release-owned artifact with qualification, ordering, rollback, and retention
+  attached.
+- Owner ruling, 2026-08-11: **fail loudly.** A durable `/etc` write must fail
+  when attempted, whether or not a confext covers the path; silent
+  non-durability is unacceptable on a system whose claim is attributability.
+  A bounded path for testing unqualified configuration is required alongside
+  it, non-durable by construction, visibly marked, and either unavailable on
+  production physical roles or attributable when used.
+- Disposition: **Resolved 2026-08-11 in the storage design, accepted by Jason
+  Tarasovic.** DES-0006 now requires that `/etc` present no writable durable
+  surface in normal operation and records the experimentation constraint.
+- Note on the `C-002` references here and in DES-0006: they denote
+  **decision-backlog item C-002** ("How are `/etc`, local overrides, secrets,
+  and credentials owned and delivered?"), not challenge C-002 of this review.
+  The identifier spaces collide. The pointer is correct and remains the open
+  decision; the confext lifecycle it will be answered with belongs to DES-0005.
+- Handed on, not closed by this: the confext lifecycle SYS-123 demands, and the
+  mechanism satisfying both the fail-loudly guarantee and the experimentation
+  path. `confext` currently appears in no design but this one, so C-013 created
+  an obligation that the configuration design has not yet absorbed. DES-0005 is
+  its home; the governing open decision stays backlog item `C-002`. The experimentation path additionally conflicts with
+  `image_policy_confext_strict`, which requires signed extensions, so its scope
+  is a production/non-production role distinction of the kind SYS-030 draws.
 - Residual risk: exceptions can accumulate until `/etc` is effectively mutable.
+  Two new ones. The fail-loudly guarantee has no mechanism yet, so it is a
+  requirement on a design that does not exist; and software that writes durable
+  `/etc` now fails on a machine where the same write would have silently
+  succeeded, which surfaces the unsupported-writer inventory as an operational
+  problem rather than a theoretical one.
 
 ### C-007: EROFS is novelty without demonstrated value
 

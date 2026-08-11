@@ -1,7 +1,7 @@
 ---
 status: informative
-last_updated: 2026-08-10
-source_snapshot_revision: 251899f
+last_updated: 2026-08-11
+source_snapshot_revision: cc87b1d
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0001
@@ -112,7 +112,29 @@ owner acceptance.** A second finding: the two mixed-branch faults fail closed on
 Fedora's per-release GPG keys, not on anything in `src/slice` comparing an input
 against its declaration -- an inherited guarantee, not an enforced one, and one
 that does not survive a change of distribution. Two mitigations are proposed in
-the evidence record and neither is accepted. PLN-0001-07 is next.
+the evidence record and neither is accepted.
+
+PLN-0001-07 is complete and confirmed the identity claims while finding the
+offline claim weaker than recorded. The artifact, both output directories, and
+all six VM state directories were destroyed and the artifact rebuilt inside a
+network namespace with loopback and nothing else, serving the declared
+repository from a retained local copy. Every stable identity came back
+byte-for-byte, the UKI read out of the reconstructed image's ESP matches the
+standalone UKI, and trees extracted from two disk images compare **13240
+entries with zero differences** -- which closes PLN-0001-04's correction that
+the earlier comparison measured the composition process rather than the shipped
+tree. `check:complete` `passing=10 failing=0` against the reconstructed
+artifact, booting in 15.8 seconds. **Two findings.** Nothing in the fixture
+retains the declared repository's metadata, so the first offline attempt could
+not resolve at all and the retention had to be assembled by hand; **SYS-041 is
+downgraded from demonstrated to partial in the plan trace and awaits owner
+acceptance**, and only its acquisition half was exercised in any case. Second,
+58 of the 179 RPMs in the shared package cache are not in the declared
+repository -- `fc43` packages and `updates` builds left behind by PLN-0001-06's
+injected faults -- so a cache shared across fault injection is not a retention
+store. Nothing consumed them here. See the
+[reconstruction record](slice-reconstruction-record.md). PLN-0001-08, the
+evidence bundle and requirement-trace update, is next.
 
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since

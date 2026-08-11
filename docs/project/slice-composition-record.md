@@ -1,6 +1,6 @@
 ---
 status: active
-last_updated: 2026-08-10
+last_updated: 2026-08-11
 governing_plan: PLN-0001
 ---
 
@@ -30,6 +30,12 @@ Reconstruct with `./src/slice/compose.sh --force build`. The script clones mkosi
 at the pinned commit, builds the tools tree from the pinned base image plus the
 declared packages from the frozen repository, and runs the composition. It
 resolves no floating reference.
+
+It does, however, require the network. PLN-0001-07 found that nothing here
+retains the declared repository's metadata, so a rebuild with the network
+removed cannot resolve until that metadata is retained separately. The
+[reconstruction record](slice-reconstruction-record.md) states what had to be
+assembled by hand and recommends the SYS-041 downgrade that follows from it.
 
 ## Output identity
 
@@ -155,6 +161,13 @@ shipped `Format=disk` artifact does not. Two consequences:
    trees from two disk images and compares those.
 
 Neither changes a G1 claim. See the [identity report](slice-identity-report.md).
+
+**Closed 2026-08-11 by PLN-0001-07.** Trees extracted from two `Format=disk`
+images -- the tighter method this correction asked for -- compare 13240 entries
+with zero differences in type, mode, ownership, symlink target, size, and
+per-file digest, and contain no package database. The narrower reading above is
+now the measured one. See the
+[reconstruction record](slice-reconstruction-record.md).
 
 ## What this does not establish
 

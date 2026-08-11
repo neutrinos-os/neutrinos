@@ -11,7 +11,7 @@
 
 [schema]
 id = "neutrinos.slice.input-set"
-version = 2
+version = 3
 
 [source]
 repository = "https://github.com/neutrinos-os/neutrinos"
@@ -33,6 +33,50 @@ url = "https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_
 metadata_digest = "da3845427d188097f6fd71b417a039bdfb8efefc4f38ca44b5cbb94f95a18991"
 metadata_revision = "1776864872"
 frozen = true
+
+# The one deviation from the release closure, added by PLN-0002-02 and declared
+# rather than arranged. Fedora 44 ships systemd 259.5 and stays on the 259.x
+# series; DES-0006 C-013 names systemd-confext-sysroot.service as the mechanism
+# that merges a confext into the real /etc before switch-root, and that unit is
+# new in systemd 261. The closure as declared cannot reach it.
+#
+# It arrives as a local package directory, not as a second repository, so
+# LocalMirror= keeps enforcing "exactly one repository exists" by construction.
+# F-RES-01 is this project's own recorded evidence that convention does not hold
+# in that position.
+#
+# The source is a nightly and upstream replaces it in place. The digests below
+# are therefore the input and the URL is only where it came from: compose.sh
+# verifies every file against them and fails closed on a mismatch, so an
+# upstream rebuild becomes a stopped build rather than a silent substitution.
+[[packages.overlays]]
+name = "systemd-261"
+source = "https://download.opensuse.org/repositories/system:/systemd/Fedora_44/x86_64"
+reason = "DES-0006 C-013 requires systemd-confext-sysroot.service, new in systemd 261; Fedora 44 stays on 259.x"
+
+[[packages.overlays.files]]
+name = "systemd-261.999+1208+g827144298-4747.1.x86_64.rpm"
+sha256 = "3b0cffe5baa523cee165ead190c29458544d13e97ec0e0e71ea7c00aa62c9d3f"
+
+[[packages.overlays.files]]
+name = "systemd-boot-261.999+1208+g827144298-4747.1.x86_64.rpm"
+sha256 = "e7744cf72728bbdeb875cc5be9fa65a229af529818d82bc765eedfe228cb9b3c"
+
+[[packages.overlays.files]]
+name = "systemd-libs-261.999+1208+g827144298-4747.1.x86_64.rpm"
+sha256 = "45447b7596dbb1b517aa53ad28ee300ca8ada7e3a79816b43c40075033036799"
+
+[[packages.overlays.files]]
+name = "systemd-shared-261.999+1208+g827144298-4747.1.x86_64.rpm"
+sha256 = "260b09775ce0ec3b61517fd18a29e2b6eb4b4d7fdd6a96050502f57ea3b41444"
+
+[[packages.overlays.files]]
+name = "systemd-sysusers-261.999+1208+g827144298-4747.1.x86_64.rpm"
+sha256 = "50d90ca8d1f0ad302882434cfe82262c013e31b4fd7502c87df262faed5b1f27"
+
+[[packages.overlays.files]]
+name = "systemd-udev-261.999+1208+g827144298-4747.1.x86_64.rpm"
+sha256 = "878d3ce97b3e40b307ff64bfb85af5c02e203f96e262291c21ea11920d1d22da"
 
 [[tools]]
 name = "mkosi"
@@ -66,6 +110,10 @@ packages = [
   "zstd",
   "xz",
   "python3",
+  # Added by PLN-0002-02. mkosi turns the declared package overlay into a local
+  # repository with createrepo_c, and without it the build stops after syncing
+  # metadata.
+  "createrepo_c",
 ]
 
 # QEMU is deliberately absent. It executes the artifact but cannot change what

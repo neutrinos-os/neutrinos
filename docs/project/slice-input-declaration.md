@@ -1,6 +1,6 @@
 ---
 status: active
-last_updated: 2026-08-10
+last_updated: 2026-08-11
 governing_plan: PLN-0001
 ---
 
@@ -8,7 +8,9 @@ governing_plan: PLN-0001
 
 This records what the slice's declared input set contains and, for each input,
 what makes it exact. It is the PLN-0001-01 deliverable together with
-`src/slice/input-set.toml` and `src/slice/schema/input-set-v2.schema.json`.
+`src/slice/input-set.toml` and `src/slice/schema/input-set-v3.schema.json`.
+PLN-0002-02 carried it to version 3; the record stays PLN-0001's deliverable and
+the addition is marked where it lands.
 
 Exactness here means one thing: the input names a specific immutable byte
 sequence, and a substitution is detectable. A version string, a branch name, a
@@ -54,6 +56,32 @@ packages from the frozen repository -- rather than by its own digest, because
 exporting the tree produces unstable timestamps and its digest would change
 without any input changing.
 
+## Schema version 3
+
+Added by PLN-0002-02. Version 3 adds `packages.overlays`, and it exists because
+PLN-0002 needs a systemd newer than the frozen Fedora release carries:
+DES-0006 C-013 names `systemd-confext-sysroot.service` as the mechanism that
+merges a confext into the real `/etc` before switch-root, and that unit is new
+in systemd 261 while Fedora 44 stays on the 259.x series.
+
+Version 2 offered two ways to express that and both were worse. A second
+repository would have retired the guarantee `LocalMirror=` enforces by
+construction -- that exactly one repository exists -- which is the guarantee
+F-RES-01 recorded as not holding by convention. An undeclared local directory
+would have been the undeclared acquisition path itself.
+
+An overlay is therefore declared, injected as a local package directory rather
+than as a repository, and pinned **file by file with a SHA-256**. That is
+stricter than a repository declaration, which pins metadata and takes package
+identity from it, and it is stricter for a reason: the declared source is a
+continuously republished nightly that upstream replaces in place, so the URL is
+where the bytes came from and the digests are what they are. `reason` is a
+required field. An overlay with no stated reason is a preference, and a
+preference is not an input.
+
+The overlay list is optional. An overlay is a deviation from the release
+closure, and a declaration with none is the ordinary case.
+
 ## Deliberate omissions
 
 Each of these is absent by decision, not oversight. Recording them here stops a
@@ -86,21 +114,22 @@ not a decision and does not become one; see
 
 ## Verification performed
 
-The instance validates against the schema, and the schema rejects nine
+The instance validates against the schema, and the schema rejects eleven
 constructed violations: a rolling repository, a branch name as source revision,
 an unknown top-level field, an empty repository list, a `git-commit` identity
 holding a SHA-256, an undeclared precedence layer, an unsupported schema
-version, a tools tree pinned by tag instead of digest, and an empty tools
-package list. A schema that has only ever been shown to accept is untested.
+version, a tools tree pinned by tag instead of digest, an empty tools
+package list, an overlay file with no digest, and an overlay with no stated
+reason. A schema that has only ever been shown to accept is untested.
 
 **Closed by PLN-0001-05.** `T2-SLICE-001` now performs this verification on
 every `mise run check:fast`, against the schema the record's own `[schema]`
-block declares. It reproduces all nine rejections rather than only the
+block declares. It reproduces all eleven rejections rather than only the
 acceptance, because a schema shown only to accept is untested: an empty schema
 would accept just as well.
 
 The violations are expressed as mutations of the committed record, not as nine
 fixture files. A fixture file is a copy and copies drift, so a record that
-gained a field would leave nine stale files passing for reasons that no longer
+gained a field would leave stale files passing for reasons that no longer
 held. The check itself was verified by adding a mutation the schema should
 accept and confirming the check failed.

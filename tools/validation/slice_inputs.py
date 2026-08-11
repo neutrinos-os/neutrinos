@@ -52,7 +52,18 @@ def undeclared_precedence_layer(record: dict[str, Any]) -> None:
 
 
 def unsupported_schema_version(record: dict[str, Any]) -> None:
-    record["schema"]["version"] = 3
+    # Whatever the current schema version is, plus one. It was 3 while the
+    # committed record declared 2; PLN-0002-02 added overlays and made 3 real,
+    # which would have turned this violation into a record the schema accepts.
+    record["schema"]["version"] = 4
+
+
+def undeclared_overlay_file(record: dict[str, Any]) -> None:
+    record["packages"]["overlays"][0]["files"][0].pop("sha256")
+
+
+def overlay_without_a_reason(record: dict[str, Any]) -> None:
+    record["packages"]["overlays"][0].pop("reason")
 
 
 def tools_tree_pinned_by_tag(record: dict[str, Any]) -> None:
@@ -73,6 +84,8 @@ VIOLATIONS = (
     ("unsupported schema version", unsupported_schema_version),
     ("tools tree pinned by tag", tools_tree_pinned_by_tag),
     ("empty tools package list", empty_tools_package_list),
+    ("overlay file with no digest", undeclared_overlay_file),
+    ("overlay with no stated reason", overlay_without_a_reason),
 )
 
 

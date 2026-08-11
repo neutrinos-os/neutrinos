@@ -30,7 +30,15 @@ repository_url=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everyth
 # in the position that decides what the image contains.
 tools_packages="distribution-gpg-keys cpio systemd systemd-ukify systemd-boot
                 dosfstools mtools e2fsprogs erofs-utils btrfs-progs
-                squashfs-tools tar zstd xz python3"
+                squashfs-tools tar zstd xz python3 createrepo_c"
+
+# The declared package overlay. Note what is *not* duplicated here: acquisition
+# reads input-set.toml itself, through acquire-overlay.py, so the digests it
+# verifies against are the declared ones rather than a copy of them. The values
+# above are repeated because a shell script cannot read TOML without a
+# dependency this slice has not declared; a Python helper can, and where that is
+# possible the declaration should be read rather than restated.
+overlay_dir="$build_root/inputs/overlay"
 
 mkdir -p "$build_root"
 
@@ -60,10 +68,15 @@ fi
 # by PLN-0001-06's injected faults. Nothing consumed them, but a cache shared
 # across fault injection is not a retention store, and a build that resolves
 # from one cannot say where its inputs came from.
+# Before the build, not after: an overlay that cannot be verified must stop the
+# composition rather than be discovered in the artifact.
+python3 "$root/acquire-overlay.py" --destination="$overlay_dir"
+
 cd "$root/composition"
 PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
     --tools-tree="$build_root/tools" \
     --package-cache-directory="$build_root/pkgcache" \
+    --package-directory="$overlay_dir/systemd-261" \
     --output-directory="$build_root/out" \
     "$@"
 
@@ -81,5 +94,6 @@ if [ -f "$build_root/out/neutrinos-slice.manifest" ]; then
     python3 "$root/retain-repository.py" \
         --repository="$repository_url" \
         --cache="$build_root/pkgcache" \
+        --overlay="$overlay_dir" \
         --destination="$build_root/inputs/repository"
 fi

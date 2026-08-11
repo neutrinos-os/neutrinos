@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neutrinos.example/schema/slice/input-set-v3",
+  "title": "Reference-VM slice declared input set",
+  "description": "Structure of the operator-authored input declaration for the reference-VM slice. Version 3 adds package overlays, which version 2 could not express: PLN-0002 needs a systemd newer than the frozen Fedora release carries, and the only alternatives were a second repository -- retiring the single-repository guarantee LocalMirror= enforces by construction -- or an undeclared local directory, which is the shape of the fault PLN-0001-06 recorded as failing open. An overlay is declared file by file with its SHA-256, so it is an identity rather than a URL. This schema validates structure only; resolution, reachability, and digest agreement are composition-time obligations under SYS-057 through SYS-059.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "source",
+    "packages",
+    "tools",
+    "intent",
+    "tools_tree"
+  ],
+  "properties": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "version"
+      ],
+      "properties": {
+        "id": {
+          "const": "neutrinos.slice.input-set",
+          "description": "Immutable schema identifier required by ADR-0003."
+        },
+        "version": {
+          "const": 3,
+          "description": "Unsupported versions fail rather than degrade."
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "revision"
+      ],
+      "description": "The NeutrinOS source the composition is built from.",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Full commit object name. A branch or tag is not an identity; both move."
+        }
+      }
+    },
+    "packages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "distribution",
+        "release",
+        "architecture",
+        "repositories"
+      ],
+      "description": "The package snapshot. Exactness comes from frozen metadata plus a recorded digest, never from a mirror URL alone.",
+      "properties": {
+        "distribution": {
+          "type": "string",
+          "minLength": 1
+        },
+        "release": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "enum": [
+            "x86_64"
+          ]
+        },
+        "repositories": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/repository"
+          },
+          "description": "The complete and finite repository list. Precedence is declaration order. A repository absent here is undeclared, and resolution from it fails closed under SYS-059."
+        },
+        "overlays": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/overlay"
+          },
+          "description": "Package sets injected as a local directory alongside the declared repositories, never as a repository of their own. Optional: an overlay is a deviation from the release closure and a declaration with none is the ordinary case."
+        }
+      }
+    },
+    "tools": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/tool"
+      },
+      "description": "Every tool whose behavior can change composition output."
+    },
+    "intent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "role",
+        "machine",
+        "layers"
+      ],
+      "description": "The minimal fleet intent this slice requires. It is deliberately smaller than the accepted intent model; only the fields the slice exercises appear.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A generic qualification fixture, not a workstation or router role. See PLN-0001 non-goals."
+        },
+        "machine": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "common",
+              "role",
+              "machine"
+            ]
+          },
+          "description": "Composition precedence, lowest first. SYS-044 fixes this as common < role < machine; the order is declared here so a violation is observable rather than implicit."
+        }
+      }
+    },
+    "tools_tree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_image",
+        "packages",
+        "package_source"
+      ],
+      "description": "The environment supplying the package manager that resolves the image. It is a composition input because it decides what the image contains.",
+      "properties": {
+        "base_image": {
+          "type": "string",
+          "pattern": "^[^@]+@sha256:[0-9a-f]{64}$",
+          "description": "Digest-pinned container image. A tag is not an identity."
+        },
+        "package_source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Name of the entry in packages.repositories the tools packages come from. The tools tree is built from the same frozen repository as the image, never from the build host's own distribution."
+        },
+        "packages": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Exact package names added to the base image. The resulting tree is reproduced from this recipe, not pinned by its own digest, because export timestamps make that digest unstable."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "url",
+        "metadata_digest",
+        "metadata_revision",
+        "frozen"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "metadata_revision": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The repository's own recorded revision, carried so a silently republished metadata set is detectable."
+        },
+        "frozen": {
+          "const": true,
+          "description": "Only repositories that are immutable after publication may be declared. A rolling repository cannot be an exact input, so the schema admits no way to declare one."
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "identity_kind",
+        "identity"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity_kind": {
+          "type": "string",
+          "enum": [
+            "git-commit",
+            "sha256"
+          ],
+          "description": "What the identity field is. A version string alone is a label, not an identity."
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "identity_kind": {
+                "const": "git-commit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identity": {
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "identity_kind": {
+                "const": "sha256"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identity": {
+                "$ref": "#/$defs/sha256"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "overlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "source",
+        "reason",
+        "files"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Where the files came from. Not an identity: the digests below are. An overlay published continuously may be replaced in place at this URL, which is why the retained copy is the input."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Why the declared closure cannot supply this. An overlay with no stated reason is a preference, and a preference is not an input."
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/overlay_file"
+          },
+          "description": "Every file the overlay contributes, each pinned by digest. A file absent here is undeclared and composition fails on it."
+        }
+      }
+    },
+    "overlay_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "sha256"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}

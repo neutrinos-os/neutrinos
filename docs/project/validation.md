@@ -80,12 +80,18 @@ survived twenty-six commits and a gate review. It classifies the index, not
 classification from `git diff --numstat` rather than re-deciding what binary
 means.
 `T2-SLICE-001` validates `src/slice/input-set.toml` against the schema its own
-`[schema]` block declares, and reproduces the nine constructed rejections the
+`[schema]` block declares, and reproduces the eleven constructed rejections the
 [input declaration](slice-input-declaration.md) claims. It uses the locked
 `jsonschema` package -- the repository's only runtime dependency, added because
 the schema uses `$ref`, `allOf`, and `if`/`then`, and a hand-rolled subset
 checker that misread any of them would report a record as valid that the schema
 rejects.
+Two of those eleven arrived with PLN-0002-02's schema version 3, which added
+declared package overlays: an overlay file with no digest, and an overlay with
+no stated reason. The same change moved the `unsupported schema version`
+violation from 3 to 4, because version 3 became real and the violation would
+otherwise have been a record the schema accepts.
+
 `T2-SLICE-002` and `T3-SLICE-002` are the two mitigations PLN-0001-06 proposed
 for the injected fault that did not fail, registered 2026-08-11.
 

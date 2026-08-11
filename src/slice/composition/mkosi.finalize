@@ -1,0 +1,259 @@
+#!/bin/sh
+# Move the release's own defaults out of /etc and into /usr, so the composed
+# tree can become a `/usr`-only artifact.
+#
+# PLN-0002-02. DES-0006 C-013 makes the authenticated artifact `/usr` alone and
+# says `/etc` is regenerated and holds nothing durable. The PLN-0001 closure
+# does not satisfy that as installed: 1352 entries land in /etc, and every one
+# of them is a release default that a `/usr`-only artifact would simply lose.
+# This script is where they stop being lost. It classifies each of them and
+# fails if it cannot.
+#
+# Three dispositions, and nothing is deleted that a running system would miss:
+#
+#   relocate  the content has a native /usr search path -- systemd units and
+#             their .wants enablement, pam.d, sysctl.d -- so it moves there and
+#             is found by the same lookup that found it in /etc
+#   discard   the content configures building, not running: package manager
+#             repositories, shadow-utils backup copies, lock files
+#   factory   everything else moves to /usr/share/factory/etc and is replayed
+#             into /etc at boot by systemd-tmpfiles lines generated below
+#
+# The factory is systemd's own answer for release-owned /etc content on a
+# stateless system, not an invention of this plan.
+#
+# Factory entries carry a fourth classification of their own, `L` or `C`, and
+# it is stated per path rather than applied uniformly. Owner ruling 2026-08-11:
+# **the default is `L`**, a symlink into the factory, because /etc/foo then
+# resolves into a read-only dm-verity /usr and a durable write fails on the
+# artifact's own integrity boundary. That is what C-006 asks for, and it is a
+# property of the artifact rather than of whether a confext happens to be
+# merged -- which is all the `C`-only version could offer, as PLN-0002-01
+# measured. Symlinks also occupy no tmpfs, and memory is one of C-007's eight
+# criteria.
+#
+# Note that the usual argument for `L` -- that copies go stale against a later
+# /usr -- is NOT the reason here and must not be cited as one. That reason
+# belongs to a persistent /etc. This /etc is regenerated from the current
+# factory at every boot, so a copy propagates already.
+#
+# `C` remains for paths that a running system must be able to write. That list
+# is deliberately minimal and each entry states why. **It is not complete**:
+# the paths a confext or a machine must contribute *into* rather than replace
+# are PLN-0002-03a's carve, and are not known yet. The disposition is expressed
+# here so that ruling is a data change and the open question is visible in the
+# generated fragment, rather than implicit in whatever this script happened to
+# emit.
+#
+# The final assertion is the point of the script. /etc must be empty when it
+# finishes, so a package added later that drops a new file there fails the
+# build instead of silently disappearing from the artifact.
+set -eu
+
+# Glob expansion is collated, and the collation depends on the locale. The
+# generated tmpfiles fragment is image content, so its line order must not
+# depend on the environment the build ran in.
+LC_ALL=C
+export LC_ALL
+
+etc="$BUILDROOT/etc"
+usr="$BUILDROOT/usr"
+
+# Relocate. Destination directories already exist in the closure and are
+# already searched: /usr/lib/systemd/system/*.wants is how the release itself
+# expresses vendor enablement, and 20 such directories are present before this
+# script runs. Moving /etc's preset symlinks there is therefore using the
+# mechanism, not adding one.
+#
+# A relative symlink can change meaning when it moves, and whether it does
+# depends on whether its target travels with it.
+#
+#   ../getty.target inside /etc/systemd/system/multi-user.target.wants stays
+#   inside the tree being relocated, so it means the same thing at the
+#   destination and is left exactly as installed
+#
+#   ../sysctl.conf inside /etc/sysctl.d escapes the tree, naming
+#   /etc/sysctl.conf -- which does not travel, it goes to the factory and is
+#   replayed at that same path -- so it is rewritten to the absolute path it
+#   already meant
+#
+# Measured: without this distinction the closure ships one silently broken link.
+# The test is textual, counting leading `..` against the link's depth below the
+# relocation root, because the target need not exist yet and following it would
+# resolve through symlinks this script is in the middle of moving.
+retarget() {
+    # $1 link target, $2 directory holding the link, $3 relocation root in the image
+    case "$1" in /*) printf '%s' "$1"; return 0 ;; esac
+
+    depth=0
+    remainder=${2#"$BUILDROOT""$3"}
+    while [ -n "$remainder" ] && [ "$remainder" != "/" ]; do
+        depth=$((depth + 1))
+        remainder=${remainder%/*}
+    done
+
+    ascent=0
+    rest=$1
+    while : ; do
+        case "$rest" in
+        ../*) ascent=$((ascent + 1)); rest=${rest#../} ;;
+        *) break ;;
+        esac
+    done
+
+    if [ "$ascent" -le "$depth" ]; then
+        printf '%s' "$1"
+        return 0
+    fi
+
+    # Escaping, so rewrite to an absolute path -- and normalise it while doing
+    # so. `/etc/sysctl.d/../sysctl.conf` names the right file only while
+    # /etc/sysctl.d exists, and this script has just moved that directory into
+    # /usr/lib. Applying the ascent instead of preserving it leaves a link that
+    # does not depend on a directory the relocation deleted.
+    prefix=${2#"$BUILDROOT"}
+    while [ "$ascent" -gt 0 ]; do
+        prefix=${prefix%/*}
+        ascent=$((ascent - 1))
+    done
+    printf '%s/%s' "$prefix" "$rest"
+}
+
+#
+# Positional parameters throughout, never named variables: this function calls
+# itself, and a named variable would be the caller's by the time the recursion
+# returned.
+relocate() {
+    [ -d "$1" ] || return 0
+    mkdir -p "$2"
+    for entry in "$1"/* "$1"/.*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        case "${entry##*/}" in . | ..) continue ;; esac
+        if [ -L "$entry" ]; then
+            ln -sfn "$(retarget "$(readlink "$entry")" "$1" "$3")" "$2/${entry##*/}"
+            rm -f "$entry"
+        elif [ -d "$entry" ] && [ -d "$2/${entry##*/}" ]; then
+            # Both sides exist as real directories -- a .wants that the release
+            # populates from both places. Merge rather than replace, or vendor
+            # enablement present in only one of them is lost. Recursing rather
+            # than moving the contents keeps the symlink rewrite above applying
+            # at every depth, which is where the enablement links actually are.
+            relocate "$entry" "$2/${entry##*/}" "$3"
+        else
+            mv "$entry" "$2/${entry##*/}"
+        fi
+    done
+    rmdir "$1" 2>/dev/null || true
+}
+
+relocate "$etc/systemd/system" "$usr/lib/systemd/system" /etc/systemd/system
+relocate "$etc/systemd/user" "$usr/lib/systemd/user" /etc/systemd/user
+relocate "$etc/pam.d" "$usr/lib/pam.d" /etc/pam.d
+relocate "$etc/sysctl.d" "$usr/lib/sysctl.d" /etc/sysctl.d
+
+# Discard. Each of these configures the build or records its residue; none is
+# read by a running NeutrinOS machine, and shipping package-manager
+# repositories inside an authenticated artifact would ship exactly the
+# undeclared acquisition path PLN-0001-06 spent a task proving fails open.
+#
+# /etc/xdg/systemd/user is the exception that is here for a reason of this
+# script's own making: it is an alias for /etc/systemd/user, which the
+# relocation above just moved into /usr/lib. Carrying the alias to the factory
+# would ship a link to a path that no longer exists, and retargeting it would
+# add a second user-unit search path the release never had.
+rm -rf "$etc/yum.repos.d" "$etc/dnf" "$etc/rpm" "$etc/xdg/systemd"
+rm -f "$etc/passwd-" "$etc/group-" "$etc/shadow-" "$etc/gshadow-" \
+      "$etc/.pwd.lock" "$etc/mtab"
+rm -rf "$BUILDROOT/buildroot"
+
+# Empty directories carry no content. Those that a running system needs are
+# created by the tmpfiles.d and sysusers.d fragments already in /usr/lib, which
+# is the mechanism that owns directory creation; carrying 60 empty directories
+# through the factory would duplicate it.
+find "$etc" -mindepth 1 -depth -type d -empty -delete
+
+# Factory. Everything that survives to here is release content with no /usr
+# search path of its own -- the extracted CA trust, nsswitch, the crypto-policy
+# back-ends, PAM's security fragments, the shell profile.
+#
+# It goes in a directory of its own rather than in /usr/share/factory/etc,
+# because the closure already ships one: systemd installs factory copies of
+# vconsole.conf, issue, locale.conf, nsswitch.conf, and pam.d there. Merging
+# into it silently overwrote four package-owned files with the installed /etc
+# versions, and left the shipped pam.d factory with no line replaying it.
+# Observed, on the first build that produced a factory.
+#
+# So the two stay separate and every line below names its source explicitly,
+# rather than relying on the tmpfiles default of /usr/share/factory/ plus the
+# path -- a default that would now have two plausible meanings.
+factory="$usr/share/factory/neutrinos-etc"
+tmpfiles="$usr/lib/tmpfiles.d/00-neutrinos-factory-etc.conf"
+
+# The `C` exceptions to the `L` default, each because a running system writes
+# the path and a symlink into read-only /usr would make that write fail. This
+# list is a decision, so it is stated here and not derived: a path added by a
+# later package gets `L` and, if that is wrong, fails visibly at boot rather
+# than being silently absorbed.
+#
+#   machine-id            systemd writes it, and it currently has no home at
+#                         all -- finding 3, unresolved
+#   passwd shadow group   systemd-sysusers writes these at boot. NixOS asserts
+#   gshadow subuid subgid the same coupling: sysusers and /etc must agree on
+#                         mutability or the boot fails
+#   adjtime               hwclock writes it
+#   ld.so.cache           ldconfig regenerates it at runtime
+#
+# Not exhaustive. See PLN-0002-03a.
+writable_in_etc="machine-id passwd shadow group gshadow subuid subgid adjtime ld.so.cache"
+
+disposition() {
+    for writable in $writable_in_etc; do
+        [ "$1" = "$writable" ] || continue
+        printf 'C'
+        return 0
+    done
+    printf 'L'
+}
+
+mkdir -p "$factory" "$usr/lib/tmpfiles.d"
+{
+    echo "# Generated by src/slice/composition/mkosi.finalize. Do not edit."
+    echo "# Replays the release's /etc defaults from"
+    echo "# /usr/share/factory/neutrinos-etc, which is deliberately not the"
+    echo "# /usr/share/factory/etc the closure itself ships. One line per"
+    echo "# top-level entry, with its source named."
+    echo "#"
+    echo "# L symlinks into the factory, so a write to the path fails against"
+    echo "# read-only /usr. C copies, for the paths a running system must be"
+    echo "# able to write. Default is L; the C list is in the generating"
+    echo "# script and is not yet complete -- see PLN-0002-03a."
+} >"$tmpfiles"
+
+# A glob rather than a pipeline, so the exit below is this script's exit and
+# not a subshell's.
+for entry in "$etc"/* "$etc"/.*; do
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    case "${entry##*/}" in . | ..) continue ;; esac
+    name=${entry##*/}
+    if [ -e "$factory/$name" ] || [ -L "$factory/$name" ]; then
+        # Nothing should already be here: the directory belongs to this script.
+        # If something is, a silent overwrite is the one outcome that must not
+        # happen.
+        echo "finalize: $factory/$name already exists" >&2
+        exit 1
+    fi
+    mv "$entry" "$factory/$name"
+    echo "$(disposition "$name") /etc/$name - - - - /usr/share/factory/neutrinos-etc/$name" >>"$tmpfiles"
+done
+
+# /etc is now empty and stays that way. A later package that installs into /etc
+# stops the build here rather than shipping an artifact whose /etc content
+# exists at build time and not at boot.
+remaining=$(find "$etc" -mindepth 1 | wc -l)
+if [ "$remaining" -ne 0 ]; then
+    echo "finalize: /etc is not empty after classification:" >&2
+    find "$etc" -mindepth 1 >&2
+    exit 1
+fi
+
+echo "finalize: /etc emptied; $(grep -c '^L ' "$tmpfiles") entries linked and $(grep -c '^C ' "$tmpfiles") copied from the factory"

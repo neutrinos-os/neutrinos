@@ -117,8 +117,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", required=True, help="declared repository URL")
     parser.add_argument("--cache", required=True, type=Path, help="package cache to retain from")
+    parser.add_argument(
+        "--overlay",
+        type=Path,
+        help=(
+            "root of the verified package overlays. Their files are declared inputs, "
+            "so a copy of one appearing in the build cache is expected rather than a "
+            "fault -- but only a file the overlay actually contains, matched by name "
+            "against what acquire-overlay.py has already verified by digest."
+        ),
+    )
     parser.add_argument("--destination", required=True, type=Path, help="retention root")
     arguments = parser.parse_args()
+
+    overlay_files: set[str] = set()
+    if arguments.overlay is not None and arguments.overlay.is_dir():
+        overlay_files = {path.name for path in arguments.overlay.rglob("*.rpm")}
 
     destination: Path = arguments.destination
     destination.mkdir(parents=True, exist_ok=True)
@@ -135,10 +149,19 @@ def main() -> int:
 
     retained: list[str] = []
     undeclared: list[str] = []
+    from_overlay: list[str] = []
     for rpm in sorted(Path(arguments.cache).rglob("*.rpm")):
         href = locations.get(rpm.name)
         if href is None:
-            undeclared.append(rpm.name)
+            # The overlay is retained by acquire-overlay.py, at its own path and
+            # against its own declaration. It is not copied in here: the
+            # repository retention is a copy of one repository, and mixing a
+            # second source into it would make the retained tree say the
+            # declared repository contains packages it does not.
+            if rpm.name in overlay_files:
+                from_overlay.append(rpm.name)
+            else:
+                undeclared.append(rpm.name)
             continue
         target = destination / href
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -161,6 +184,7 @@ def main() -> int:
         return 1
 
     record = {
+        "overlay_package_count": len(from_overlay),
         "package_count": len(retained),
         "repomd_sha256": digest(destination / "repodata" / "repomd.xml"),
         "retained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -170,7 +194,11 @@ def main() -> int:
         json.dumps(record, ensure_ascii=False, indent=1, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(f"retained {len(retained)} packages and the repository metadata under {destination}")
+    print(
+        f"retained {len(retained)} packages and the repository metadata under "
+        f"{destination}; {len(from_overlay)} came from the declared overlay and are "
+        "retained with it"
+    )
     return 0
 
 

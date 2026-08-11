@@ -549,6 +549,89 @@ the decision to PLN-0002-03a's carve -- and the paths that must remain real
 files, `machine-id` above all -- which is why the exception list is expressed
 and left incomplete rather than closed. Confirmation waits on the repository.
 
+**The repository outage stopped blocking builds on 2026-08-11**, without
+changing a declared input. The composition now builds **entirely offline** from
+three things already on disk: the retained repository copy as
+`--local-mirror=file://`, the retained systemd 261 overlay, and the tools tree
+the PLN-0002-01 spike built before the outage. That last is a *reuse* of a
+declared input rather than a rebuild, and it is justified by a declaration
+rather than a comparison: the tools-tree package list and pinned base-image
+digest in `compose.sh` and `spike.sh` are byte-identical, because PLN-0002-02
+added `createrepo_c` to the slice recipe and thereby removed the spike's stated
+reason for a separate tree. It was not rebuilt, so it is not verified
+byte-for-byte, and the repository is unreachable to check. Whether that reuse
+is acceptable, and whether the slice should adopt the tree rather than keep two
+build roots, is the owner's. Switching `LocalMirror=` to the
+`download.fedoraproject.org` redirector, which serves the path with a 200, was
+**not** taken: it would change a declared input to route around an outage.
+`dl.fedoraproject.org` still returns 403.
+
+**PLN-0002-02's blocker is therefore closed**: the `/usr`-only artifact exists
+and the systemd 261 overlay is in its manifest, which is the exact thing task 02
+was waiting on. The artifact is a 246.7M EROFS `neutrinos-usr` with a 64M
+`neutrinos-usr-verity` and a 512M ESP, `/etc` empty and asserted so, and a
+generated factory fragment of **68 entries, 59 `L` and 9 `C`** -- correcting the
+ruling record's pre-build estimate of 60 and 8.
+
+**PLN-0002-03a drew the carve, found two collisions, and both were ruled and
+then measured the same day**: see the [carve record](etc-path-carve.md).
+
+The carve is provisionally accepted: one confext, `neutrinos-network`, owning
+`/etc/systemd/network/`, with machine identity deliberately excluded because
+giving `/etc/machine-id` to a confext would resolve `L-003` by task convenience.
+It collides with nothing, and the reason is a correction worth keeping: the
+first analysis reasoned from the retained repository's file list, which
+describes systemd **259.5**, while the artifact ships the **261 overlay**, and
+261 keeps its defaults in `/usr/lib/systemd` so `/etc/systemd` never reaches the
+factory at all. The declared repository's index is not the artifact's file list
+wherever an overlay replaces a package.
+
+**Collision 1**, that `L` links a whole directory so a confext owning a path
+inside one silently replaces it, is **ruled A** -- emit factory lines deeper
+where a carve enters -- and is **not implemented**, because this carve does not
+enter a factory directory. It binds the next carve; `/etc/ssh` is the nearest
+case and goes live the moment the closure gains an sshd.
+
+**Collision 2 is the substantial one and is now measured across four boots.**
+With a confext merged under stock ordering, the factory replay **fails
+wholesale**: `/etc` holds 2 entries instead of 74, there is no `/etc/passwd`, no
+`/etc/os-release`, no `/etc/machine-id`, no D-Bus, sysusers is skipped, and 8
+units fail -- while `systemd-tmpfiles-setup.service` reports `Result=success`
+having exited 65, the same silent-failure shape PLN-0002-01 recorded for a
+refused confext. The cause is architectural rather than an ordering slip:
+`systemd-confext.service` declares `Before=sysinit.target
+systemd-tmpfiles-setup.service`, so **systemd's model is that `/etc` is already
+populated when a confext merges**, which is true of every system RES-0015
+surveyed and false of NeutrinOS. That is the mechanical reason nobody runs the
+pairing RES-0015 could not find in the field. **Owner ruling 2026-08-11: A, with
+B measured alongside.** B was measured and fails -- ordering the merge after the
+replay produces an ordering cycle that systemd breaks by *deleting the merge
+job*, so the machine boots with nothing merged and reports nothing wrong. A was
+measured and works: an initrd unit running `systemd-tmpfiles --root=/sysroot
+--create` before `systemd-confext-sysroot.service` yields the confext merged,
+59 factory symlinks replayed, `/etc/os-release` readable, sysusers finished,
+`/etc` read-only, and one failed unit. A is also the option that does not fight
+upstream, which is a better argument than the one originally drafted for it and
+was only available after B failed. Two residuals: the replay unit exits non-zero
+on partial tmpfiles failures and needs a stated success criterion, and the entry
+count is 73 against the baseline's 74, unattributed.
+
+**A defect in PLN-0002-02 was found by the baseline boot**: five release paths
+shipped as **dangling symlinks**, `/etc/os-release` among them, because the
+finalize script applied its `retarget` fix to relocated entries and never to
+factory entries. `head /etc/os-release` failed on the running machine. The fix
+calls the existing function, and the rebuild resolves all seven. Two things
+carry: the composition record's "1906 resolve, 2 do not" measurement missed it
+because it encoded the same assumption as the bug, and systemd's own
+`etc.conf` handles four of these paths correctly while the generated fragment
+sorts first and silently overrode it. Whether the fragment should skip paths
+upstream already owns is open and belongs to task 02.
+
+**Still owed by 03a**: the confext measured is a *directory*, not a signed DDI,
+and `image_policy_confext_strict` requires signed. The initrd replay unit is
+also not yet repository content, and because it changes the initrd it is inside
+the signed UKI and is a PLN-0002-05 declaration due **before PLN-0002-06**.
+
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since
 `f54c217`, committed in the forty-minute window before `.gitignore` existed,

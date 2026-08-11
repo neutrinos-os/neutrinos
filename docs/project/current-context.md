@@ -181,6 +181,25 @@ build, and the 2026-08-11 offline rebuild from retention -- is byte-identical
 at 13240 entries with the same UKI on both ESPs. See the
 [evidence bundle record](slice-evidence-bundle.md).
 
+**S-004's scope half is decided.** On 2026-08-11 Jason Tarasovic accepted
+DES-0006 C-013: the authenticated release artifact is **`/usr`**, not a
+complete root. Configuration is delivered exclusively by dm-verity-signed
+confexts under `image_policy_confext_strict` with mutable mode forbidden, and
+the real `/etc` holds nothing durable, being regenerated at boot by
+`systemd-tmpfiles` and `systemd-sysusers`. **No accepted requirement was
+amended**: SYS-049 binds "release root content" without fixing its scope, and
+both its evidence column and SYS-090 already treat configuration as a
+deployment-set member distinct from root. SYS-123 now governs every confext.
+Two things this does not settle: early-boot integrity, since the root
+partition is unauthenticated state and anything read before `/usr` is verified
+falls outside the boundary, and per-machine identity sourcing, which cannot
+live in `/etc` and passes to L-003. The root *format* question (C-007, EROFS
+versus ext4) stays open and is now measurable against the right artifact.
+A side effect worth noting: the release artifact is no longer a disk image, so
+the unreproducible btrfs and FAT bytes PLN-0001 identified move to state, where
+reproducibility is not claimed -- a consequence of the decision, never a reason
+for it.
+
 **PLN-0001 is complete**, accepted by Jason Tarasovic on 2026-08-11 against
 the exit-criteria assessment drafted in the plan, including its qualification
 that criterion 5 is met for six of seven injected faults. One owner decision

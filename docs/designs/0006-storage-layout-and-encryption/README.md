@@ -5,7 +5,7 @@ status: in-review
 owners: [Jason Tarasovic]
 reviewers: [Codex]
 created: 2026-08-09
-last_updated: 2026-08-10
+last_updated: 2026-08-11
 depends_on: [DES-0001, DES-0002, DES-0003, DES-0004]
 decision_backlog: [S-004, L-003, L-004, L-005, C-002]
 related_adrs: []
@@ -111,12 +111,18 @@ the root artifact. Persistent mutable data resides in LUKS2 volumes separated
 when custody, unlock timing, recovery authority, preservation, or destruction
 policy differs.
 
+**The flattening sentence is superseded 2026-08-11 by the C-013 resolution:
+the authenticated artifact is `/usr`, and configuration is delivered by signed
+confexts rather than flattened into it. See
+[the amendment](#amendment-2026-08-11-the-authenticated-artifact-is-usr).**
+
 Btrfs is the leading mutable-filesystem candidate, reflecting the
 [original design goal](../../background/2026-08-09-design-session-transcript.md)
 of using reflinks, subvolumes, checksums, send/receive, quotas, and compression
 to improve container, VM, backup, and state workflows. ext4 is the conservative
-role-specific challenger. EROFS is the leading immutable root format, with
-ext4+dm-verity retained as a mandatory root-format challenger.
+role-specific challenger. EROFS is the leading immutable image format for the
+authenticated `/usr` artifact, with ext4+dm-verity retained as a mandatory
+challenger under C-007.
 
 ## Physical regions and ownership
 
@@ -124,8 +130,10 @@ ext4+dm-verity retained as a mandatory root-format challenger.
 | --- | --- | --- | --- |
 | GPT metadata | Layout version, typed partitions, slot locators | Provisioning and controlled layout migration | Redundant GPT plus captured layout evidence; not deployment authorization |
 | Boot artifact filesystem | Initially the ESP: systemd-boot, firmware fallback, versioned normal UKIs, and optionally a local recovery UKI; split into ESP plus XBOOTLDR only if justified | Native updater, boot-attempt accounting, and exceptional bootloader update | Signed executable artifacts; no secrets; bounded capacity and power-loss tests |
-| Normal root slots | Exact root filesystem artifact, including flattened normal configuration initially | Inactive slot replacement only; mounted read-only | dm-verity; root hash authenticated by matching signed UKI |
-| Normal Verity slots | Hash tree for exact matching root slot | Replaced with inactive root | Authenticated through UKI-bound root hash |
+| Normal `/usr` slots | Exact authenticated release artifact. Per C-013 this is `/usr`, not a complete root, and it carries release-owned defaults in `/usr/lib` rather than flattened `/etc` | Inactive slot replacement only; mounted read-only | dm-verity; root hash authenticated by matching signed UKI |
+| Normal Verity slots | Hash tree for exact matching `/usr` slot | Replaced with inactive `/usr` | Authenticated through UKI-bound root hash |
+| Configuration artifacts | Signed confexts delivering exact normal configuration, release-owned under SYS-123 | Replaced as deployment-set members; never written in place | dm-verity and signature verified under `image_policy_confext_strict`; mutable mode forbidden |
+| Root partition | Mount namespace host for the state-backed writable tree; holds nothing durable in `/etc`, which is regenerated at boot | Written by state owners only | Unauthenticated state, not release content; covered by state-volume policy |
 | Recovery artifact | Independently authorized recovery UKI and optional recovery root/Verity | Exceptional managed replacement | Separate recovery authorization; excluded from normal fallback |
 | Machine-state volume | Machine identity, enrollment, required system state, controlled admin state, operational evidence namespaces | Persistent across deployment replacement | LUKS2 when contents are sensitive; owner contracts and quotas |
 | User/workload volume | Home, rootless containers, VM disks, user and workload state | Persistent and independently preserved | Separate LUKS2 custody/recovery boundary on workstation |
@@ -183,6 +191,56 @@ does not prematurely select the projection mechanism.
 Software that insists on writing durable `/etc` is unsupported until C-002
 assigns a persistent exception and tests it. Mounting the whole directory
 writable is not the fallback.
+
+### Amendment 2026-08-11: the authenticated artifact is `/usr`
+
+Accepted by Jason Tarasovic, resolving
+[C-013](review.md). This supersedes the two paragraphs above and the
+corresponding line in the proposed decision.
+
+The read-only authenticated release artifact is **`/usr`**, with its dm-verity
+hash pair and a signed UKI carrying the root hash -- not a complete root
+filesystem. Release-owned defaults ship in `/usr/lib` on the vendor tier of the
+configuration hierarchy that every systemd component already implements.
+
+Configuration is delivered **only** by confexts, dm-verity protected and
+signature-verified under `image_policy_confext_strict`, version-bound to the
+deployment through `extension-release.d`. `Mutable=` write routing through
+`/var/lib/extensions.mutable/` is forbidden: SYS-123 requires an
+effective-configuration-changing mechanism to be a release-owned artifact and
+not an unattributed mutable administrator layer, which is what mutable mode
+would create.
+
+The real `/etc` beneath any confext overlay holds **nothing durable**. It is
+regenerated at boot by `systemd-tmpfiles` and `systemd-sysusers` from `/usr`.
+Durable content discovered there is a fault to report, not state to preserve.
+This satisfies SYS-020's reconstruction obligation by construction rather than
+by inventory discipline.
+
+Consequences this amendment accepts:
+
+- Per-machine identity cannot live in `/etc`. It must be projected from state
+  or delivered as credentials, and exactly which is deferred to L-003 rather
+  than settled here.
+- Early boot is the weak point. The root partition is now unauthenticated
+  state, so anything consumed before `/usr` is verified is outside the
+  integrity boundary. The signed UKI command line and
+  `systemd-confext-initrd`/`systemd-confext-sysroot` are the intended answers
+  and must be exercised, not assumed.
+- Every confext inherits SYS-123 in full: content identity, base compatibility,
+  authorization, qualification, activation ordering, health, rollback,
+  retention, and effective-deployment status.
+- The release artifact is no longer a disk image, so the unreproducible btrfs
+  and FAT bytes the
+  [composition record](../../project/slice-composition-record.md) identified
+  move to state, where reproducibility is not claimed. Release reproducibility
+  becomes reachable with a pinned `mkfs.erofs`, which is a consequence of this
+  decision and remains **not a reason for it**.
+
+No accepted requirement is amended. SYS-049 binds "release root content" to an
+identity carried by the boot artifact without fixing its scope, and its
+acceptance evidence already lists configuration beside root, Verity, and UKI;
+SYS-090 treats config as a distinct deployment-set member.
 
 ## Staging and selection
 
@@ -475,8 +533,9 @@ confidentiality when the disk and key are acquired together.
 The design is not implementation-ready until a bounded spike demonstrates:
 
 1. blank-disk creation from literal partition definitions in a UEFI VM;
-2. EROFS and ext4 root artifacts authenticated through the exact signed UKI
-   and dm-verity path;
+2. EROFS and ext4 `/usr` artifacts authenticated through the exact signed UKI
+   and dm-verity path, with early boot exercised: `fstab`, `crypttab`, and any
+   initrd-stage configuration consumed before `/usr` is verified;
 3. two complete normal slots with interrupted staging, trial failure,
    blessing, fallback, and deliberate rollback;
 4. substitution of a valid root, Verity tree, UKI, config, or slot label from
@@ -522,7 +581,8 @@ The project-level review accepts SYS-048 through SYS-056:
 ## Risks and unresolved questions
 
 - Does EROFS materially outperform or simplify ext4+dm-verity for actual
-  NeutrinOS roots?
+  NeutrinOS `/usr` images? (C-007, open. C-013 is resolved, so this is now
+  asked against the `/usr` artifact rather than a full root.)
 - Can `systemd-sysupdate` finalize root, Verity, and UKI resources with the
   exact all-old/all-new behavior required by DES-0001 under power loss?
 - Should recovery be a self-contained UKI, a separate root/Verity pair, local

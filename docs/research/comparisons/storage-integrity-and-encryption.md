@@ -1,8 +1,13 @@
 ---
 id: RES-0006
 status: complete
-last_updated: 2026-08-09
-evidence_cutoff: 2026-08-09
+last_updated: 2026-08-11
+evidence_cutoff: 2026-08-11
+evidence_cutoff_scope: |
+  The 2026-08-09 cutoff covers the whole comparison. The 2026-08-11 extension
+  is bounded to the immutable-root format, the systemd/repart/sysupdate verity
+  path, and the reference-implementation layout; no other section was re-checked
+  against current sources.
 decision_gates: [S-004, L-003, L-004, L-005, C-002]
 ---
 
@@ -279,3 +284,120 @@ Reject or revise the baseline if a spike cannot demonstrate:
   `/var`; and
 - usable capacity on the 16 GB router system disk or an explicitly accepted
   migration to a different target disk.
+
+## Evidence update, 2026-08-11
+
+Bounded re-check of the root-format and verity path after PLN-0001 closed.
+Nothing below changes the recommendation; three items sharpen it and one
+reopens a question the comparison never asked.
+
+### The verity path is implemented, not merely specified
+
+The DPS section above records the *convention* that root and Verity partition
+UUIDs derive from the Verity root hash. The implementation is confirmed on both
+ends: `systemd-repart` accepts `Format=erofs` directly, takes `Verity=data`,
+`Verity=hash`, and `Verity=signature` partitions joined by `VerityMatchKey=`,
+and where the UUIDs are not set explicitly **derives them from the root hash**
+-- the data partition's UUID is its first 128 bits, the hash partition's its
+last 128. `systemd-veritysetup-generator` reconstructs both devices from
+`roothash=` on the kernel command line alone.
+
+This matters beyond convenience. DES-0006's second decision driver requires
+the UKI and root/Verity pair to be joined by authenticated content rather than
+a slot name or version label. That binding is an **upstream default**, not a
+NeutrinOS design obligation, and a signed UKI carrying `roothash=` is
+sufficient to express it. DES-0006's open question about whether a separate
+Verity signature artifact is needed is correspondingly narrower: the signature
+partition exists and is supported, but is not required to achieve the binding.
+
+`systemd-sysupdate` addresses the three resources as separate transfers
+matching `root`, `root-verity`, and `root-verity-sig`. That does not by itself
+answer DES-0006's power-loss question, which asks whether the set finalizes
+all-old or all-new; separate transfer definitions are the mechanism, not the
+proof.
+
+### One hard constraint
+
+`Verity=` and `Encrypt=` **cannot be combined** on a partition. The
+recommendation already leaves release roots unencrypted for independent
+reasons, so this costs nothing here -- but it is a mechanism limit rather than
+a preference, and any future proposal to encrypt an authenticated root is
+foreclosed at this layer rather than merely discouraged.
+
+### EROFS determinism is real and version-scoped
+
+`mkfs.erofs` states that images built from the same input, options, and
+**version** are identical. Determinism controls are `-U`/`--UUID`, `-T` with
+`--mkfs-time` or `--all-time`, `SOURCE_DATE_EPOCH`, and `--hard-dereference`
+(contributed for NixOS reproducibility); an `i_ino` reproducibility fix landed
+in erofs-utils 1.8.3. There is **no documented cross-version guarantee**.
+
+This confirms the hypothesis the
+[composition record](../../project/slice-composition-record.md) recorded and
+adds the caveat it lacked: an EROFS root makes image reproducibility a property
+of a pinned tool version. The declared-input model already pins, so the cost is
+affordable -- but reproducibility becomes a dependency on the declaration
+rather than an intrinsic property of the format, and it remains **not a reason
+to select EROFS**, per PR-0029 C-005.
+
+### The reference implementation authenticates `/usr`, not the root
+
+[ParticleOS](https://github.com/systemd/particleos), which RES-0001 names as
+the closest executable reference for the default candidate, uses:
+
+| Partition | Format | Protection |
+| --- | --- | --- |
+| ESP | vfat, 1G fixed | signed artifacts; none at rest |
+| `usr` | **erofs**, 5-20G, `CopyBlocks=auto` | dm-verity, with `usr-verity` and `usr-verity-sig` |
+| `root`, carrying `/var` as a subvolume | **btrfs** | `Encrypt=tpm2`, `FactoryReset=yes` |
+| `home` | **btrfs** | none at partition level; `systemd-homed` per user |
+| swap | swap | `Encrypt=tpm2`, `FactoryReset=yes` |
+
+openSUSE builds override the root format to **squashfs**, which is direct
+evidence that EROFS availability is not yet uniform across distribution
+tooling and that upstream treats the format as a per-distribution variable.
+
+The per-partition filesystem split is not a preference. It follows from four
+properties no single filesystem has at once: the authenticated image must be
+read-only and block-stable because dm-verity hashes blocks; the ESP must be
+vfat by UEFI; state needs write, snapshot, and reflink semantics; and swap
+needs a per-boot key unless hibernation is in scope. DES-0006 already lands on
+this shape.
+
+**The divergence is the scope of the authenticated image**, and this comparison
+never examined it. DES-0006 authenticates a complete root including flattened
+`/etc`; the systemd stack is built around authenticating `/usr` only, on the
+stated rationale that a hermetic OS is definable inside `/usr` and that trees
+outside it are regenerated by `systemd-sysusers` and `systemd-tmpfiles`. Both
+models ship at scale -- ChromeOS and Android both use a whole read-only rootfs
+beside a stateful partition, and dm-verity was built for ChromeOS. Recorded as
+[DES-0006 C-013](../../designs/0006-storage-layout-and-encryption/review.md),
+open, and it must be resolved before the root-format spike is scoped, because
+format and scope cannot be measured independently.
+
+### Gap: the embedded A/B updater projects have never been reviewed
+
+This comparison and RES-0001 both evaluated update substrates as adopt-or-build
+candidates and settled on the systemd/UAPI path under SYS-030. Neither reviewed
+the embedded update projects, which are **not candidates** -- that question is
+closed -- but which carry the longest field record on precisely the failure
+modes DES-0006 C-001 and C-012 raise: interrupted staging, power loss at the
+slot-flip boundary, and capacity exhaustion on small system disks, which is the
+router's 16 GB problem.
+
+**Done 2026-08-11**: [RES-0014](embedded-ab-update-field-evidence.md) records
+the review and its five proposed additions to the spike failure matrix. The
+list below is what it covered.
+
+A thorough review is required, of at least:
+
+- [RAUC](https://rauc.io/)
+- [SWUpdate](https://sbabic.github.io/swupdate/)
+- [Mender](https://mender.io/)
+- Ubuntu Core and snapd's writable-layout model
+- ChromeOS verified rootfs plus stateful partition
+- Android A/B, `system-as-root`, and the super partition
+
+The list itself is provisional and part of what the review must settle. Scope
+is field-evidence extraction on staging, power loss, capacity, and recovery --
+not substrate reconsideration.

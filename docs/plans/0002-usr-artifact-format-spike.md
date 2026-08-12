@@ -110,7 +110,7 @@ Ordered so the plan's most likely falsification runs first (PR-0030 C-007).
 | --- | --- | --- | --- | --- |
 | PLN-0002-01 | **complete** | — | **Early-boot spike, one format, throwaway.** What is consumed before `/usr` is verified; whether `systemd-confext-initrd`/`systemd-confext-sysroot` behave as C-013 assumed; the named failure-capture path for every later task | Complete 2026-08-11. **The assumption holds and the gate is not triggered**: the `/usr`-only path boots on a tmpfs root, and `systemd-confext-sysroot.service` merges a confext into `/sysroot/etc` before switch-root. See the [early-boot record](../project/spike-early-boot-record.md). Owner ruling 2026-08-11: systemd 261 arrives as a local package overlay from OBS `system:systemd`, because Fedora 44 stays on 259.x and the unit is new in 261. Three findings are handed back and taken nowhere: a tmpfs root leaves a separately delivered confext with nowhere to live, read-only `/etc` breaks first-boot presets so runtime unit enablement is unavailable, and `/etc/machine-id` has no home |
 | PLN-0002-02 | **complete, with a defect found and fixed** | 01 | `/usr`-only composition from the PLN-0001 closure, release defaults in `/usr/lib`, declaration and retention mechanisms intact | Composition, declaration, and retention are done and recorded in the [composition record](../project/usr-artifact-composition.md): 1352 entries left `/etc`, the release's own `/usr` search paths take what they can and a generated tmpfiles factory replays the rest, `/etc` is empty and asserted so, and the systemd 261 overlay is now a declared input verified by digest before the build. **Unblocked and complete 2026-08-11**: the build resolves offline from the retained repository, the retained overlay, and the pre-outage tools tree, and the systemd 261 overlay is in the manifest. A boot then found a defect this task shipped -- five release paths, `/etc/os-release` among them, as **dangling symlinks**, because the `retarget` fix was applied to relocated entries and never to factory entries. Fixed and verified on a rebuild; see the [carve record](../project/etc-path-carve.md). Open against this task: whether the generated fragment should skip paths systemd's own `etc.conf` already owns, which it currently overrides silently. Handed back: a factory-replayed `/etc` still does not satisfy C-006 |
-| PLN-0002-03a | **partial** | 01 | Confext build path and a minimal `/etc` path carve, both **marked candidate and handed back** to DES-0005 and the ADR-0003 spike. The delivery path is a **declared fixture in this task's text**: `/usr/lib/confexts`, per the owner ruling of 2026-08-11 on finding 1 option D. Also completes the `L`/`C` exception list, which is the same carve | The carve is drawn and provisionally accepted -- one confext, `neutrinos-network`, owning `/etc/systemd/network/` -- and the `L`/`C` list is complete for this carve at 59 `L` and 9 `C`, measured. Two collisions were exposed, ruled, and **measured across four boots**; see the [carve record](../project/etc-path-carve.md). Collision 2 is the substantial one: under stock ordering a merged confext makes the factory replay fail wholesale, leaving no `/etc/passwd` and 8 failed units while tmpfiles reports success. Option A -- replay into `/sysroot` in the initrd before the merge -- is ruled and **measured working**; option B was measured and fails on an upstream ordering cycle. Both deliverables have since landed. The confext is a **signed 3-partition DDI** built by `compose.sh` -- and its signature is **not enforced**: dm-verity resolves the key through the kernel keyring, a synthetic key is in none, and systemd falls back to unsigned verity and merges. That is the third mechanism in this plan to fail open silently, and it predicts task 10's confext substitution will pass. The initrd replay is now repository content, delivered through `$ARTIFACTDIR/io.mkosi.initrd` because mkosi offers no way to put a file in its default initrd; shipping it exposed three defects the credential probe could not, and it boots with **zero failed units**. **Still owed**: the PLN-0002-05 declaration for the initrd change, due before task 06; four paths (`/etc/mtab`, `/etc/pam.d`, `/etc/credstore`, `/etc/credstore.encrypted`) that the narrowed replay no longer establishes before the merge; and signature enforcement, which needs a synthetic key enrolled in the disposable VM's firmware. If any argument in this task depends on where the confext lives, stop and return to the [findings](../project/early-boot-findings-for-decision.md) |
+| PLN-0002-03a | **partial** | 01 | Confext build path and a minimal `/etc` path carve, both **marked candidate and handed back** to DES-0005 and the ADR-0003 spike. The delivery path is a **declared fixture in this task's text**: `/usr/lib/confexts`, per the owner ruling of 2026-08-11 on finding 1 option D. Also completes the `L`/`C` exception list, which is the same carve | The carve is drawn and provisionally accepted -- one confext, `neutrinos-network`, owning `/etc/systemd/network/` -- and the `L`/`C` list is complete for this carve at 59 `L` and 9 `C`, measured. Two collisions were exposed, ruled, and **measured across four boots**; see the [carve record](../project/etc-path-carve.md). Collision 2 is the substantial one: under stock ordering a merged confext makes the factory replay fail wholesale, leaving no `/etc/passwd` and 8 failed units while tmpfiles reports success. Option A -- replay into `/sysroot` in the initrd before the merge -- is ruled and **measured working**; option B was measured and fails on an upstream ordering cycle. Both deliverables have since landed. The confext is a **signed 3-partition DDI** built by `compose.sh` -- and its signature is **not enforced**: dm-verity resolves the key through the kernel keyring, a synthetic key is in none, and systemd falls back to unsigned verity and merges. That is the third mechanism in this plan to fail open silently, and it predicts task 10's confext substitution will pass. The initrd replay is now repository content, delivered through `$ARTIFACTDIR/io.mkosi.initrd` because mkosi offers no way to put a file in its default initrd; shipping it exposed three defects the credential probe could not, and it boots with **zero failed units**. **Still owed**: signature enforcement, which needs a synthetic key enrolled in the disposable VM's firmware. The four paths (`/etc/mtab`, `/etc/pam.d`, `/etc/credstore`, `/etc/credstore.encrypted`) the narrowed replay no longer establishes are **ruled 2026-08-11**: first named entries of the exception list, general case to 03b/DES-0005, absent meanwhile at 70 `/etc` entries and zero failed units. The PLN-0002-05 declaration it owed is **drafted and accepted as amendment 3**; it grew a route question, because mkosi's default initrd *is* `mkosi-initrd` and its module list ships `erofs` and `ext4` in both arms, which is PR-0030 C-003 measured rather than predicted. If any argument in this task depends on where the confext lives, stop and return to the [findings](../project/early-boot-findings-for-decision.md) |
 | PLN-0002-03b | pending | 03a | **Confext delivery**: where a separately delivered confext lives and when it is merged, with [RES-0015](../research/comparisons/stateless-etc-configuration-delivery.md) as its evidence | Draft for owner ruling; the drafter does not accept it. Blocks the confext partition PLN-0002-04 left out and finding 2's option B. **No task in this plan depends on it.** Depends on `S-004` and touches `C-009` and `L-003`; if it cannot be answered without one of them, stop and return to review |
 | PLN-0002-04 | **partial** | 01 | Disposable layout: ESP, one `/usr` slot, one Verity slot, **tmpfs root partition**, one confext. Fixture status recorded in the work register at creation | Build `systemd-repart` definitions. **Owner ruling 2026-08-11: tmpfs, which is the preferred direction and avoids the first draft's contradiction of the accepted C-008 ruling.** `/var` is tmpfs-backed and nothing persists; no machine-state volume is built, so C-008 is respected by not implementing the thing it governs. **Partial, 2026-08-11**: ESP, `/usr`, and the verity partition are promoted from the spike into `src/slice/composition/mkosi.repart/` and recorded as fixtures ([composition record](../project/usr-artifact-composition.md)); the tmpfs root is expressed as `root=tmpfs` on a reintroduced kernel command line, which is structural rather than a reversal of PLN-0001's reverted first-boot amendments. The verity-signature partition is deferred to task 06 with the signing material it needs. **The confext partition is not placed**: doing so decides where a separately delivered confext lives, which is finding 1 of task 01 and is not ruled. See the [drafted findings](../project/early-boot-findings-for-decision.md) |
 | PLN-0002-05 | pending | 02, 04 | **Declared parameter set for both arms** and the pairing rule that justifies it. Filesystem: `mkfs.erofs` compression algorithm and level, EROFS cluster size, ext4 block size, inode ratio, reserved-block percentage and feature set, dm-verity hash block size and salt, and the initrd contents per arm with the asymmetry stated and its direction of advantage named. **Kernel command line** (amended 2026-08-11): `root=tmpfs` against `systemd.volatile=yes`, `systemd.image_policy=`, `systemd.image_filter=`, `systemd.confext=`, and the `usrhash=` mkosi injects | Declare before building. An undeclared parameter invalidates the comparison. The command line is inside the signed UKI, so it is part of the artifact and not a setting applied to one; it affects boot behavior and memory, two of the eight criteria |
@@ -227,6 +227,82 @@ Each declared with the value chosen, the alternative not chosen, and the reason
 05 already sits between 04 and 06, so this is a widening of scope and not a
 reordering.
 
+## Amendment 3: widen PLN-0002-05 to the initrd itself
+
+**Drafted 2026-08-11 by PLN-0002-03a. Accepted 2026-08-11 by Jason Tarasovic.**
+It states what 03a put inside the signed UKI and what task 05 must therefore
+declare. Accepting it accepts the *obligation to declare*; it selects no route
+and no module list. The route question at the end remains open and is task 05's
+to answer.
+
+### Why
+
+PLN-0002-03a landed two files -- `neutrinos-etc-factory.service` and its
+drop-in on `systemd-confext-sysroot.service` -- into the initrd. The initrd is
+hashed into the unified kernel image, so those files are **inside the
+artifact's signature**. They are release content, not configuration, and
+PLN-0002-05 is where the artifact's contents are declared.
+
+That much was known when they landed. Two things found since enlarge it.
+
+**The default initrd is `mkosi-initrd`.** `finalize_default_initrd()`
+(`config.py:5165`) parses `resources/mkosi-initrd` in place. It is not a dracut
+initrd and not a separate mechanism: it is `MakeInitrd=yes` over distro
+packages (`systemd`, `udev`, `bash`, `less`, `gzip`), an explicit
+`KernelModules=` list, `RemoveFiles=` trimming, and a small `mkosi.extra` tree.
+Verified against the pinned revision `84af2089`.
+
+**Its module list ships both filesystem drivers.** `erofs` and `ext4` are both
+in that list. So as things stand today, each arm's initrd carries the other
+arm's driver -- which is precisely the outcome PR-0030 C-003 named: "both
+drivers ship in both arms and neither artifact is the one that would ship."
+The risk row below has recorded this as a hypothetical since the plan was
+written. It is now a measured property of the pinned inputs.
+
+The current delivery route -- a cpio written to `$ARTIFACTDIR/io.mkosi.initrd`
+by `mkosi.finalize.d/10-initrd-etc-factory` -- can only **add** files to the
+initrd. It cannot remove a module from a config the composition does not
+invoke. So the declaration below is not satisfiable without a route decision.
+
+### What task 05 must declare
+
+Each with the value chosen, the alternative not chosen, and the reason -- the
+same standard the filesystem parameters and the command line are held to.
+
+- **The two NeutrinOS units**, by path and content digest, named as signed
+  release content rather than as a build convenience. This is the declaration
+  PLN-0002-03a owed and the reason for this amendment's deadline.
+- **`KernelModules=` per arm**, and specifically whether the EROFS arm ships
+  `ext4` and the ext4 arm ships `erofs`. If both, say so and name the direction
+  of advantage; a shared list is a defensible choice but not an undeclared one.
+- **The package set and `RemoveFiles=` set**, since they are what
+  `mkosi-initrd` actually builds from and they bear on boot time and memory,
+  two of C-007's eight criteria.
+- **The delivery route**, because it bounds the other three. Two exist:
+  - the current one, `$ARTIFACTDIR/io.mkosi.initrd` -- additive only, no
+    config control, no per-arm module list;
+  - a `mkosi.images/initrd/` subimage with `Include=mkosi-initrd` -- the same
+    `mkosi-initrd`, invoked by the composition instead of implicitly, with its
+    config editable. Subimages inherit `Distribution=`, `Release=`,
+    `LocalMirror=`, `ToolsTree=` and `PackageDirectories=` as universal
+    settings, so nothing would need restating. Its costs are that `Initrds=`
+    has no output-directory specifier, so the path comes from `compose.sh`, and
+    that setting it makes `want_default_initrd()` return False.
+
+  The drafter's recommendation is the subimage, on the ground that the per-arm
+  module declaration is not expressible without it. That is a recommendation
+  and not a ruling; the additive route is defensible if the owner accepts a
+  shared module list across both arms and declares it as such.
+- **`SOURCE_DATE_EPOCH` and the cpio's ownership and mtime pinning**, already
+  implemented, declared because the initrd's identity is what PLN-0001-07
+  verifies a reconstruction against.
+
+### Deadline
+
+**Before PLN-0002-06**, the same deadline and the same reason as amendment 2:
+the initrd is inside the UKI, so a change after 06 means tasks 07 through 10
+measured a different artifact and are void.
+
 ## Failure, interruption, and cleanup
 
 Stop and return to review if: task 01 falsifies C-013's early-boot assumption;
@@ -266,7 +342,7 @@ rather than measured: a half-built `/usr` is the hybrid C-001 warns about.
 | Risk or unknown | Effect | Disposition |
 | --- | --- | --- |
 | C-013's early boot is its own stated residual risk | Task 01 may falsify part of an accepted amendment | Scheduled first for exactly that reason. A falsification returns to DES-0006 review; it is not worked around |
-| The initrd cannot be identical across arms, since each needs its own filesystem driver | Boot and memory partly measure the initrd, not the format | Task 05 declares the asymmetry and which arm it advantages; task 13 names it as a threat to the finding |
+| The initrd cannot be identical across arms, since each needs its own filesystem driver | Boot and memory partly measure the initrd, not the format | Task 05 declares the asymmetry and which arm it advantages; task 13 names it as a threat to the finding. **No longer hypothetical, 2026-08-11**: `mkosi-initrd`'s `KernelModules=` ships `erofs` and `ext4`, so both arms currently carry both drivers -- the C-003 outcome, measured. Amendment 3 states what 05 must declare and that the additive delivery route cannot express a per-arm list |
 | mkosi may not express a `/usr`-only artifact with Verity as directly as PLN-0001's flattened root | Task 02 cost, possibly a different composition path | **Closed by task 01, 2026-08-11.** It expresses it directly through `mkosi.repart` definitions, and parses the root hash out of repart's JSON to inject `usrhash=` into the UKI itself. No second composition path is needed |
 | Task 03 draws the first confext path carve and builds the first confext tooling | Both become the reference by being first -- the implementation-accident failure mode | Marked candidate at creation and handed back to DES-0005 and ADR-0003. The plan states it does not own them |
 | The tmpfs root partition is a fixture, and the persistence question DES-0006 records as open stays open | A fixture could look like a decision | Task 04 records fixture status in the register at creation. tmpfs is the cheaper and less committal of the two, which is why the owner chose it |

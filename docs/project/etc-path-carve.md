@@ -468,6 +468,139 @@ permits synthetic material in a disposable VM's own varstore, so this is
 *achievable* within the plan and is **not** achievable by shipping a certificate
 in the image, which is what was tried.
 
+### Which keyring, verified against the pinned kernel
+
+Checked offline on 2026-08-11 against `kernel-core 6.19.10-300.fc44` -- the
+version the artifact manifest records, read from the cached RPM of the same
+version, so this is the kernel under test and not a nearby one.
+
+```
+CONFIG_DM_VERITY_VERIFY_ROOTHASH_SIG=y
+CONFIG_DM_VERITY_VERIFY_ROOTHASH_SIG_SECONDARY_KEYRING=y
+CONFIG_DM_VERITY_VERIFY_ROOTHASH_SIG_PLATFORM_KEYRING=y
+CONFIG_LOAD_UEFI_KEYS=y
+CONFIG_INTEGRITY_MACHINE_KEYRING=y
+CONFIG_INTEGRITY_CA_MACHINE_KEYRING_MAX=y
+```
+
+`..._SIG_PLATFORM_KEYRING=y` is decisive: root-hash signature validation on this
+kernel accepts the **`.platform`** keyring, and `CONFIG_LOAD_UEFI_KEYS=y`
+populates `.platform` from UEFI `db` and MokList. So enrolling the synthetic
+certificate in the disposable VM's own `db` is sufficient. No MOK, no shim, no
+kernel build.
+
+The drafter had expected the opposite -- that MOK would be needed because db
+keys stop at `.platform` -- and recorded the expectation as an expectation
+before checking it. It was wrong. Worse for that route,
+`CONFIG_INTEGRITY_CA_MACHINE_KEYRING_MAX=y` restricts `.machine` to CA
+certificates, so the flat synthetic leaf would not be admitted there without
+becoming a chain. The route reached by argument would have cost more and might
+not have worked.
+
+**One thing is read and not measured**: whether `.platform` is populated with
+Secure Boot off. The reading is that the UEFI key load runs whenever EFI runtime
+services are available, independent of Secure Boot state. Given that three
+mechanisms in this plan have already failed open while reporting success, it is
+listed as a measurement -- enroll, boot with Secure Boot off, inspect
+`%:.platform` -- and not as a fact. If it is empty, Secure Boot must be enabled,
+which widens the signed artifact and returns to the owner.
+
+### The keyring route, measured in a VM
+
+Run 2026-08-11, four boots, disposable varstore, artifact opened `snapshot=on`
+and its digest verified unchanged after every boot.
+
+Two defects in the harness were found first, and the first one matters beyond
+this probe. **`boot.sh` uses `/usr/share/edk2/x64/OVMF_CODE.4m.fd`, which is
+the firmware build with no Secure Boot support**: `SetupMode` and `SecureBoot`
+do not exist as variables, there is no `db`, and therefore no UEFI certificate
+could ever have reached the kernel. Every earlier statement in this plan about
+signatures was measured on firmware where the mechanism was structurally
+absent. Switching to `OVMF_CODE.secboot.4m.fd` also revealed that **mkosi
+auto-enrolls its own Secure Boot keys**: systemd-boot finds
+`\loader\keys\auto\{PK,KEK,db}.auth` on the ESP, enrolls them, and reboots, so
+Secure Boot comes on by itself and `SecureBoot=1`. That was not known and is
+not stated anywhere in the plan.
+
+With that firmware, the keyring question is answered:
+
+```
+integrity: Loading X.509 certificate: UEFI:db
+integrity: Loaded X.509 cert 'NeutrinOS PLN-0002-01 spike (synthetic, ...)'
+keyring  .platform: 1
+keyring  .machine: empty
+```
+
+`db` reaches `.platform`, exactly as the kernel config predicted, and
+`.machine` stays empty, exactly as `CONFIG_INTEGRITY_CA_MACHINE_KEYRING_MAX=y`
+predicted. Enrolling the **verity** certificate as well -- by rebuilding
+`\loader\keys\auto\db.auth` as a two-certificate signature list, signed by the
+key mkosi already enrols -- puts it there too:
+
+```
+keyring  .platform: 2
+asymmetric  NeutrinOS PLN-0002-01 spike verity, synthetic: 25d0bcc0...
+```
+
+Guest-side enrollment was tried first and does not work after auto-enrollment:
+efivarfs marks existing variables immutable, the write fails `Operation not
+permitted`, and the artifact carries neither `chattr` nor python to clear it.
+Enrolling at build time through the ESP is both simpler and closer to what a
+real deployment does.
+
+### What this does **not** yet show
+
+**Enforcement is still not demonstrated.** The controlled pair is one boot with
+the verity certificate in `db` and one without, everything else identical:
+
+| | `.platform` | confext | `ENOKEY` on console |
+| --- | --- | --- | --- |
+| control | 1 key | merged | none |
+| enrolled | 2 keys | merged | none |
+
+The confext merges either way. A merge that is indifferent to whether its
+signer is trusted is not a validated merge, so this is the **fourth** mechanism
+in this plan observed to fail open, and the first one measured with the trust
+anchor actually present rather than absent.
+
+### The negative control, run
+
+Two confexts built from the same source, differing only in signer: one signed by
+the certificate enrolled in `db`, one by the valid-but-unenrolled second key.
+Delivered through `/run/confexts` -- so this measures the **system** merge, not
+the initrd merge -- into the same artifact, whose `.platform` holds both the
+Secure Boot and the verity certificates.
+
+| | kernel | `systemd-confext refresh` | merged | `/etc/systemd/network/` |
+| --- | --- | --- | --- | --- |
+| enrolled signer | no error | exit 0 | yes | `10-neutrinos-default.network` |
+| unenrolled signer | `verity: Root hash verification failed (-ENOKEY)` | exit 0 | **yes** | `10-neutrinos-default.network` |
+
+This is the clearest result the plan has produced on the question, and it
+separates two things that were previously conflated.
+
+**Signature validation now happens.** The enrolled key is the only difference
+between the two runs, and the kernel discriminates on it: the correct signer
+produces no error, the wrong signer produces `-ENOKEY` from
+`device-mapper: table: verity` followed by `error adding target to table`. The
+earlier `-ENOKEY` was the absence of any trust anchor; this one is a trust
+anchor present and a signature genuinely rejected.
+
+**And rejection changes nothing.** systemd falls back to unsigned verity,
+mounts the image anyway, reports exit 0, and the configuration from the
+untrusted confext is merged into `/etc` and present on disk. A confext signed
+by a key the machine does not trust is applied exactly as if it were trusted.
+
+So the mechanism is not "unavailable pending enrollment", which is what the
+earlier reading allowed. It is **available, working, and not enforcing**. The
+fallback is the defect, not the key.
+
+This also gives the plan something it did not have: a harness that
+discriminates. Any future attempt to make the merge fail closed -- an image
+policy, a dissect option, a systemd version -- can now be tested against a pair
+that is known to differ only in signer, instead of against an image whose
+signature could not be checked at all.
+
 ### One attempt at making it fail closed, which did not
 
 `systemd-confext --image-policy=root=signed` was applied to the sysroot merge
@@ -632,7 +765,7 @@ list left to the drafter. What the measurements then raised:
 | # | Question | Blocks |
 | --- | --- | --- |
 | 5 | The initrd replay unit **is now repository content**, and it changes the initrd, which is inside the signed UKI. The PLN-0002-05 declaration is still owed | **PLN-0002-06**, hard |
-| 5a | Four paths -- `/etc/mtab`, `/etc/pam.d`, `/etc/credstore`, `/etc/credstore.encrypted` -- are no longer established before the merge and now fail against a read-only `/etc`. They are instances of the exception-list question, not a separate one | Nothing yet; `/etc` is 70 entries instead of 74 |
+| 5a | Four paths -- `/etc/mtab`, `/etc/pam.d`, `/etc/credstore`, `/etc/credstore.encrypted` -- are no longer established before the merge and now fail against a read-only `/etc`. They are instances of the exception-list question, not a separate one | **Ruled 2026-08-11 by Jason Tarasovic: option 3.** They become the first named entries of the exception list proper, and the general case is ruled by PLN-0002-03b/DES-0005, not here. They stay absent meanwhile: `/etc` is 70 entries instead of 74, with zero failed units. The replay is **not** widened to systemd's own `etc.conf`, which would re-open the exit-65 NSS problem. Carried into the list as a named sub-question: whether `/etc/credstore` and `/etc/credstore.encrypted` are separable from the other two, being credential-delivery paths that C-002 and DES-0011 own |
 | 5b | `Requires=` on the replay is fail-closed for the **initrd** merge only. A failing replay still ends with `/etc` overmounted, by the post-switch-root merge | The fail-open pattern, item 7 |
 | 6 | Collision 1's option A -- deeper factory emission -- is ruled but **not implemented**, because this carve does not need it. Implement now, or when the first carve needs it | The next carve, not this one |
 | 7 | **Signature enforcement.** The signed DDI exists and merges, but its signature does not validate and the merge proceeds anyway. Making it real needs a synthetic key enrolled in the disposable VM's own firmware, which the plan permits and nobody has done | PLN-0002-10's confext substitution, which this predicts will pass |

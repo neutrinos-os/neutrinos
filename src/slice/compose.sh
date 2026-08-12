@@ -189,25 +189,41 @@ PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
 # It runs only when a build produced an image: `mkosi clean`, `--help`, and the
 # other verbs have nothing to retain, and fetching metadata for them would put
 # a network dependency on operations that have none.
-# The signature-enforcement fixture, on the same terms as retention: a build
-# step rather than something to remember afterwards. It copies the artifact and
-# enrolls the verity signer into the copy's ESP, so the artifact every other
-# check asserts the digest of is never touched.
-#
-# Guarded on the confext build having run, because a fixture with an enrolled
-# machine and no confexts to compare would block T4-CONFEXT-001 with a message
-# about missing files rather than about the build that skipped them.
-if [ -f "$build_root/out/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
-    sh "$root/enroll-fixture.sh"
-    cp "$confext_out/neutrinos-network.raw" "$build_root/fixture/confext-enrolled.raw"
-    cp "$confext_out-unenrolled/neutrinos-network.raw" \
-        "$build_root/fixture/confext-unenrolled.raw"
-fi
-
 if [ -f "$build_root/out/neutrinos-slice.manifest" ]; then
     python3 "$root/retain-repository.py" \
         --repository="$repository_url" \
         --cache="$build_root/pkgcache" \
         --overlay="$overlay_dir" \
         --destination="$build_root/inputs/repository"
+fi
+
+# The signature-enforcement fixture for T4-CONFEXT-001.
+#
+# After retention, not before, and that ordering is a fix rather than a
+# preference: this step failed on its first real run, `set -eu` aborted the
+# script, and retention -- the thing that makes the next offline rebuild
+# possible at all -- silently did not happen. A step added for a new check must
+# not be able to take out an established one.
+#
+# It needs an image-signing certificate, and the slice composition has none:
+# there is no `SecureBoot=` in the composition fixture, so the UKI is unsigned
+# and there is nothing to keep in `db` alongside the verity signer. Enrolling
+# anyway produces a machine whose firmware refuses its own UKI. That is
+# PLN-0002-06's synthetically signed UKI arriving as a prerequisite, so this
+# says so and continues rather than failing the composition.
+#
+# Saying so loudly is the point. The fixture's absence is not swallowed: it
+# **blocks** T4-CONFEXT-001, which is the same signal in the place that reads
+# it.
+if [ -f "$build_root/out/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
+    if [ -f "$keys_dir/secureboot.crt" ]; then
+        sh "$root/enroll-fixture.sh"
+        cp "$confext_out/neutrinos-network.raw" "$build_root/fixture/confext-enrolled.raw"
+        cp "$confext_out-unenrolled/neutrinos-network.raw" \
+            "$build_root/fixture/confext-unenrolled.raw"
+    else
+        echo "compose: no image-signing certificate at $keys_dir/secureboot.crt," \
+             "so the T4-CONFEXT-001 fixture was not built. The slice composition" \
+             "declares no SecureBoot=; a signed UKI is PLN-0002-06's output." >&2
+    fi
 fi

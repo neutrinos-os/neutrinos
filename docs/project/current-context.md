@@ -764,6 +764,57 @@ the unit-configured form is the one NeutrinOS would ship. So PLN-0002-10 now
 injects against a *configuration* rather than a missing mechanism, and the plan
 should say which.
 
+**The slice was recomposed 2026-08-12 with the repository back up**, and the
+run produced two failures and one defect, none of them in the artifact itself.
+
+The composition succeeded: 103-package closure, UKI `848fb8ea...` matching its
+ESP copy byte-for-byte, both confexts built -- the enrolled one and the one
+signed by the unenrolled key -- and retention of 121 packages plus repository
+metadata. `T2-SLICE-001`, `T2-SLICE-002` and `T3-SLICE-001` pass against it.
+
+**`T3-SLICE-002` fails**: the six systemd 261 packages in the shipped closure
+are "not published by the declared repository". They are the declared OBS
+overlay, so this is not an undeclared input -- it is the attribution check
+having no model of overlay provenance. Retention records
+`overlay_package_count: 0` because it matches names against the package cache
+and the overlay arrives through `--package-directory` instead, so the overlay
+is never attributed to anything. This is the **first complete-profile run since
+the 261 overlay entered the slice composition**; PLN-0001-07's 12/0 predates
+it. Failing closed is the right direction, but the check currently cannot pass
+on a legitimate declared input, which makes it unusable as a gate until either
+retention covers the overlay or attribution learns about it. **Open, unowned.**
+
+**`T4-SLICE-001` fails**: two units, `systemd-pcrproduct.service` (TPM NvPCR
+Product ID Measurement) and `systemd-tpm2-setup-early.service`. Both are
+systemd 261 additions and both are consistent with PLN-0001-04's standing
+finding that the tss2 runtime libraries are absent from the closure while
+systemd itself is built `+TPM2`. So the boot regression is the known TPM gap
+surfacing through new units rather than a new defect -- but the artifact no
+longer boots with zero failed units, which is what that check asserts. **Open,
+unowned.**
+
+**A defect of mine, found and fixed by this run.** `compose.sh` staged the
+T4-CONFEXT-001 fixture *before* retention; the fixture step failed, `set -eu`
+aborted, and **retention silently did not run** -- the step that makes the next
+offline rebuild possible at all. Reordered after retention, and verified on the
+re-run. A step added for a new check must not be able to take out an
+established one.
+
+**The slice-side fixture is blocked on PLN-0002-06, not on the outage.**
+Enrollment needs an image-signing certificate to keep in `db` beside the verity
+signer, and **the slice composition declares no `SecureBoot=` at all**, so the
+UKI is unsigned and there is nothing to keep. Enrolling regardless produces a
+machine whose firmware refuses its own UKI. `compose.sh` now says so and
+continues; the fixture's absence still **blocks** `T4-CONFEXT-001`, which is
+the same signal in the place that reads it.
+
+**The canonical runner cannot reach any of these checks locally.** Two
+independent causes, both pre-existing: `sandbox.deny_env = true` strips the
+declared-directory variables under `mise run`, and running the runner directly
+fails its own environment rule because `uv run` injects `LC_CTYPE`. The results
+above were obtained by invoking the check functions in-process, which is
+**evidence, not a canonical run**.
+
 **PLN-0002-10 is started out of order**, on the owner ruling that this check
 belongs to it: `T4-CONFEXT-001` covers the **confext-substitution cell, for the
 signature dimension only**. The rest of task 10's row -- `/usr`, Verity, and

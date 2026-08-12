@@ -1029,15 +1029,32 @@ systemd 261 feature, and upstream's own output is self-contradictory: it logs
 running `systemd-pcrextend --graceful --product-id` and failing 1 despite
 `--graceful`.
 
-Prior art puts this in a known window rather than in NeutrinOS.
-[systemd#40159](https://github.com/systemd/systemd/issues/40159) is **open**:
-both units fail after v259 and worked on v258, with device-availability-shaped
-errno. [mkosi#2493](https://github.com/systemd/mkosi/issues/2493) records the
-same units timing out intermittently under qemu with swtpm -- this exact stack.
-The overlay that unblocked task 02 is what puts NeutrinOS in that window: Fedora
-44 ships 259.x and PLN-0002 took the OBS 261 build for the confext unit.
-**Unresolved**: why `ENOENT`, given the overlay does ship
-`/usr/lib/nvpcr/{hardware,login,verity}.nvpcr`.
+**The prior-art claim was wrong and is withdrawn (2026-08-12).** An earlier
+entry said [systemd#40159](https://github.com/systemd/systemd/issues/40159) and
+[mkosi#2493](https://github.com/systemd/mkosi/issues/2493) put this in a known
+upstream window rather than in NeutrinOS. Both were checked and neither
+matches:
+
+| source | version | errno | message |
+| --- | --- | --- | --- |
+| **NeutrinOS** | 261 | `ENOENT` | `Failed to initialize NvPCR index`, all four |
+| systemd#40159 | 259 | `ENXIO` | `Failed to unseal secret using TPM2`; no NvPCR |
+| mkosi#2493 | 255 | — | TPM timeouts, `State not recoverable`; **closed** |
+| [systemd#41185](https://github.com/systemd/systemd/issues/41185) | 260 | `ENOSPC` | NV index space exhausted, some NvPCRs succeed |
+| [systemd#42725](https://github.com/systemd/systemd/issues/42725) | 261 | `ENOSPC` | same, Intel fTPM |
+
+`#40159` could not have been it: **NvPCR is a 261 feature**, so a v259
+regression has no NvPCR code to fail in. The match was made on a shared unit
+name and exit 1. The two genuinely NvPCR-shaped issues are `ENOSPC` on a TPM
+that ran out of NV index space, with some indices succeeding; NeutrinOS gets
+`ENOENT` with all four failing, which is a different branch.
+
+**So this is unattributed, not upstream.** It may still be an upstream bug, but
+nothing measured says so, and the earlier entry's effect was to move a live
+failure off this project's books without evidence. The open question is what
+returns `ENOENT` in the 261 NvPCR initialization path when the definitions in
+`/usr/lib/nvpcr/{hardware,login,verity}.nvpcr` are present -- and note the count
+does not line up either: three definition files ship, four indices fail.
 
 **A larger finding came out of chasing it, and it is the harness's.** The kernel
 console switches to the bochs framebuffer at about 5.8s, after which systemd's

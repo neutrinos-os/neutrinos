@@ -237,3 +237,89 @@ def check_artifact() -> int:
     }
     print(json.dumps(report, ensure_ascii=False, separators=(",", ":"), sort_keys=True))
     return 0
+
+
+# The certificate published beside the artifact by compose.sh. Read from the
+# artifact directory rather than from a build root, so the directory carries its
+# own provenance and a retained copy stays checkable after the build root is
+# gone.
+PUBLISHED_CERTIFICATE = "neutrinos-slice.verity.crt"
+
+
+def check_signing_material_current() -> int:
+    """Assert the artifact was built with the signing material published beside it.
+
+    The failure this exists for is an artifact that outlived its own signing
+    key. Both build scripts guard key generation on the certificate existing, and
+    mkosi declines to rebuild when the output exists, so regenerating the verity
+    key and re-running the composition leaves a new certificate beside an image
+    still carrying the old signature. Measured on 2026-08-12 while implementing
+    PLN-0002 amendment 4: it read as success, because every check then available
+    looked at the build root's certificate rather than at the image.
+
+    The assertion is by content and needs no filesystem driver. compose.sh
+    stages the verity certificate into `/usr/lib/verity.d` inside `/usr`, and
+    EROFS stores a file that small contiguously and uncompressed, so the
+    certificate's exact bytes appear in the image. Measured: the current
+    certificate appears once and the superseded one does not appear at all.
+
+    What this does and does not establish. It establishes that these image bytes
+    were produced with this certificate, which is what makes a stale artifact
+    visible. It is not a signature verification: it finds bytes, it does not
+    check that anything was signed by the corresponding key, and it cannot until
+    task 06 adds a verity signature partition to verify against.
+    """
+    from tools.validation.check import SLICE_ARTIFACT_ENV
+
+    directory = Path(os.environ[SLICE_ARTIFACT_ENV]).resolve()
+    image = directory / "neutrinos-slice.raw"
+    certificate = directory / PUBLISHED_CERTIFICATE
+    failures: list[str] = []
+
+    if not certificate.is_file():
+        # Blocking rather than passing quietly: an artifact directory with no
+        # published certificate cannot answer the question this asks, and
+        # answering "nothing is wrong" would be the same defect as the one under
+        # test.
+        print(
+            f"{certificate} does not exist, so the artifact's signing material "
+            f"cannot be identified; compose.sh publishes it on every run",
+            file=sys.stderr,
+        )
+        return 1
+
+    payload = certificate.read_bytes()
+    occurrences = image.read_bytes().count(payload)
+    if occurrences == 0:
+        failures.append(
+            f"the certificate published as {PUBLISHED_CERTIFICATE} does not "
+            f"appear in {image.name}, so the image was not built with it. The "
+            f"usual cause is a regenerated key with no rebuild: mkosi declines "
+            f"to rebuild when the output already exists"
+        )
+
+    if failures:
+        print("\n".join(failures), file=sys.stderr)
+        return 1
+
+    print(
+        json.dumps(
+            {
+                "artifact_digest": file_digest(image),
+                "certificate_digest": hashlib.sha256(payload).hexdigest(),
+                "certificate_occurrences": occurrences,
+                "certificate_subject": subprocess.run(
+                    ["openssl", "x509", "-noout", "-subject", "-in", str(certificate)],
+                    check=True, stdout=subprocess.PIPE, text=True,
+                ).stdout.strip(),
+                # Named so the result is not read as more than it is.
+                "establishes": "the image contains these certificate bytes",
+                "does_not_establish": "that any signature was verified",
+                "result": "passing",
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+    )
+    return 0

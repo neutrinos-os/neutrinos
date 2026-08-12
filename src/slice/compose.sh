@@ -215,6 +215,21 @@ PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
     --initrd="$build_root/out/initrd" \
     "$@"
 
+# Publish the verity signer beside the artifact, every run, whether or not mkosi
+# rebuilt anything.
+#
+# "Every run" is the whole point. mkosi declines to rebuild when the output
+# exists, so regenerating the signing material and re-running this script leaves
+# a new key beside an artifact still carrying the old signature -- measured
+# 2026-08-12 while implementing amendment 4, and it would have read as success
+# because the build root's certificate was correct. Copying unconditionally
+# makes that state visible instead: the published certificate moves, the
+# artifact does not, and T3-SLICE-003 fails because the bytes it searches for
+# are no longer inside the image.
+if [ -f "$keys_dir/verity.crt" ]; then
+    cp "$keys_dir/verity.crt" "$build_root/out/neutrinos-slice.verity.crt"
+fi
+
 # Retention is a build step, not something to remember afterwards. Without it
 # the declared repository is a URL and the bytes behind it survive only as a
 # side effect of the last build's cache, which is what made PLN-0001-07's first

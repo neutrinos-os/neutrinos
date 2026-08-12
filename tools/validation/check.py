@@ -295,6 +295,22 @@ TESTS = (
         function="check_slice_artifact",
     ),
     Test(
+        id="T3-SLICE-003",
+        level="T3",
+        profiles=("complete",),
+        timeout_seconds=300,
+        # PLN-0002-05 because the verity signer's subject is a declared
+        # parameter of that task, and amendment 4 is what this protects.
+        traces=("PLN-0002/PLN-0002-05", "SYS-002", "SYS-045"),
+        capabilities=("declared slice artifact",),
+        fixtures=(
+            "composed disk image",
+            "verity certificate published beside the artifact",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_signing_material",
+    ),
+    Test(
         id="T4-SLICE-001",
         level="T4",
         profiles=("complete",),
@@ -1119,6 +1135,14 @@ def check_slice_artifact() -> int:
     return check_artifact()
 
 
+def check_slice_signing_material() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_artifact import check_signing_material_current
+
+    return check_signing_material_current()
+
+
 def check_slice_boot() -> int:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -1140,6 +1164,7 @@ CHECKS: dict[str, Callable[[], int]] = {
     "check_slice_composition": check_slice_composition,
     "check_slice_repository_attribution": check_slice_repository_attribution,
     "check_slice_artifact": check_slice_artifact,
+    "check_slice_signing_material": check_slice_signing_material,
     "check_slice_boot": check_slice_boot,
     "check_confext_signature_policy": check_confext_signature_policy,
     "check_git_diff": check_git_diff,

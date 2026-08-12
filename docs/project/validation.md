@@ -147,6 +147,30 @@ is read through mtools at a byte offset in the plain file, so the image is
 never attached to a loop device or mounted, and the ESP's location is read from
 the GPT rather than assumed.
 
+`T3-SLICE-003` asks a narrower question about the same artifact: was it built
+with the signing material published beside it. The failure it exists for is an
+artifact that outlived its own key. Key generation is guarded on the certificate
+existing and mkosi declines to rebuild when the output exists, so regenerating
+the verity key and re-running the composition leaves a new certificate beside an
+image still carrying the old signature -- measured 2026-08-12 while implementing
+amendment 4, where it read as success because every check then available looked
+at the build root rather than at the image. `compose.sh` therefore publishes the
+certificate on **every** run, whether or not mkosi rebuilt: that is what makes
+the divergence visible instead of silent.
+
+The assertion is by content and needs no filesystem driver. The certificate is
+staged into `/usr/lib/verity.d`, and EROFS stores a file that small contiguously
+and uncompressed, so its exact bytes appear in the image; measured, the current
+certificate appears once and a superseded one not at all. Verified
+failure-sensitive against two injections: publishing the superseded certificate,
+and removing it. The second fails rather than passing quietly, because an
+artifact directory that cannot answer this question must not report that nothing
+is wrong.
+
+It **finds bytes; it does not verify a signature**, and cannot until PLN-0002-06
+adds a verity signature partition to check against. Its own report says so, so a
+reader of retained evidence cannot mistake it for cryptographic verification.
+
 Composition needs the network, and canonical validation is offline, so the
 artifact is an operator-declared input:
 

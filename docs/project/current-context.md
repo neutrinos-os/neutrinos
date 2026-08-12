@@ -996,14 +996,93 @@ task 05's acceptance evidence; the ext4 arm does not exist until 06.
 time and boot behavior are two of the eight criteria and need a matched pair
 that does not exist until 06 builds all four artifacts.
 
-**A third check problem was found, and it is not the artifact's.**
-`T4-SLICE-001` depends on whether the software TPM starts. Two boots of the same
-artifact disagreed -- one clean, one failing on `systemd-pcrproduct.service` and
-`systemd-tpm2-setup-early.service` -- and an earlier attempt logged `software
-TPM did not create its control socket`. When swtpm does not come up those units
-never run and the boot looks clean, so a passing result is not evidence the gap
-is closed. **Open, unowned**, alongside the overlay-attribution gap and the
-runner reachability problem.
+**A third check problem was found, and it is not the artifact's.** Two boots of
+the same artifact disagreed: one reported zero unit failures, one reported
+`systemd-pcrproduct.service` and `systemd-tpm2-setup-early.service` failing.
+The artifact digest was identical.
+
+**The cause is not established, and one explanation was drafted and withdrawn.**
+It was first attributed to the software TPM not starting; that is wrong.
+`slice_boot.py` hard-fails when swtpm's control socket does not appear within
+ten seconds, returning before QEMU starts, so a missing swtpm cannot produce a
+clean pass. The `software TPM did not create its control socket` line that
+prompted the theory came from an instrumented run whose patch reused a state
+directory -- an artifact of the measurement, not a signal.
+
+**The cause is now measured, by asking the guest.** An SMBIOS-delivered probe
+unit printed the units' own status and journal:
+
+```
+systemd-tpm2-setup[215]: New SRK generated and stored in the TPM.
+systemd-tpm2-setup[215]: SRK public key saved to '/run/systemd/tpm2-srk-public-key.pem'
+systemd-tpm2-setup[215]: Failed to initialize NvPCR index: No such file or directory   (x4)
+systemd-tpm2-setup[215]: 4 NvPCRs failed to initialize, proceeding anyway.
+systemd[1]: systemd-tpm2-setup-early.service: Main process exited, code=exited, status=1/FAILURE
+```
+
+**The TPM works.** An SRK is generated, stored and reported, so this is not a
+missing device, not a missing `tpm2-tss` -- which is present in the closure,
+correcting PLN-0001-04's standing attribution -- and not the `/dev/tpm0` race
+drafted above, which is withdrawn. What fails is **NvPCR initialization**, a
+systemd 261 feature, and upstream's own output is self-contradictory: it logs
+"proceeding anyway" and exits 1. `systemd-pcrproduct.service` is downstream,
+running `systemd-pcrextend --graceful --product-id` and failing 1 despite
+`--graceful`.
+
+Prior art puts this in a known window rather than in NeutrinOS.
+[systemd#40159](https://github.com/systemd/systemd/issues/40159) is **open**:
+both units fail after v259 and worked on v258, with device-availability-shaped
+errno. [mkosi#2493](https://github.com/systemd/mkosi/issues/2493) records the
+same units timing out intermittently under qemu with swtpm -- this exact stack.
+The overlay that unblocked task 02 is what puts NeutrinOS in that window: Fedora
+44 ships 259.x and PLN-0002 took the OBS 261 build for the confext unit.
+**Unresolved**: why `ENOENT`, given the overlay does ship
+`/usr/lib/nvpcr/{hardware,login,verity}.nvpcr`.
+
+**A larger finding came out of chasing it, and it is the harness's.** The kernel
+console switches to the bochs framebuffer at about 5.8s, after which systemd's
+status output stops reaching the serial line unless something pins
+`console=ttyS0`. `slice_boot.py` does not. So **serial-derived evidence in this
+project is systematically incomplete after that point**, which plausibly
+explains the one clean run in five and means `T4-SLICE-001`'s unit-failure
+scraping reads a stream that goes quiet mid-boot. The fix is host-supplied and
+changes no bytes of the artifact: the `io.systemd.stub.kernel-cmdline-extra`
+credential this project already adopted and measured. **Open, unowned**,
+alongside the overlay-attribution gap and the runner reachability problem --
+three independent reasons `check:complete` cannot currently act as a gate.
+
+**A consolidated VM harness is drafted, `tools/validation/vm.py`**, and nothing
+calls it yet. It exists because four lessons this project had already paid for
+were rediscovered in one session on 2026-08-12 -- the probe poweroff, the boot
+timeout, the console pinning, and running long jobs in the background -- three
+of which were already recorded and already fixed elsewhere in the repository.
+
+The diagnosis is structural rather than a lapse. **Three independent boot paths
+grew** -- `slice_boot.py`, `confext_policy.py`, `src/spike/pln0002-01/boot.sh`
+-- each learned different things the hard way, and nothing propagated a lesson
+from one to the others, so a new probe inherits only the scars of whichever file
+its author opened. This is `P-010`'s disease in a second dimension: knowledge
+that exists, is correct, and is not reachable at the moment of use. P-010 stays
+ruled open until after G2 on the document side; the code side is cheaper to fix
+and was costing wall clock and money the day it was found.
+
+The rules are **guards and defaults, not comments**, on the argument the carve
+record already made for collision 1: mechanically impossible rather than
+reviewed for. A comment saying "remember the poweroff" is the same control that
+just failed. So `probe_unit()` appends the poweroff rather than asking for it,
+`boot()` always pins `console=ttyS0` and always attaches the artifact
+`snapshot=on`, `firmware_pair()` takes a required `secure_boot` keyword because
+the two OVMF builds are not interchangeable and the difference is invisible in a
+passing boot, and `software_tpm()` checks the socket path against the 108-byte
+AF_UNIX limit **before** starting swtpm. Each guard names the fault it prevents:
+the swtpm one reports "149 bytes, limit is 108 ... this is a path length
+problem, not a TPM problem", because the bare "did not create its control
+socket" cost two wrong diagnoses.
+
+**Owed, and the reason this is a draft**: the three existing paths still carry
+their own copies, and migrating them is the obligation this module creates
+rather than work it has done. `strip_control` is currently defined identically,
+character for character, in two of them.
 
 Question 7 is **answered by measurement** rather than ruled, and closes: the
 enrollment exists, the control is the unit-form image policy above, and

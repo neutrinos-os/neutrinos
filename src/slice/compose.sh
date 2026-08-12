@@ -171,12 +171,23 @@ if [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
 fi
 
 cd "$root/composition"
+# --initrd points at the `initrd` subimage's output, and it is passed here
+# rather than declared in mkosi.conf because mkosi has no specifier for the
+# output directory: %C, %P, %D, %F and %I are the whole set, and none of them
+# names it. The subimage writes to the same --output-directory, so this is that
+# path plus the subimage's Output= name.
+#
+# Setting it is what makes want_default_initrd() return False, so the
+# composition stops adding to mkosi's synthesized initrd and starts owning one.
+# That is PLN-0002-05's ruling of 2026-08-12 and the reason
+# mkosi.finalize.d/10-initrd-etc-factory no longer exists.
 PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
     --tools-tree="$build_root/tools" \
     --package-cache-directory="$build_root/pkgcache" \
     --package-directory="$overlay_dir/systemd-261" \
     --extra-tree="$confext_staging" \
     --output-directory="$build_root/out" \
+    --initrd="$build_root/out/initrd" \
     "$@"
 
 # Retention is a build step, not something to remember afterwards. Without it

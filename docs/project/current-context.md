@@ -964,6 +964,47 @@ cannot mount its configuration without it -- while `ext4` is required by one.
 reasoning from the arm alone would drop `erofs` from the ext4 initrd and break
 the confext merge rather than the boot, which is the silent direction.
 
+**PLN-0002-05's declaration is implemented and the artifact rebuilt**, same day.
+The initrd is now a `mkosi.images/initrd/` subimage, the additive finalize
+script and its header argument are gone, and `Compression=lz4hc` /
+`CompressionLevel=12` are set on the `/usr` partition. `systemd.image_policy=`
+is **declared but deliberately not set**: it needs a verity signature to check,
+`mkosi.repart` builds none until PLN-0002-06, and an artifact asserting it
+without one fails closed and unbootably -- which would block task 05's own
+acceptance evidence. So 06 runs in two steps, signature partition first.
+
+**The first implementation was wrong and the build succeeded anyway.** The
+trimmed module list was written into the initrd subimage, where
+`KernelModules=` selects from that image's kernel -- and it has none, so it
+selected nothing. What governs the artifact is `KernelModulesInitrdInclude=` on
+the **composition**, feeding the second cpio that `KernelModulesInitrd=yes`
+concatenates. Measured: zero modules in the subimage, 113.5M composed initrd
+against a 35.9M subimage, the missing 77.6M being every module the kernel ships.
+**Upstream's 98-module list never governed the artifact either**, having the
+same shape -- so PR-0030 C-003's "both drivers ship in both arms" was
+understated: every driver did. This is the same failure shape this plan keeps
+meeting, a configuration that looks authoritative, errors on nothing, and does
+nothing.
+
+Corrected and rebuilt: the modules segment falls to **6.0M**, the composed
+initrd to **40.3M**, the UKI to **58.1M**, and `neutrinos-usr` to **170.9M**
+from 246.7M with compression on. The EROFS arm **boots to readiness** with the
+trimmed list, verity-authenticated and unchanged by the boot, which is half of
+task 05's acceptance evidence; the ext4 arm does not exist until 06.
+
+**Timing is not claimed and is deferred to PLN-0002-07 by owner ruling.** Build
+time and boot behavior are two of the eight criteria and need a matched pair
+that does not exist until 06 builds all four artifacts.
+
+**A third check problem was found, and it is not the artifact's.**
+`T4-SLICE-001` depends on whether the software TPM starts. Two boots of the same
+artifact disagreed -- one clean, one failing on `systemd-pcrproduct.service` and
+`systemd-tpm2-setup-early.service` -- and an earlier attempt logged `software
+TPM did not create its control socket`. When swtpm does not come up those units
+never run and the boot looks clean, so a passing result is not evidence the gap
+is closed. **Open, unowned**, alongside the overlay-attribution gap and the
+runner reachability problem.
+
 Question 7 is **answered by measurement** rather than ruled, and closes: the
 enrollment exists, the control is the unit-form image policy above, and
 `T4-CONFEXT-001` registers it. Its prediction -- that task 10's substitution

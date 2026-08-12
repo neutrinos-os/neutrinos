@@ -187,7 +187,8 @@ declared parameter, and amendment 3 made it one.
 | Packages | `systemd`, `udev`, `bash`, `less`, `gzip` | Upstream's set, unchanged. Trimming it is a build-time saving against an emergency-login capability the plan may need when a boot fails |
 | `RemoveFiles=` | upstream's set, unchanged | Catalogs, hwdb, kernel images, `/var/cache`, `/var/log` |
 | NeutrinOS units | 2 files, below | PLN-0002-03a's replay unit and its drop-in, inside the UKI's signature and therefore release content |
-| `SOURCE_DATE_EPOCH` | **0** | Already set; the initrd's identity is what PLN-0001-07 verifies a reconstruction against |
+| `SOURCE_DATE_EPOCH` | **0**, inherited | Universal setting: mkosi rejects it in a subimage outright, so the composition's value is the initrd's. Load-bearing here even though it cannot be declared here, because the initrd's identity is what PLN-0001-07 verifies a reconstruction against |
+| cpio compression | **zstd, level 3**, inherited | mkosi's default, found by reading the resolved configuration rather than assumed. Identical across arms, so it cannot influence the comparison -- but it is inside the UKI and it moves initrd size, so it is declared rather than left as a default nobody named |
 | Ownership and mtime | pinned in the cpio | Same reason |
 
 The two NeutrinOS units, by path and SHA-256 prefix:
@@ -197,7 +198,35 @@ The two NeutrinOS units, by path and SHA-256 prefix:
 | `usr/lib/systemd/system/neutrinos-etc-factory.service` | `904efcfd8dd99bca…` |
 | `usr/lib/systemd/system/systemd-confext-sysroot.service.d/10-neutrinos-etc-factory.conf` | `1c36ce085aaf857a…` |
 
-### `KernelModules=`
+### The module list binds on the composition, not on the initrd
+
+Stated before the list itself, because the first implementation put it in the
+wrong place and the build succeeded anyway.
+
+`KernelModulesInitrd=yes` on the main image makes mkosi build a **second** cpio
+from the main image's kernel modules and concatenate it onto the initrd. That
+second cpio is selected by `KernelModulesInitrdInclude=` on the **composition**.
+The initrd subimage's own `KernelModules=` selects from the initrd image's
+kernel -- and that image has no kernel package, so it selects from nothing.
+
+Measured, after the first attempt: the initrd subimage contained **zero kernel
+modules**, while the composed initrd was 113.5M against the subimage's 35.9M.
+The missing 77.6M was every module the kernel ships, arriving through the
+setting nobody had named.
+
+Two consequences beyond the correction. **Upstream's 98-module list never
+governed the artifact either** -- it has the same shape, `KernelModules=` on an
+initrd image -- so PR-0030 C-003's "both drivers ship in both arms" was true and
+understated: every driver shipped in both arms. And this is the same failure
+shape this plan keeps meeting, a configuration that looks authoritative,
+produces no error, and does nothing. Left uncorrected, this declaration would
+have recorded a 21-module initrd while the artifact shipped thousands, and tasks
+07 and 08 would have measured against a list that was never applied.
+
+The subimage keeps an empty `KernelModules=` reset, so upstream's list does not
+sit there looking authoritative.
+
+### `KernelModulesInitrdInclude=`
 
 Upstream's list is **98 modules** and is a general-purpose list for arbitrary
 hardware: it carries `btrfs`, `squashfs` and `xfs` into an artifact that mounts
@@ -248,6 +277,33 @@ Recommended list, by role:
 | ESP | `vfat`, `/fs/nls/` |
 | Confext merge | `overlay`, `loop` |
 | Firmware access | `efivarfs` |
+
+**Confirmed for the EROFS arm, 2026-08-12.** The composed artifact boots to
+readiness with the trimmed list: `/usr` mounts verity-authenticated, the boot
+reaches the harness's vsock readiness signal, and the artifact is unchanged by
+the boot. The ext4 arm does not exist until PLN-0002-06, so the confirmation is
+**half done by construction** and the second half is owed at 06.
+
+What it cost, measured on the same rebuild:
+
+| | before | after |
+| --- | --- | --- |
+| Modules segment of the initrd | 77.6M | **6.0M** |
+| Composed initrd | 113.5M | **40.3M** |
+| UKI | 132.1M | **58.1M** |
+| `neutrinos-usr` (also `lz4hc,12`) | 246.7M | **170.9M** |
+
+Not zero and not everything, which is what says the include list matched a real
+subset rather than failing open in either direction.
+
+**Timing is deliberately not claimed.** Build time and boot behavior are two of
+C-007's eight criteria and both need a matched pair -- same tree, one variable
+moved -- which does not exist until 06 builds all four artifacts. One boot
+measured 146.4s to readiness; there is no comparable prior number, because the
+previous artifact was overwritten by the rebuild and the 18s in the
+[boot record](slice-boot-record.md) is a different check's whole runtime, in a
+record that says its numbers are not a timing baseline. Owner ruling
+2026-08-12: measure it at PLN-0002-07 rather than now.
 
 **Ruled 2026-08-12: the list is confirmed by booting both arms before 06 freezes
 them.** An over-trimmed initrd fails as an unbootable artifact, which is a

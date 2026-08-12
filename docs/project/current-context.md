@@ -1049,12 +1049,48 @@ name and exit 1. The two genuinely NvPCR-shaped issues are `ENOSPC` on a TPM
 that ran out of NV index space, with some indices succeeding; NeutrinOS gets
 `ENOENT` with all four failing, which is a different branch.
 
-**So this is unattributed, not upstream.** It may still be an upstream bug, but
-nothing measured says so, and the earlier entry's effect was to move a live
-failure off this project's books without evidence. The open question is what
-returns `ENOENT` in the 261 NvPCR initialization path when the definitions in
-`/usr/lib/nvpcr/{hardware,login,verity}.nvpcr` are present -- and note the count
-does not line up either: three definition files ship, four indices fail.
+**Diagnosed 2026-08-12, and it is a NeutrinOS composition gap.** The guest was
+asked directly, re-running `systemd-tpm2-setup --early=yes` under
+`SYSTEMD_LOG_LEVEL=debug`. The line above the one that was being read:
+
+```
+Setting up NvPCR 'verity' (priority 300).
+tpmrm0: No TPM2_BROKEN_NVPCR property for '/dev/tpmrm0', assuming NvPCRs work.
+Failed to find TPM PCR public key file 'tpm2-pcr-public-key.pem': No such file or directory
+Failed to load PCR public key for NvPCR: No such file or directory
+Failed to initialize NvPCR index: No such file or directory
+```
+
+`ENOENT` is a **missing file, not a TPM condition** -- identical for all four
+indices, with `TPM2_BROKEN_NVPCR` explicitly not set and NV space never
+reached. The chain, each link measured:
+
+1. the composition never requests expected-PCR signing; no such setting exists
+   anywhere in `src/slice/`
+2. so the UKI carries no `.pcrpkey` section. Extracted from the ESP and its PE
+   section table read: `.text .rodata .data .sbat .sdmagic .reloc .osrel
+   .cmdline .uname .linux .initrd` -- no `.pcrpkey`, no `.pcrsig`
+3. so `systemd-stub`, which exports those sections to
+   `/.extra/tpm2-pcr-public-key.pem` for propagation into `/run/systemd/`, has
+   nothing to export
+4. so every NvPCR initialization fails `ENOENT`, `systemd-tpm2-setup` exits 1
+   despite "proceeding anyway", and `systemd-pcrproduct` fails downstream
+
+**The custom initrd is exonerated**: the gap is at UKI build time, before any
+propagation question arises.
+
+Two claims made while chasing this were wrong and are corrected here. **Four**
+NvPCR definitions ship, not three -- `cryptsetup.nvpcr` is present alongside
+`hardware`, `login` and `verity`, so the "three ship, four fail" count mismatch
+never existed; it came from the same host-side RPM inspection that had already
+produced one false zero the same day. And the image is **systemd 262**
+(`261.999+1208+g827144298`), not 261.
+
+**Not decided**: whether the slice should sign expected PCRs at all. Doing so
+introduces a second signing key with its own identity and lifetime across build
+roots, which is exactly what PLN-0002-05's amendment 4 governs for the verity
+signer, and it is unruled for this key. Until it is ruled, `T4-SLICE-001`
+fails on a gap this project chose by omission rather than on an upstream bug.
 
 **A larger finding came out of chasing it, and it is the harness's.** The kernel
 console switches to the bochs framebuffer at about 5.8s, after which systemd's

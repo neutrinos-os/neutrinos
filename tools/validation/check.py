@@ -461,7 +461,21 @@ def git_environment() -> dict[str, str]:
 
 
 def repository_snapshot() -> dict[str, str]:
-    """Identify both Git state and all worktree bytes, including ignored files."""
+    """Identify both Git state and all worktree bytes, including ignored files.
+
+    Ignored files are hashed on purpose: a check that writes an image, a key, or
+    a run directory into the checkout is exactly what this catches, and every one
+    of those is in `.gitignore`. So the exclusion below is deliberately not
+    "whatever Git ignores".
+
+    Bytecode is the one exception, because it is not state this can learn
+    anything from: the interpreter derives it from source that is already hashed
+    here, and writing it is a side effect of *running* the checks. Hashing it
+    made the first `check:complete` after any edit under `tools/validation/`
+    report "validation changed repository state" -- against the tree the runner
+    itself had just compiled. Measured 2026-08-12, twice, and misattributed once
+    to an edit made during the run.
+    """
     git_parts = []
     for args in (
         ("status", "--porcelain=v2", "--branch", "--untracked-files=all", "--ignored=matching"),
@@ -469,12 +483,22 @@ def repository_snapshot() -> dict[str, str]:
         ("diff", "--no-ext-diff", "--binary", "--cached"),
     ):
         result = git(*args)
-        git_parts.append(result.stdout)
+        # Same exclusion as the tree walk, for the same reason. `--ignored`
+        # lists the `__pycache__` directory, so on a checkout that has never
+        # been run this half would flip when the first run creates it.
+        git_parts.append(
+            "\n".join(
+                line for line in result.stdout.splitlines()
+                if "__pycache__" not in line
+            )
+        )
 
     tree = hashlib.sha256()
     for path in sorted(ROOT.rglob("*")):
         relative = path.relative_to(ROOT)
         if relative.parts and relative.parts[0] == ".git":
+            continue
+        if "__pycache__" in relative.parts or path.suffix in (".pyc", ".pyo"):
             continue
         metadata = path.lstat()
         tree.update(os.fsencode(str(relative)))

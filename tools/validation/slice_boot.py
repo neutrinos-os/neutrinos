@@ -257,21 +257,16 @@ def check_boot() -> int:
                 credentials["vmm.notify_socket"] = (
                     f"vsock-stream:{socket.VMADDR_CID_HOST}:{port}"
                 )
-            smbios: list[str] = []
-            for key, value in credentials.items():
-                smbios += ["-smbios", f"type=11,value=io.systemd.credential:{key}={value}"]
-            # The UKI carries no command line of its own, so the console comes
-            # from the harness. systemd-stub measures this string into PCR12.
-            # MASKED_UNITS rides the same credential, for the same reason: it is
-            # host-supplied and changes no byte of the artifact under test.
-            masks = " ".join(
-                f"systemd.mask={unit} rd.systemd.mask={unit}" for unit in MASKED_UNITS
+            # The masks ride the stub command line for the same reason the
+            # console pin does: host-supplied, changing no byte of the artifact
+            # under test. systemd-stub measures the whole string into PCR12.
+            smbios = vm.smbios_args(
+                credentials,
+                cmdline_extra=[
+                    f"systemd.mask={unit} rd.systemd.mask={unit}"
+                    for unit in MASKED_UNITS
+                ],
             )
-            smbios += [
-                "-smbios",
-                "type=11,value=io.systemd.stub.kernel-cmdline-extra="
-                f"console=ttyS0 {masks}",
-            ]
 
             vsock_device: list[str] = []
             if cid is not None and vhost_fd is not None:

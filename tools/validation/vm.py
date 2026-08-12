@@ -164,6 +164,32 @@ def probe_unit(script: str, *, description: str, after: str = "multi-user.target
     )
 
 
+def smbios_args(
+    credentials: Mapping[str, str] | None = None,
+    credential_files: Sequence[Path] = (),
+    cmdline_extra: Sequence[str] = (),
+) -> list[str]:
+    """The `-smbios` arguments for credentials and the guest command line.
+
+    `console=ttyS0` is prepended here, not asked for, and that is the whole
+    reason this is shared rather than written out twice. Without it the kernel
+    switches to the framebuffer partway through boot and every later status line
+    goes to a console the serial log never sees. Measured 2026-08-12: a probe ran
+    correctly and reported nothing, twice. It is supplied from the host, so the
+    signed UKI is untouched.
+    """
+    args: list[str] = []
+    for name, value in (credentials or {}).items():
+        args += ["-smbios", f"type=11,value=io.systemd.credential:{name}={value}"]
+    for path in credential_files:
+        args += ["-smbios", f"type=11,path={path}"]
+    cmdline = " ".join(("console=ttyS0", *cmdline_extra))
+    return args + [
+        "-smbios",
+        f"type=11,value=io.systemd.stub.kernel-cmdline-extra={cmdline}",
+    ]
+
+
 @contextlib.contextmanager
 def software_tpm(state: Path) -> Iterator[Path]:
     """A disposable vTPM, yielding its control socket path.
@@ -239,12 +265,7 @@ def boot(
     `persist_store=True` is for the one boot whose *product* is the enrolled
     store, and is named so that keeping the writes is the deliberate act.
 
-    `console=ttyS0` is always appended through the stub credential, never
-    optionally. Without it the kernel switches to the framebuffer partway
-    through boot and every later status line -- including a probe's own output
-    -- goes to a console the serial log never sees. Measured 2026-08-12: a probe
-    ran correctly and reported nothing, twice, for this reason. It is supplied
-    from the host so the signed UKI is untouched.
+    The console pin comes from `smbios_args`, which is where that rule lives.
     """
     code, _ = firmware_pair(secure_boot=secure_boot)
     work.mkdir(parents=True, exist_ok=True)
@@ -271,15 +292,8 @@ def boot(
             "-tpmdev", "emulator,id=tpm0,chardev=chrtpm",
             "-device", "tpm-tis,tpmdev=tpm0",
         ]
-    for name, value in (credentials or {}).items():
-        command += ["-smbios", f"type=11,value=io.systemd.credential:{name}={value}"]
-    for path in credential_files:
-        command += ["-smbios", f"type=11,path={path}"]
-    command += [
-        "-smbios",
-        "type=11,value=io.systemd.stub.kernel-cmdline-extra=console=ttyS0",
-        "-serial", "mon:stdio",
-    ]
+    command += smbios_args(credentials, credential_files)
+    command += ["-serial", "mon:stdio"]
 
     with console.open("wb") as stream:
         try:

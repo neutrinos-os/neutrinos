@@ -99,9 +99,34 @@ if [ ! -f "$keys_dir/secureboot.crt" ]; then
         -subj "/CN=NeutrinOS PLN-0002-01 spike, synthetic/" \
         -keyout "$keys_dir/secureboot.key" -out "$keys_dir/secureboot.crt"
 fi
+# One subject for the verity signer across every build root: PLN-0002
+# amendment 4, declared in docs/project/artifact-parameter-declaration.md, and
+# the same string src/slice/compose.sh uses. Duplicated rather than shared
+# because a shell script cannot read the declaration without a dependency
+# neither script has; the guard below is what keeps the duplication honest.
+#
+# The keys already in this build root keep the spike's original subject, and
+# nothing regenerates them here: the retained artifact is RES-0013's evidence
+# and re-signing it would change the thing the evidence is about. So this guard
+# fails a rebuild of the completed spike until the operator decides to adopt the
+# declared subject, which is the correct order -- that decision changes an
+# artifact's identity and is not one a build script should take on its own.
+verity_cn="NeutrinOS verity, synthetic"
+
+if [ -f "$keys_dir/verity.crt" ] &&
+   [ "$(openssl x509 -noout -subject -in "$keys_dir/verity.crt")" != "subject=CN=$verity_cn" ]; then
+    echo "spike: $keys_dir/verity.crt has subject" \
+         "$(openssl x509 -noout -subject -in "$keys_dir/verity.crt")," \
+         "and PLN-0002 amendment 4 declares 'subject=CN=$verity_cn'." \
+         "The retained artifact was signed by the old key and keeps it." \
+         "To rebuild this spike under the declared subject:" \
+         "rm -f $keys_dir/verity.key $keys_dir/verity.crt $keys_dir/verity.der" >&2
+    exit 1
+fi
+
 if [ ! -f "$keys_dir/verity.crt" ]; then
     openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
-        -subj "/CN=NeutrinOS PLN-0002-01 spike verity, synthetic/" \
+        -subj "/CN=$verity_cn/" \
         -keyout "$keys_dir/verity.key" -out "$keys_dir/verity.crt"
 fi
 

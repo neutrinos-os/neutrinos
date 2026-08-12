@@ -53,9 +53,34 @@ keys_dir="$build_root/keys"
 
 mkdir -p "$build_root" "$keys_dir"
 
+# One subject for the verity signer across every build root: PLN-0002
+# amendment 4, declared in docs/project/artifact-parameter-declaration.md. The
+# subject is what is enrolled in `db` and what sits in /usr/lib/verity.d, so two
+# build roots using two subjects means a fixture and an artifact that disagree
+# about who the trusted signer is. It looked cosmetic while the build roots were
+# independent and stopped being cosmetic when enforcement became real.
+verity_cn="NeutrinOS verity, synthetic"
+
+# Checked against the subject, not against the file. Every generation below is
+# guarded on the certificate existing, so changing the subject string alone
+# would be a silent no-op on any build root that already has keys -- the
+# declared parameter would read as satisfied while every artifact kept the old
+# signer. This fails instead, because regenerating on its own initiative would
+# silently change the root hash signature of artifacts already measured.
+if [ -f "$keys_dir/verity.crt" ] &&
+   [ "$(openssl x509 -noout -subject -in "$keys_dir/verity.crt")" != "subject=CN=$verity_cn" ]; then
+    echo "compose: $keys_dir/verity.crt has subject" \
+         "$(openssl x509 -noout -subject -in "$keys_dir/verity.crt")," \
+         "and PLN-0002 amendment 4 declares 'subject=CN=$verity_cn'." \
+         "Artifacts signed by the old key keep it until they are rebuilt." \
+         "To adopt the declared subject:" \
+         "rm -f $keys_dir/verity.key $keys_dir/verity.crt $keys_dir/verity.der" >&2
+    exit 1
+fi
+
 if [ ! -f "$keys_dir/verity.crt" ]; then
     openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
-        -subj "/CN=NeutrinOS slice verity, synthetic/" \
+        -subj "/CN=$verity_cn/" \
         -keyout "$keys_dir/verity.key" -out "$keys_dir/verity.crt"
 fi
 

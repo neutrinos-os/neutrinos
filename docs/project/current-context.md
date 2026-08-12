@@ -1363,6 +1363,33 @@ epoch first. Measured on the spike; the slice composition shares
 `SourceDateEpoch=0` and a vfat ESP, so it is expected to inherit the same
 property and has not been measured.
 
+**Amendment 4 is implemented 2026-08-12**, and implementing it found the
+plan's silent-success pattern a fifth time. Both build scripts now declare
+`CN=NeutrinOS verity, synthetic` -- the literal is named in the declaration,
+since "one subject" is not something a build script can check itself against --
+and both **guard on the subject of an existing certificate**. That guard is the
+substance, not the string: generation was guarded on the certificate *existing*,
+so changing the subject alone would have been a silent no-op on every build root
+that already had keys, and the declared parameter would have read as satisfied
+while every artifact kept the old signer.
+
+Then mkosi declined the rebuild (`Output path exists already`), so the
+regenerated key sat beside an artifact still carrying the old signature, while
+the confext -- which did rebuild -- carried the new one. **Artifact and confext
+disagreeing about the signer is exactly what amendment 4 exists to prevent**, and
+a certificate check alone would have reported success. Only an artifact digest
+recorded before the change exposed it. Forced, rebuilt, and verified in the
+artifact rather than the build root: `/usr/lib/verity.d` carries the declared
+subject, and `check:complete` passes at 13.
+
+**The gap this leaves is a stale artifact, not a stale key.** Nothing detects an
+artifact older than the signing key in its own build root, and once PLN-0002-06
+issues real signing material that state produces a confident, wrong measurement.
+A check is wanted rather than a habit; registering one is not yet ruled. The
+spike build root keeps its original subject deliberately, so its retained
+artifact remains RES-0013's evidence, and a spike rebuild now stops until an
+operator adopts the declared subject on purpose.
+
 **Questions 8 and 9 must not share a rebuild.** Question 9's evidence is that the
 artifact comes out byte-identical, which is the whole proof that consolidating
 changed nothing; question 8's evidence is that the `/etc` entry and

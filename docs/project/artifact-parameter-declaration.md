@@ -26,15 +26,18 @@ satisfied, and acceptance is of that state rather than of a clean one:
 
 - The trimmed `KernelModules=` list is declared and **not yet measured**. Its
   confirmation is a boot of both arms before PLN-0002-06.
-- The single verity signer subject of amendment 4 is declared and **not yet
-  true**. Measured 2026-08-12: the slice build root generates `CN=NeutrinOS
-  slice verity, synthetic` and the PLN-0002-01 build root generates
-  `CN=NeutrinOS PLN-0002-01 spike verity, synthetic`. Satisfying it is coupled
-  to the tools-tree consolidation ruled the same day -- one build root cannot
-  disagree with itself -- and it is due on the same deadline as everything else
-  here, before PLN-0002-06 issues the signing material. The completed spike's
-  script is not retro-edited to reach it; it is the recorded apparatus of
-  RES-0013.
+- The single verity signer subject of amendment 4 is **satisfied for the slice
+  build root, 2026-08-12**, and deliberately not for the spike's. Both scripts
+  now name `CN=NeutrinOS verity, synthetic` and guard on the subject of any
+  certificate already present, because both guarded generation on the
+  certificate *existing* -- so changing the string alone was a silent no-op on
+  every build root that already had keys, and the parameter would have read as
+  satisfied while every artifact kept the old signer. The slice regenerated and
+  rebuilt; `/usr/lib/verity.d` in the artifact carries the declared subject and
+  the full profile passes at 13. The spike's keys are untouched: its retained
+  artifact is RES-0013's evidence and re-signing would change the thing the
+  evidence is about, so a spike rebuild now stops until an operator adopts the
+  subject deliberately.
 
 **Deadline: before PLN-0002-06.** Every parameter below is inside the signed
 UKI or inside the artifact it authenticates. A change after 06 means tasks 07
@@ -157,7 +160,7 @@ format. PLN-0002-13's recommendation must say so.
 | Hash block size | **inherited** (repart default) | Same |
 | Salt | **derived from `Seed=`** | Reproducibility. A random salt would make every build produce a different root hash and would defeat PLN-0001-07's reconstruction check |
 | Signature partition | **present from PLN-0002-06** | Absent today by design; `mkosi.repart` records why. Task 06 adds it with its signing material |
-| Signer subject | **one subject, all build roots** | Amendment 4. The subject is what is enrolled in `db` and what sits in `/usr/lib/verity.d` |
+| Signer subject | **`CN=NeutrinOS verity, synthetic`**, all build roots | Amendment 4. The subject is what is enrolled in `db` and what sits in `/usr/lib/verity.d`. The literal is named here because "one subject" is not a value a build script can check itself against, and both `compose.sh` and `spike.sh` restate it under a guard that fails when a build root's existing certificate disagrees |
 
 **The lazy-verification limit is declared, not assumed away.** dm-verity
 verifies per block on read, so neither arm's successful boot is a statement
@@ -342,7 +345,7 @@ it.
 
 | Role | Subject | Enrolled in |
 | --- | --- | --- |
-| Verity signer | one subject, all build roots | disposable VM `db` |
+| Verity signer | `CN=NeutrinOS verity, synthetic`, all build roots | disposable VM `db` |
 | Image signer | distinct | disposable VM `db` |
 | Second verity key, unenrolled | distinct | nothing, deliberately |
 | Platform key | distinct | disposable VM `PK`/`KEK` |

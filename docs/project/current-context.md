@@ -926,6 +926,44 @@ excluded by the direction. C is excluded only as a substitute for provisioning
 prevent. PLN-0002 is unaffected: its fixture boots transient, says so, and
 measures nothing depending on machine continuity.
 
+**PLN-0002-05 is drafted the same day** as the
+[parameter declaration](artifact-parameter-declaration.md), against four owner
+rulings taken while drafting: the initrd becomes a `mkosi.images/initrd/`
+subimage, `KernelModules=` is trimmed but held **identical across both arms** so
+the initrd is a constant and the comparison isolates the filesystem, mkfs
+parameters bearing on C-007's criteria are pinned and the rest named as
+inherited, and the EROFS arm is declared **compressed** rather than compared
+uncompressed.
+
+Drafting found three things the plan did not know. **The EROFS arm was
+uncompressed** -- `systemd-repart` passes `-z` only when the partition sets
+`Compression=`, and `mkosi.repart/10-usr.conf` set neither it nor
+`CompressionLevel=`, so the format's principal advantage was switched off on the
+two criteria that measure it, undeclared and invisible to any measurement.
+**Three of the parameters task 05 was asked to declare are not free**: repart
+fixes ext4's block size at 4096, inode size at 256 and reserved blocks at 0%,
+read from `mkfs-util.c` at `v259` rather than assumed. And **the builder is not
+the shipped systemd** -- the tools tree resolves systemd 259.5 while the image
+ships 261.999, so every default in the declaration is 259.5's and a tools
+rebuild could move the artifact with no file in the repository changing.
+
+**All four remaining items were ruled the same day**: compression is `lz4hc` at
+level 12, `systemd.image_policy=usr=signed` goes on the signed command line, and
+the trimmed module list is confirmed by booting both arms **before** 06 freezes
+them rather than letting task 08 find it. `usr=verity` was rejected on the
+confext measurement rather than by analogy -- verity alone did not discriminate
+on the signer -- and `usr=signed` must itself be measured, since the same work
+found the broad `=signed` spelling refusing everything including the correct
+artifact.
+
+Checking the initrd against those rulings found one thing worth keeping: **the
+confext's own root filesystem is erofs**, measured on the built DDI, and the
+merge runs in the initrd. So `erofs` is required by *both* arms -- the ext4 arm
+cannot mount its configuration without it -- while `ext4` is required by one.
+"Both drivers in both arms" reads as a symmetry and is not one, and a later trim
+reasoning from the arm alone would drop `erofs` from the ext4 initrd and break
+the confext merge rather than the boot, which is the silent direction.
+
 Question 7 is **answered by measurement** rather than ruled, and closes: the
 enrollment exists, the control is the unit-form image policy above, and
 `T4-CONFEXT-001` registers it. Its prediction -- that task 10's substitution

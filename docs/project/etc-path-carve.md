@@ -816,7 +816,8 @@ that `root=signed` still discriminates. A systemd bump that widened the
 fallback, or a policy-parser change, would land silently and in the direction
 that makes tests pass -- which is this plan's recurring failure mode, observed
 four times. **This is a draft. It registers nothing and is not authority to
-land it.**
+land it.** Both of its open questions have since been ruled -- the unit form is
+what it tests, and it lands as part of PLN-0002-10 -- see below.
 
 Proposed entry, in the shape `check.py` already uses:
 
@@ -844,12 +845,14 @@ Test(
 ```
 
 **The assertion is the 2x2, not the happy path.** Four boots, fresh varstore
-each, one confext and one policy per boot:
+each, one confext and one policy per boot. Per the ruling below, the policy is
+applied as a drop-in on `systemd-confext.service` and the outcome read from the
+unit, not from a command line:
 
 | | `root=signed` | default policy |
 | --- | --- | --- |
-| enrolled signer | merges, exit 0 | merges, exit 0 |
-| unenrolled signer | **refused, exit 1** | merges, exit 0 |
+| enrolled signer | `success/0`, merged | merged |
+| unenrolled signer | **`exit-code/1`, not merged** | merged |
 
 Three of the four cells are the check. A run where the enrolled image is
 refused is a broken control, not a pass; a run where the unenrolled image is
@@ -879,17 +882,50 @@ already does.
   OVMF build must **block**, not skip: a skip here reports the same shape as a
   pass, which is the defect the guard above was written for.
 
-### Two questions it cannot answer for itself
+### Both open questions, ruled 2026-08-11 by Jason Tarasovic
 
-1. **Which form is under test, CLI or unit?** The matrix used the CLI. The
-   drop-in form measured earlier did *not* close, and the contradiction is
-   unresolved. NeutrinOS would ship the unit form. A check that pins the CLI
-   form green while the shipped form is open would be actively misleading.
-   **This should be resolved before the check is written, not after.**
-2. **Does it belong to PLN-0002-10 or before it?** As drafted it asserts the
-   property task 10 exists to inject against. If it lands first, task 10 is
-   measuring its own harness; if it lands after, the property is unguarded for
-   the intervening work.
+1. **The unit form is what the check tests**, because it is what NeutrinOS
+   would ship.
+2. **It lands as part of PLN-0002-10**, not before it.
+
+### The unit form, measured, and it closes
+
+The ruling landed on the form previously recorded as *not* closing, so it was
+measured before being written down as settled. Three boots on the enrolled
+disk, digest unchanged. The policy arrives as a drop-in on
+`systemd-confext.service` overriding `ExecStart`, confirmed in effect by
+`systemctl show`:
+
+```
+/usr/bin/systemd-confext --image-policy=root=signed --mutable=ephemeral merge
+```
+
+| | enrolled signer | unenrolled signer |
+| --- | --- | --- |
+| unit result | `success/0` | **`exit-code/1`** |
+| merged | yes | **no** |
+| `/etc/systemd/network/` | `10-neutrinos-default.network` | **absent** |
+
+**The unit form is strictly stronger than the CLI form**, and not only because
+it is what ships. The failure is a *unit* failure -- `Failed to start
+systemd-confext.service` -- so it is visible to the rest of the transaction and
+other units can order and depend on it. A CLI exit code inside a script is
+visible only to that script.
+
+One methodological note, because the first attempt at this measured nothing.
+The confext arrives on a second disk and so cannot be present for the unit's
+boot-time run; restarting the unit is therefore how the drop-in gets exercised.
+But `merge` refuses a hierarchy that is already merged, and **both arms failed
+identically on `Hierarchy '/etc' is already merged'` before policy was ever
+reached** -- a difference-free result that would have read as "fails closed for
+everything" if taken at face value. An explicit `unmerge` first is what makes
+the restart measure the policy.
+
+**The contradiction with the earlier drop-in attempt is attributed, not
+proven.** That attempt targeted the *sysroot* merge rather than the system one,
+ran on the firmware with no Secure Boot support, and had no key enrolled
+anywhere. Any of the three is sufficient to explain it. The earlier
+configuration was not re-run.
 
 ## What this asks the owner for
 

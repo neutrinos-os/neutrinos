@@ -762,7 +762,21 @@ through the CLI, not the initrd merge, and **the drop-in form of the same flag
 was measured earlier as not closing** -- the contradiction is unresolved, and
 the unit-configured form is the one NeutrinOS would ship. So PLN-0002-10 now
 injects against a *configuration* rather than a missing mechanism, and the plan
-should say which. Note also that the `Requires=`
+should say which.
+
+**Ruled 2026-08-11 by Jason Tarasovic**, on the draft registration of
+`T4-CONFEXT-001`: the check tests the **unit** form, and it lands **as part of
+PLN-0002-10** rather than before it. The ruling landed on the form previously
+recorded as not closing, so it was measured before being recorded as settled --
+three boots, digest unchanged, policy applied as a drop-in overriding
+`systemd-confext.service`'s `ExecStart` and confirmed in effect by
+`systemctl show`. **It closes**: `success/0` and merged for the enrolled
+signer, `exit-code/1` and nothing merged for the unenrolled one. The unit form
+is strictly stronger than the CLI form, because the failure is a *unit* failure
+visible to the rest of the transaction rather than an exit code inside a
+script. The contradiction with the earlier drop-in attempt is **attributed, not
+proven** -- that attempt targeted the sysroot merge, on non-secboot firmware,
+with no key enrolled anywhere, and was not re-run. Note also that the `Requires=`
 guard on the replay is fail-closed for the **initrd** merge only -- a failing
 replay still ends with `/etc` overmounted by the post-switch-root merge.
 

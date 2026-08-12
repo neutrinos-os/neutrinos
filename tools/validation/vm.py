@@ -1,9 +1,11 @@
 """One place that knows how to boot a disposable guest.
 
-**Draft, for owner review.** Nothing calls this yet. `slice_boot.py`,
-`confext_policy.py` and `src/spike/pln0002-01/boot.sh` still each carry their
-own copy of this knowledge, and migrating them is the obligation this module
-creates rather than work it has done.
+`slice_boot.py` and `confext_policy.py` are migrated onto this module and no
+longer carry their own copies. `src/spike/pln0002-01/boot.sh` deliberately is
+not: it is the recorded apparatus of a completed spike, and rewriting it would
+change the thing that produced RES-0013's evidence rather than the thing that
+will produce the next result. It is left as it stands, and this note is the
+reason.
 
 ## Why it exists
 
@@ -40,6 +42,7 @@ anyone counted the bytes.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import re
 import subprocess
 import time
@@ -74,7 +77,10 @@ PLAIN_CODE_CANDIDATES = (
     "/usr/share/edk2/x64/OVMF_CODE.4m.fd",
     "/usr/share/edk2/ovmf/OVMF_CODE.fd",
     "/usr/share/OVMF/OVMF_CODE.fd",
+    "/usr/share/edk2-ovmf/x64/OVMF_CODE.fd",
 )
+
+READ_CHUNK_BYTES = 4 * 1024 * 1024
 
 
 class HarnessError(RuntimeError):
@@ -93,6 +99,19 @@ def strip_control(text: str) -> str:
     define identically, character for character.
     """
     return re.sub(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
+
+
+def file_digest(path: Path) -> str:
+    """SHA-256 of a file, read in chunks.
+
+    Here because every caller that boots an artifact also has to prove the boot
+    did not write to it, and the two belong together.
+    """
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(READ_CHUNK_BYTES):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def firmware_pair(*, secure_boot: bool) -> tuple[Path, Path]:

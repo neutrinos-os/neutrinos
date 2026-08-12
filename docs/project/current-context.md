@@ -1051,8 +1051,8 @@ credential this project already adopted and measured. **Open, unowned**,
 alongside the overlay-attribution gap and the runner reachability problem --
 three independent reasons `check:complete` cannot currently act as a gate.
 
-**A consolidated VM harness is drafted, `tools/validation/vm.py`**, and nothing
-calls it yet. It exists because four lessons this project had already paid for
+**A consolidated VM harness exists, `tools/validation/vm.py`**, and both Python
+boot paths are migrated onto it. It exists because four lessons this project had already paid for
 were rediscovered in one session on 2026-08-12 -- the probe poweroff, the boot
 timeout, the console pinning, and running long jobs in the background -- three
 of which were already recorded and already fixed elsewhere in the repository.
@@ -1079,10 +1079,34 @@ the swtpm one reports "149 bytes, limit is 108 ... this is a path length
 problem, not a TPM problem", because the bare "did not create its control
 socket" cost two wrong diagnoses.
 
-**Owed, and the reason this is a draft**: the three existing paths still carry
-their own copies, and migrating them is the obligation this module creates
-rather than work it has done. `strip_control` is currently defined identically,
-character for character, in two of them.
+**The migration is done and measured.** `slice_boot.py` and
+`confext_policy.py` no longer define `strip_control`, `file_digest` or
+`firmware_pair`; `confext_policy.py` also lost its OVMF candidate list, its
+`credential_file`, its probe-unit text and its entire QEMU command line.
+`slice_boot.py`'s firmware choice is now an explicit `secure_boot=False` with
+the reason recorded, so a signature assertion added there later cannot inherit
+the plain build silently. `src/spike/pln0002-01/boot.sh` is **deliberately not
+migrated**: it is the recorded apparatus of a completed spike, and rewriting it
+would change what produced RES-0013's evidence rather than what produces the
+next result.
+
+Both migrated checks were re-run against the real artifacts. `T4-SLICE-001`
+reaches its unit-health assertion and fails there on the two NvPCR units only
+-- the known upstream issue, unchanged by the migration. The confext 2x2 passes
+all four cells, with `secure-boot=1` and five keyring certificates in every one,
+and the load-bearing cell behaving: strict policy plus an unenrolled signer
+gives `Result=exit-code`, `ExecMainStatus=1`, and no merged file.
+
+**A cheaper finding came out of confirming it.** The confext cells were
+sequential only because they shared one writable OVMF variable store. Copying
+the enrolled store per cell makes them independent -- which is what the 2x2
+always claimed they were -- and lets them run at once: five boots, previously
+believed to take about ten minutes, complete in **15 seconds wall**, four cells
+at 10.5 s each after a 3.6 s warm-up. The warm-up remains ordered first because
+its only product *is* the enrolled store. The corollary matters more than the
+speed: an earlier run killed at ten minutes was **hung, not slow**, and "VM
+checks are slow" had been accepted as a property of VMs when it was a property
+of one stuck run.
 
 Question 7 is **answered by measurement** rather than ruled, and closes: the
 enrollment exists, the control is the unit-form image policy above, and

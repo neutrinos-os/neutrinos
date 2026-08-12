@@ -38,29 +38,16 @@ before and after.
 
 from __future__ import annotations
 
-import hashlib
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-READ_CHUNK_BYTES = 4 * 1024 * 1024
-BOOT_TIMEOUT_SECONDS = 300
-# Every OVMF build Fedora and Debian ship under this name is compiled *without*
-# Secure Boot support. Booting one produces no SetupMode, no SecureBoot, no db,
-# and an empty .platform keyring -- and the guest boots perfectly well, so the
-# absence reads as success. The whole PLN-0002-01 spike ran on one. This check
-# accepts only the secboot builds, and blocks rather than skips when there is
-# none.
-SECBOOT_CODE_CANDIDATES = (
-    "/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd",
-    "/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd",
-    "/usr/share/OVMF/OVMF_CODE.secboot.fd",
-    "/usr/share/edk2-ovmf/x64/OVMF_CODE.secboot.fd",
-)
+from tools.validation import vm
+
 FIXTURE_ENV = "NEUTRINOS_CONFEXT_FIXTURE_DIR"
 FIXTURE_MEMBERS = (
     "enrolled-artifact.raw",
@@ -74,14 +61,7 @@ MARKER_END = "CONFEXT-POLICY-END"
 MERGED_FILE = "10-neutrinos-default.network"
 STRICT_POLICY = "root=signed"
 
-PROBE_UNIT = f"""[Unit]
-Description=Confext signature policy probe
-After=multi-user.target
-Requires=multi-user.target
-[Service]
-Type=oneshot
-StandardOutput=journal+console
-ExecStart=/usr/bin/sh -c 'echo "{MARKER_BEGIN}"; \\
+PROBE_SCRIPT = f"""echo "{MARKER_BEGIN}"; \\
 echo "secure-boot=$(tail -c1 \
 /sys/firmware/efi/efivars/SecureBoot-8be4df61-93ca-11d2-aa0d-00e098032b8c \
 2>/dev/null | od -An -tu1 | tr -d " \\n")"; \\
@@ -95,9 +75,9 @@ systemctl restart systemd-confext.service >/dev/null 2>&1; \\
 echo "unit-result=$(systemctl show systemd-confext.service -p Result --value)"; \\
 echo "unit-status=$(systemctl show systemd-confext.service -p ExecMainStatus --value)"; \\
 echo "merged-file=$(test -e /etc/systemd/network/{MERGED_FILE} && echo yes || echo no)"; \\
-echo "{MARKER_END}"'
-ExecStopPost=/usr/bin/systemctl poweroff
-"""
+echo "{MARKER_END}\""""
+
+PROBE_UNIT = vm.probe_unit(PROBE_SCRIPT, description="Confext signature policy probe")
 
 # ExecStart is cleared before being set: without the empty assignment systemd
 # appends, and a Type=oneshot unit would run the stock merge first and the
@@ -107,38 +87,6 @@ POLICY_DROPIN = """[Service]
 ExecStart=
 ExecStart=/usr/bin/systemd-confext --image-policy={policy} --mutable=ephemeral merge
 """
-
-
-def file_digest(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        while chunk := stream.read(READ_CHUNK_BYTES):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def firmware_pair() -> tuple[Path, Path]:
-    for candidate in SECBOOT_CODE_CANDIDATES:
-        code = Path(candidate)
-        variables = Path(re.sub(r"CODE\.secboot", "VARS", candidate))
-        if code.is_file() and variables.is_file():
-            return code, variables
-    raise ValueError("no Secure Boot OVMF firmware code/variables pair found")
-
-
-def strip_control(text: str) -> str:
-    return re.sub(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
-
-
-def credential_file(directory: Path, name: str, value: str) -> Path:
-    """Write one SMBIOS credential payload.
-
-    Through a file rather than an inline `-smbios` string because every payload
-    here is multi-line, and an inline string cannot carry a newline.
-    """
-    path = directory / f"{name}.cred"
-    path.write_text(f"io.systemd.credential:{name}={value}", encoding="utf-8")
-    return path
 
 
 def boot(
@@ -151,19 +99,17 @@ def boot(
 ) -> dict[str, str]:
     """One boot. Returns the probe's key=value report, empty if it never ran.
 
-    The variable store is supplied rather than made here, and that is
-    load-bearing. A fresh store is in setup mode, so systemd-boot enrolls the
-    keys from the ESP and reboots -- meaning a per-boot store would make every
-    boot a first boot, and the probe would never run. Measured, after writing
-    it the other way first.
+    `secure_boot=True` is stated rather than defaulted: every assertion this
+    check makes is about signature enforcement, and the plain OVMF build would
+    answer every one of them with a boot that looks like a pass. The store is
+    supplied rather than made per boot for the reason recorded in `vm.boot`.
     """
-    code, _ = firmware_pair()
     run = work / tag
     run.mkdir(parents=True)
 
     credentials = [
-        credential_file(run, "systemd.extra-unit.confext-policy.service", PROBE_UNIT),
-        credential_file(
+        vm.credential_file(run, "systemd.extra-unit.confext-policy.service", PROBE_UNIT),
+        vm.credential_file(
             run,
             "systemd.unit-dropin.multi-user.target",
             "[Unit]\nWants=confext-policy.service\n",
@@ -171,53 +117,28 @@ def boot(
     ]
     if policy is not None:
         credentials.append(
-            credential_file(
+            vm.credential_file(
                 run,
                 "systemd.unit-dropin.systemd-confext.service",
                 POLICY_DROPIN.format(policy=policy),
             )
         )
 
-    command = [
-        "qemu-system-x86_64",
-        "-machine", "q35,smm=on,accel=kvm:tcg",
-        "-cpu", "host",
-        "-m", "2048",
-        "-nographic",
-        "-no-reboot",
-        "-drive", f"if=pflash,unit=0,format=raw,readonly=on,file={code}",
-        "-drive", f"if=pflash,unit=1,format=raw,file={store}",
-        "-drive", f"if=virtio,format=raw,file={artifact},snapshot=on",
-    ]
-    if confext is not None:
-        command += ["-drive", f"if=virtio,format=raw,file={confext},snapshot=on"]
-    for name, value in (
-        ("firstboot.locale", "C.UTF-8"),
-        ("firstboot.timezone", "UTC"),
-        ("firstboot.keymap", "us"),
-        ("system.hostname", "confext-policy-fixture"),
-        ("passwd.hashed-password.root", "!*"),
-    ):
-        command += ["-smbios", f"type=11,value=io.systemd.credential:{name}={value}"]
-    for path in credentials:
-        command += ["-smbios", f"type=11,path={path}"]
-    command += ["-serial", "mon:stdio"]
-
-    console = run / "console.log"
-    with console.open("wb") as stream:
-        try:
-            subprocess.run(
-                command,
-                stdout=stream,
-                stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL,
-                timeout=BOOT_TIMEOUT_SECONDS,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            pass
-
-    text = strip_control(console.read_text(encoding="utf-8", errors="replace"))
+    text = vm.boot(
+        artifact,
+        work=run,
+        store=store,
+        secure_boot=True,
+        credentials={
+            "firstboot.locale": "C.UTF-8",
+            "firstboot.timezone": "UTC",
+            "firstboot.keymap": "us",
+            "system.hostname": "confext-policy-fixture",
+            "passwd.hashed-password.root": "!*",
+        },
+        credential_files=credentials,
+        extra_disks=() if confext is None else (confext,),
+    )
     if MARKER_BEGIN not in text or MARKER_END not in text:
         return {}
     body = text.split(MARKER_BEGIN, 1)[1].split(MARKER_END, 1)[0]
@@ -235,7 +156,7 @@ def check_confext_signature_policy() -> int:
     enrolled = directory / "confext-enrolled.raw"
     unenrolled = directory / "confext-unenrolled.raw"
 
-    before = file_digest(artifact)
+    before = vm.file_digest(artifact)
     failures: list[str] = []
 
     with tempfile.TemporaryDirectory(prefix="confext-policy-") as scratch:
@@ -245,17 +166,34 @@ def check_confext_signature_policy() -> int:
         # the ESP and reboots; `-no-reboot` turns that into QEMU exiting. So it
         # is a warm-up whose only product is an enrolled store, and it is not
         # measured. Its report is expected to be absent, not present.
-        code, variables = firmware_pair()
-        store = work / "OVMF_VARS.fd"
-        shutil.copyfile(variables, store)
-        boot(artifact, enrolled, None, work, "warmup", store)
+        _, variables = vm.firmware_pair(secure_boot=True)
+        enrolled_store = work / "OVMF_VARS.fd"
+        shutil.copyfile(variables, enrolled_store)
+        boot(artifact, enrolled, None, work, "warmup", enrolled_store)
 
-        cells = {
-            ("strict", "enrolled"): boot(artifact, enrolled, STRICT_POLICY, work, "s-e", store),
-            ("strict", "unenrolled"): boot(artifact, unenrolled, STRICT_POLICY, work, "s-u", store),
-            ("default", "enrolled"): boot(artifact, enrolled, None, work, "d-e", store),
-            ("default", "unenrolled"): boot(artifact, unenrolled, None, work, "d-u", store),
+        # The four cells are independent boots, and the only thing that made
+        # them sequential was sharing one variable store -- pflash unit 1 is
+        # writable, so concurrent cells would be writing the same file. Each
+        # gets its own copy of the *enrolled* store instead, which is both the
+        # thing that lets them run at once and a stronger isolation: a cell can
+        # no longer inherit variable state a previous cell wrote.
+        arms = {
+            ("strict", "enrolled"): (enrolled, STRICT_POLICY, "s-e"),
+            ("strict", "unenrolled"): (unenrolled, STRICT_POLICY, "s-u"),
+            ("default", "enrolled"): (enrolled, None, "d-e"),
+            ("default", "unenrolled"): (unenrolled, None, "d-u"),
         }
+
+        def run_cell(arm: tuple[Path, str | None, str]) -> dict[str, str]:
+            confext, policy, tag = arm
+            store = work / f"OVMF_VARS.{tag}.fd"
+            shutil.copyfile(enrolled_store, store)
+            return boot(artifact, confext, policy, work, tag, store)
+
+        # Threads, not processes: every one of these blocks in subprocess.run
+        # waiting on a QEMU that holds no Python state.
+        with ThreadPoolExecutor(max_workers=len(arms)) as pool:
+            cells = dict(zip(arms, pool.map(run_cell, arms.values()), strict=True))
 
         for name, report in cells.items():
             if not report:
@@ -309,7 +247,7 @@ def check_confext_signature_policy() -> int:
                         )
                     )
 
-    after = file_digest(artifact)
+    after = vm.file_digest(artifact)
     if before != after:
         failures.append("the fixture changed during the run")
 

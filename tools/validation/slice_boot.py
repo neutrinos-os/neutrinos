@@ -40,7 +40,6 @@ from __future__ import annotations
 
 import contextlib
 import fcntl
-import hashlib
 import json
 import os
 import re
@@ -56,7 +55,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-READ_CHUNK_BYTES = 4 * 1024 * 1024
+from tools.validation import vm
+from tools.validation.vm import file_digest, strip_control
+
 BOOT_TIMEOUT_SECONDS = 600
 POLL_SECONDS = 2.0
 # Accepting a notify connection is the loop's cadence, so this also bounds how
@@ -79,29 +80,6 @@ HARNESS_HOSTNAME = "slice-t4-fixture"
 UNIT_FAILURE = re.compile(
     r"Failed to start |Failed with result |Dependency failed for ", re.ASCII
 )
-
-
-def file_digest(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        while chunk := stream.read(READ_CHUNK_BYTES):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def firmware_pair() -> tuple[Path, Path]:
-    from tools.validation.check import OVMF_CODE_CANDIDATES
-
-    for candidate in OVMF_CODE_CANDIDATES:
-        code = Path(candidate)
-        variables = Path(candidate.replace("CODE", "VARS"))
-        if code.is_file() and variables.is_file():
-            return code, variables
-    raise ValueError("no OVMF firmware code/variables pair found")
-
-
-def strip_control(text: str) -> str:
-    return re.sub(r"\x1b\[[0-9;?]*[A-Za-z]|[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
 
 
 def qmp_quit(socket_path: Path) -> None:
@@ -219,7 +197,11 @@ def check_boot() -> int:
     from tools.validation.check import SLICE_ARTIFACT_ENV
 
     artifact = Path(os.environ[SLICE_ARTIFACT_ENV]).resolve() / "neutrinos-slice.raw"
-    code, variables = firmware_pair()
+    # secure_boot=False, stated: this check asserts readiness, unit health and
+    # artifact immutability, none of which is a signature claim. The plain build
+    # is the honest firmware for it -- but the choice is now written down, so a
+    # future signature assertion added here cannot inherit it silently.
+    code, variables = vm.firmware_pair(secure_boot=False)
     before = file_digest(artifact)
     failures: list[str] = []
     report: dict[str, Any] = {}
@@ -234,30 +216,14 @@ def check_boot() -> int:
         serial = work / "serial.log"
         qmp = work / "qmp.sock"
 
-        swtpm = subprocess.Popen(
-            (
-                "swtpm",
-                "socket",
-                f"--tpmstate=dir={state}",
-                f"--ctrl=type=unixio,path={state / 'sock'}",
-                "--tpm2",
-                "--flags",
-                "startup-clear",
-            ),
-            start_new_session=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
         qemu: subprocess.Popen[bytes] | None = None
         stack = contextlib.ExitStack()
         try:
             cid, vhost_fd, listener = stack.enter_context(notify_vsock())
-            deadline = time.monotonic() + 10
-            while not (state / "sock").exists() and time.monotonic() < deadline:
-                time.sleep(0.1)
-            if not (state / "sock").exists():
-                print("software TPM did not create its control socket", file=sys.stderr)
-                return 1
+            # Entered after the vsock so it is torn down before the vhost fd is
+            # released, and after QEMU either way: `stack.close()` runs in the
+            # finally below, once the guest is gone.
+            tpm_socket = stack.enter_context(vm.software_tpm(state))
 
             credentials = {
                 "firstboot.timezone": "UTC",
@@ -309,7 +275,7 @@ def check_boot() -> int:
                     # snapshot=on: the artifact is the boot disk and no copy is
                     # made. QEMU discards every guest write.
                     "-drive", f"if=virtio,format=raw,file={artifact},snapshot=on",
-                    "-chardev", f"socket,id=chrtpm,path={state / 'sock'}",
+                    "-chardev", f"socket,id=chrtpm,path={tpm_socket}",
                     "-tpmdev", "emulator,id=tpm0,chardev=chrtpm",
                     "-device", "tpm-tis,tpmdev=tpm0",
                     *vsock_device,
@@ -430,13 +396,9 @@ def check_boot() -> int:
                     qemu.wait()
                 if qemu.stderr is not None:
                     qemu.stderr.close()
-            try:
-                os.killpg(swtpm.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-            swtpm.wait()
-            # After QEMU is gone: closing the vhost fd releases the CID, and
-            # releasing it while the VM still holds it would be a race.
+            # After QEMU is gone: this stops the software TPM, and closing the
+            # vhost fd releases the CID -- releasing it while the VM still held
+            # it would be a race.
             stack.close()
 
     after = file_digest(artifact)

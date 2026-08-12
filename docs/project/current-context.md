@@ -855,6 +855,80 @@ with no key enrolled anywhere, and was not re-run. Note also that the `Requires=
 guard on the replay is fail-closed for the **initrd** merge only -- a failing
 replay still ends with `/etc` overmounted by the post-switch-root merge.
 
+**Three backlog questions were ruled on 2026-08-12 by Jason Tarasovic**, none
+of them on the critical path, all recorded in the
+[carve record](etc-path-carve.md)'s question table.
+
+Question 9, the tools tree: **consolidate on the slice tree.** PLN-0002-02 added
+`createrepo_c` to the slice recipe and thereby removed the spike's stated reason
+for a separate tree, so the two declarations are now identical in package list
+and pinned base digest and two build roots is duplication rather than
+independence. The reuse that raised the question was never verified
+byte-for-byte, because the repository was unreachable; it is reachable now, so
+consolidation is confirmed by a rebuild rather than by the declaration alone.
+
+Question 8, the factory fragment against systemd's own `etc.conf`: **skip the
+paths upstream owns.** The argument is the defect's own history -- upstream
+handled four of the five dangling release paths correctly while the generated
+fragment, sorting first, silently overrode it with a broken target. The
+implementation belongs to PLN-0002-02 and must be measured, since both the entry
+count and the resolve/dangle counts move.
+
+Question 6, collision 1's option A: **implement when the first carve needs it.**
+Writing it against no failing case would add a path nothing exercises. The
+trigger is named rather than left to memory -- the first carve that enters a
+factory directory, `/etc/ssh` being the nearest, live the moment the closure
+gains an sshd. Until then the question row is itself the guard.
+
+**Three more were ruled the same day, and two of them land on PLN-0002-03b.**
+Question 5b, the replay's fail-open residual, is **recorded and carried to
+03b**: it is a property of the delivery design rather than of the carve. The
+cost is carried openly -- a known fail-open stays live through tasks 06 to 10,
+so a green boot in that range is not evidence the replay ran, and any result
+depending on it must say so. The credstore sub-question of 5a is **deferred to
+03b** with the general exception-list question, rather than answered where
+answering it would settle credential delivery as a side effect of a tmpfiles
+list. Both rulings raise 03b's weight: it now owns the delivery design, the
+exception list, the credstore paths, and a live fail-open, while remaining off
+every other task's critical path. It is therefore **sequenced the same day:
+after 05 and 06, before 07 through 10**. A scheduling ruling, not a dependency
+-- and the reason is the fail-open, which running 03b before 07 confines to
+task 06 instead of carrying it through every measurement task.
+
+The **verity certificate subject** is ruled a task 05 parameter: one subject
+for the verity signer across every build root, accepted as
+[PLN-0002 amendment 4](../plans/0002-usr-artifact-format-spike.md). It looked
+cosmetic while the build roots were independent and stopped being cosmetic when
+enforcement became real -- the subject is what is enrolled in `db` and what
+sits in `/usr/lib/verity.d`. The image signer, the unenrolled second key, and
+the platform key stay distinct, because `T4-CONFEXT-001`'s entire content is
+which signer `db` holds.
+
+**Early-boot findings 2 and 3 are ruled the same day**, both narrower than the
+options put up, and both recorded in the
+[findings](early-boot-findings-for-decision.md).
+
+Finding 2, runtime unit enablement: **A now, with B and D both left open.**
+Composition owns enablement today, which is already true after PLN-0002-02 and
+needs no change. The drafter's "B as the design" was **not** taken -- B is
+blocked behind finding 1 and D arrived from RES-0015 a day earlier, so ranking
+them now would be ranking a blocked candidate against a new one. The standing
+guard is unchanged and now covers all three: B, C, or D arriving implicitly as
+a task's convenience is a stop condition.
+
+Finding 3, `/etc/machine-id`: **the direction only.** Machine identity is
+persistent and provisioned at install; the mechanism belongs to `L-003` and is
+not decided, so not even A's persistent volume is committed to. B and D are
+excluded by the direction. C is excluded only as a substitute for provisioning
+-- not as a transport -- which is precisely the accident the ruling exists to
+prevent. PLN-0002 is unaffected: its fixture boots transient, says so, and
+measures nothing depending on machine continuity.
+
+Question 7 is **answered by measurement** rather than ruled, and closes: the
+enrollment exists, the control is the unit-form image policy above, and
+`T4-CONFEXT-001` registers it. Its prediction -- that task 10's substitution
+would pass -- was correct for the mechanism as it stood.
+
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since
 `f54c217`, committed in the forty-minute window before `.gitignore` existed,
@@ -872,7 +946,13 @@ workflow runs both profiles, and a hosted runner has no composed artifact, so
 the three-way choice is CI composing the slice itself, CI running `fast` only
 with `complete` becoming a local qualification profile, or accepting a red
 `complete` in CI. Nothing has been pushed, so nothing is currently broken. The
-choice is the owner's and belongs with `P-008`.
+choice is the owner's and belongs with `P-008`. **Explicitly punted 2026-08-12
+by Jason Tarasovic**, and the reason is worth keeping because it rejects the
+three-way framing rather than declining to choose within it: CI needs a full
+answer that includes how qualification runs a VM at all, and taking one of
+these three now would settle that by picking the cheapest arm under no
+pressure. Nothing is pushed, so nothing is red; the constraint is that this
+must be answered **before** the workflow's `complete` job runs anywhere.
 
 `P-009` is newly open and blocks nothing under G1: QEMU became the VM harness in
 PLN-0001-03 without a comparison, so [RES-0013](../research/comparisons/vm-test-harness.md)

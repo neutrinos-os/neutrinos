@@ -216,6 +216,21 @@ unwritten.
 
 What must not happen is C arriving implicitly, as a task's convenience.
 
+### Ruling
+
+**Ruled 2026-08-12 by Jason Tarasovic: A now; B and D both stay open.** A is
+adopted and needs no change, being already true after PLN-0002-02. The owner
+declined the drafter's second half: **B is not selected as the design**, and
+neither is D. The two remain live candidates to be decided later, which is a
+narrower ruling than either option offered and is deliberate -- B is blocked
+behind finding 1 and D arrived from RES-0015 only the day before, so choosing
+between them now would rank a blocked option against a one-day-old one.
+
+C is not ruled on. The drafter's argument against it stands as an argument:
+it adds a delivery path whose authentication story is unwritten. The standing
+guard is unchanged and applies to all three -- B, C, or D arriving implicitly
+as a task's convenience is a stop condition, not a decision.
+
 ---
 
 ## Finding 3: `/etc/machine-id` has no home
@@ -261,6 +276,22 @@ should record that its fixture boots on a transient identity and measure
 nothing that depends on machine continuity. The value of ruling now is
 negative: it stops a later task from choosing C because a credential was
 convenient in a VM.
+
+### Ruling
+
+**Ruled 2026-08-12 by Jason Tarasovic: the direction only.** Machine identity
+is **persistent and provisioned at install**. The mechanism is `L-003`'s and is
+explicitly not decided here -- the ruling does not commit to a persistent
+volume, so A's concrete shape stays open alongside anything else `L-003` finds.
+B is excluded by the direction, since hardware or firmware derivation is not
+installer provisioning; D is excluded, since it is the negation of persistence
+and would need SYS-level review to adopt. C, credential delivery, is not
+excluded as a *transport* -- what is excluded is C standing in for provisioning
+because a VM harness made it easy, which is the specific accident this ruling
+exists to prevent.
+
+PLN-0002 is unchanged by it: the fixture boots on a transient identity, records
+that it does, and measures nothing depending on machine continuity.
 
 ---
 

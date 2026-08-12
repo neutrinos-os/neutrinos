@@ -21,11 +21,18 @@ algorithm and level, `systemd.image_policy=`, and how the trimmed module list is
 confirmed. Where a recommendation was declined or narrowed, that is recorded
 rather than edited away.
 
-**Accepted 2026-08-12 by Jason Tarasovic.** Two parts are declared and not yet
-satisfied, and acceptance is of that state rather than of a clean one:
+**Accepted 2026-08-12 by Jason Tarasovic.** Two parts were declared and not yet
+satisfied at acceptance, and acceptance was of that state rather than of a clean
+one. Both have since been satisfied; the original text is kept and marked rather
+than edited away, so the record shows what was accepted rather than only what is
+now true.
 
-- The trimmed `KernelModules=` list is declared and **not yet measured**. Its
-  confirmation is a boot of both arms before PLN-0002-06.
+- ~~The trimmed `KernelModules=` list is declared and **not yet measured**.~~
+  **Satisfied 2026-08-12.** Both arms now boot to readiness with the trimmed
+  list, no unit failures, artifact unchanged by the boot. The ext4 arm existed
+  for the first time on that date; see "The initrd" below for the measurement
+  and the arm-switch mechanism that produced it. This closes the last
+  outstanding parameter before PLN-0002-06.
 - The single verity signer subject of amendment 4 is **satisfied for the slice
   build root, 2026-08-12**, and deliberately not for the spike's. Both scripts
   now name `CN=NeutrinOS verity, synthetic` and guard on the subject of any
@@ -117,7 +124,21 @@ in e2fsprogs 1.47.3.
 
 Both accept appended options through `SYSTEMD_REPART_MKFS_OPTIONS_<fstype>`,
 which is the mechanism available if a pin below needs to override a builder
-default.
+default. **Confirmed by use, 2026-08-12**, not only by reading: two parameters
+below travel this way, and the options are appended *after* repart's own, so an
+override here wins over a builder default rather than colliding with it.
+
+**Do not take the variable's name from mkosi.** mkosi at the pinned commit
+spells its own ext4 workaround `SYSTEMD_REPART_MKFS_EXT4_OPTIONS`, which systemd
+does not recognise; that workaround is therefore dead code at this pin. systemd
+builds the name as `SYSTEMD_` + component + `_MKFS_OPTIONS_` + fstype, so the
+form above is correct. Both spellings were tested against systemd-repart and
+only this one has any effect. Nothing here depends on mkosi's version, but
+anyone reading mkosi's source for the name will get it wrong.
+
+mkosi's dead workaround is `-O ^orphan_file`, and its guard also evaluates false
+for a Fedora image built with a Fedora tools tree, so nothing is being masked by
+the wrong name. Confirmed on the built ext4 arm: `orphan_file` is present.
 
 ## The EROFS arm
 
@@ -149,8 +170,24 @@ format. PLN-0002-13's recommendation must say so.
 | Inode size | **256**, fixed by the builder | 128 | Builder default; 128 forecloses extended attributes and is a regression for no measured gain |
 | Reserved blocks | **0%**, fixed by the builder | The mke2fs 5% default | Correct here and worth stating: reserved blocks exist for a writable root's fragmentation headroom, and this filesystem is read-only and verity-sealed. This is a case where the builder's default is better than the tool's |
 | Inode ratio | **inherited** from `mke2fs.conf` `default` in e2fsprogs 1.47.3 | Explicit `-i` | Named as inherited per the ruling. It bears on image size, but only through inode-table sizing on a fixed file count, and the file count is a property of the closure rather than of the arm |
-| Feature set | **builder default plus `-O verity`** | Explicit feature tuning | `verity` is added by repart when the partition is a verity data partition. Tuning the rest would make the arm something other than what a Fedora-composed ext4 image is |
+| Feature set | **builder default, less the journal** | Explicit feature tuning | Corrected 2026-08-12; see below. Tuning beyond the journal would make the arm something other than what a Fedora-composed ext4 image is |
+| Journal | **removed**, `-O ^has_journal` | The builder default, a 16M journal | Ruled 2026-08-12. The partition is mounted read-only under dm-verity and can never write, so the journal is 16M of a measured size criterion buying nothing. Same principle that declared the EROFS arm compressed: measure the arm as it would ship. Measured: the feature bit is absent and there is no journal inode -- removed outright, not left disabled -- and the arm boots to readiness without it |
 | Compression | **none, and not available** | — | ext4 does not compress. Recorded because it is the asymmetry the EROFS compression ruling has to be read against |
+
+**`-O verity` was declared and was never true.** This table said the feature set
+was "builder default plus `-O verity`", on the reasoning that repart adds it
+when the partition is a verity data partition. The built filesystem has no
+`verity` feature at all. The two things are unrelated: ext4's `verity` feature
+is fs-verity, which authenticates individual files through the filesystem, while
+this partition is authenticated by **dm-verity**, a block-level hash tree living
+in its own partition and named on the kernel command line. repart therefore has
+no reason to pass `-O verity` and does not.
+
+Nothing was harmed -- the artifact was always dm-verity-sealed, which is what
+C-013 relies on -- but the declared value did not describe the artifact, and it
+was written from reasoning rather than from a measurement. It was caught the
+first time anyone dumped the superblock of a built ext4 arm, which is an
+argument for building both arms before freezing rather than after.
 
 ## Verity
 
@@ -167,6 +204,75 @@ verifies per block on read, so neither arm's successful boot is a statement
 about its artifact. This is a property of the mechanism and identical across
 arms; it is stated here because tasks 08 and 09 must not read a clean boot as
 evidence of integrity.
+
+## The ESP, and build determinism
+
+Held identical across arms, so nothing here can influence the comparison. It is
+declared anyway, because it is what stood between this build and a
+bit-reproducible disk image.
+
+| Parameter | Declared value | Reason |
+| --- | --- | --- |
+| Filesystem | **vfat**, `mkfs.fat` 4.2 | Required by firmware. Not a choice |
+| Size | **512M**, slack | A fixture, like the verity partition's 64M. Real sizing follows the task 07 measurements |
+| Volume ID | **`4E455554`** (`NEUT`), declared | Was seed-derived; see below. It stops being derived and starts being declared, which is the trade `--invariant` demands |
+| `mkfs.fat` options | **`--invariant -i 4E455554`** | Ruled 2026-08-12 |
+| `Minimize=` | **`guess`**, both arms | Ruled 2026-08-12; see below |
+
+**The disk image is now bit-identical across rebuilds.** Measured 2026-08-12:
+two full EROFS-arm builds produced the same SHA-256 and zero differing bytes.
+Before this ruling they differed by 2.
+
+Those 2 bytes were the creation time and write time of the FAT volume-label
+directory entry, stamped by `mkfs.fat` from the wall clock. The mechanism was
+established by measurement rather than inferred: with a fixed input tree and a
+fixed volume ID, two runs differ by 18 bytes without `SOURCE_DATE_EPOCH`, by 2
+with it, and by **the same 2 when no file is copied at all**. So `mcopy` was
+never the problem -- mtools 4.0.49 honours `SOURCE_DATE_EPOCH` and mkosi already
+exports it -- and `mkfs.fat` is the whole of it.
+
+An earlier account of this in the project record said `SourceDateEpoch=0` "does
+not reach `mkfs.fat`". That named the wrong mechanism. It reaches `mcopy` and
+works there; `mkfs.fat` 4.2 has no `SOURCE_DATE_EPOCH` support at all, so
+nothing could have reached it.
+
+**4.2 is upstream's newest release, not a Fedora lag.** Tagged 2021-01-31, with
+no release since; the `SOURCE_DATE_EPOCH` support exists on dosfstools master
+and is unreleased. So `--invariant` is the lever that exists, and a future
+dosfstools would solve this properly and give the seed-derived volume ID back.
+
+**`-i` is paired with `--invariant` deliberately**, following the recipe at
+[reproducible-builds.org](https://reproducible-builds.org/docs/system-images/).
+`--invariant` alone also replaces repart's seed-derived volume ID with
+dosfstools' hardcoded `1234abcd`. repart appends these options after its own
+`-i`, so the explicit one wins and the ID becomes a value this document names.
+Verified end to end through repart: unset gives 2 differing bytes and a
+seed-derived ID; `--invariant` gives 0 and `1234abcd`; `--invariant -i 4E455554`
+gives 0 and `4e455554`.
+
+The recipe's other steps -- `faketime` around `mmd`/`mcopy`, and `LC_ALL=C sort`
+for directory order -- are **not needed here**, because mtools already honours
+`SOURCE_DATE_EPOCH`. That is why this build was 2 bytes away rather than dozens.
+
+This is unsolved upstream in every comparable project: [mkosi#1212](https://github.com/systemd/mkosi/issues/1212)
+proposed exactly this for the ESP and was never implemented, and `invariant`
+appears nowhere in the pinned mkosi tree. [nixpkgs#286969](https://github.com/NixOS/nixpkgs/issues/286969)
+and [archiso#105](https://gitlab.archlinux.org/archlinux/archiso/-/issues/105)
+are the same defect.
+
+**`Minimize=guess`, both arms. Ruled 2026-08-12, and it is a ruling against a
+tempting alternative.** The ext4 arm's `/usr` partition is 439.8 MiB with
+157.6 MiB free, because `guess` sizes it; EROFS packs, so it has no equivalent
+slack. `Minimize=best` looks like the fix and **is not available**: `repart.d(5)`
+supports `best` only for read-only filesystems and btrfs, so it would apply to
+the EROFS arm alone and would *introduce* an asymmetry rather than remove one.
+Holding `guess` on both keeps the setting a constant, as the initrd is.
+
+**The consequence lands on PLN-0002-07, which must measure filesystem bytes in
+use, not partition size**, and report partition size separately. A size figure
+taken off the partition table measures repart's estimator on one arm and the
+filesystem on the other. Measured on the built arms: EROFS 170.9 MiB, ext4
+282.2 MiB in use against a 439.8 MiB partition.
 
 ## The kernel command line
 
@@ -295,11 +401,37 @@ Recommended list, by role:
 | Confext merge | `overlay`, `loop` |
 | Firmware access | `efivarfs` |
 
-**Confirmed for the EROFS arm, 2026-08-12.** The composed artifact boots to
+**Confirmed on both arms, 2026-08-12.** Each composed artifact boots to
 readiness with the trimmed list: `/usr` mounts verity-authenticated, the boot
-reaches the harness's vsock readiness signal, and the artifact is unchanged by
-the boot. The ext4 arm does not exist until PLN-0002-06, so the confirmation is
-**half done by construction** and the second half is owed at 06.
+reaches the harness's vsock readiness signal, no unit fails, and the artifact is
+unchanged by the boot. This is the acceptance evidence the ruling below asks
+for, and it is complete.
+
+The ext4 arm existed for the first time on that date, and it was built for this
+confirmation rather than as part of PLN-0002-06. The plan's own standard is what
+made that the right order: the list is inside the signed UKI, so confirming it
+after 06 freezes the artifacts would cost the artifacts and everything measured
+against them. Building an unsigned second arm to answer the question costs one
+boot. **No signing material was involved and none of 06's work was done here.**
+
+The arm is selected by `NEUTRINOS_SLICE_ARM`, not by editing a file. The shared
+`composition/mkosi.repart/` holds every partition identical across arms -- the
+ESP and the verity hash -- and `mkosi.repart.erofs/` and `mkosi.repart.ext4/`
+each hold the one `10-usr.conf` that differs. Only the arm directory is passed;
+mkosi picks the shared one up by path suffix and the command-line value appends
+to it, verified against `mkosi summary` rather than assumed. Neither arm
+directory can mask the other, because the shared directory has no file of that
+name. An arm switch that lived in an edited working tree would mean no artifact
+could be traced back to a declared value.
+
+Verified as genuinely the other filesystem rather than a mislabelled rebuild:
+superblock magic `0xef53` and volume label `neutrinos-usr` at the ext4 arm's
+`/usr` partition offset, against `0x0ab0` at the same offset in the EROFS arm.
+
+Output paths are asymmetric on purpose and temporarily: the EROFS arm keeps
+`out`, which every registered check reads and every recorded artifact digest
+refers to, and the ext4 arm gets `out-ext4`. PLN-0002-06 builds all four
+artifacts as peers and is where the naming should become symmetric.
 
 What it cost, measured on the same rebuild:
 
@@ -329,8 +461,8 @@ but discovered at task 08 it costs the artifacts and everything measured against
 them, and discovered here it costs one boot. The alternative of building on
 upstream's 98 and trimming afterwards was rejected for the same reason: the trim
 would land after 06 and void the measurements. A boot of both arms with this
-list is the acceptance evidence, and until it exists this table is the one part
-of this declaration that is not yet measured.
+list is the acceptance evidence. **That evidence now exists**, recorded above;
+this table is no longer the outstanding part of this declaration.
 
 Deliberately excluded, and named so the exclusion is a decision: `tpm_tis` and
 the TPM path generally. The fixture has no TPM, PLN-0001-04's standing finding
@@ -369,17 +501,32 @@ Named so nothing here is read as wider than it is.
 
 ## Implementation this declaration obliges
 
-Not done, and listed because a declaration whose implementation is missing is a
-document rather than a parameter set.
+Listed because a declaration whose implementation is missing is a document
+rather than a parameter set. Status as of 2026-08-12.
 
-1. `mkosi.images/initrd/` subimage with `Include=mkosi-initrd`, the trimmed
-   `KernelModules=`, and the two NeutrinOS units as a plain `mkosi.extra` tree.
-2. Retire `mkosi.finalize.d/10-initrd-etc-factory` and the `Initrds=` path
-   handling in `compose.sh`. **Its header comment argues against the subimage**
-   and is now contradicted by the ruling; it must be removed with the script
+1. **Done.** `mkosi.images/initrd/` subimage with `Include=mkosi-initrd`, the
+   trimmed module list, and the two NeutrinOS units as a plain `mkosi.extra`
+   tree.
+2. **Done.** Retire `mkosi.finalize.d/10-initrd-etc-factory` and the `Initrds=`
+   path handling in `compose.sh`. **Its header comment argued against the
+   subimage** and was contradicted by the ruling; it was removed with the script
    rather than left to be read as current reasoning.
-3. `Compression=` and `CompressionLevel=` in
-   `mkosi.repart/10-usr.conf`, once the algorithm and level are ruled.
-4. `systemd.image_policy=` on the kernel command line, once ruled.
-5. A boot of both arms confirming the trimmed module list, before 06 freezes
-   the artifacts.
+3. **Done.** `Compression=` and `CompressionLevel=` in the EROFS arm's
+   `10-usr.conf`.
+4. **Not done.** `systemd.image_policy=usr=signed` on the kernel command line.
+   The one parameter still owed, and it cannot be satisfied before PLN-0002-06:
+   there is no signature partition for a policy to require, so setting it now
+   would declare against an artifact shape nobody has built. It **must be
+   measured**, not read off the manual -- the confext work found the broad
+   `=signed` spelling refuses everything including the correct artifact.
+5. **Done.** A boot of both arms confirming the trimmed module list, before 06
+   freezes the artifacts. This is what required the arm switch, and the ext4 arm
+   was built unsigned for it.
+6. **Done.** `Environment=` in `composition/mkosi.conf` carrying
+   `SYSTEMD_REPART_MKFS_OPTIONS_VFAT` and `SYSTEMD_REPART_MKFS_OPTIONS_EXT4`.
+   Both parameters exist only in the environment repart is run with, so neither
+   is expressible in a `repart.d` file.
+
+**One parameter is owed and it belongs to task 06.** Everything else this
+declaration obliges is implemented and measured. That is the state in which the
+artifacts are ready to be frozen.

@@ -990,7 +990,60 @@ Corrected and rebuilt: the modules segment falls to **6.0M**, the composed
 initrd to **40.3M**, the UKI to **58.1M**, and `neutrinos-usr` to **170.9M**
 from 246.7M with compression on. The EROFS arm **boots to readiness** with the
 trimmed list, verity-authenticated and unchanged by the boot, which is half of
-task 05's acceptance evidence; the ext4 arm does not exist until 06.
+task 05's acceptance evidence.
+
+**The other half arrived on 2026-08-12 and task 05's parameters are now fully
+measured.** The ext4 arm was built -- unsigned, with no signing material and
+none of task 06's work -- and boots to readiness with the same trimmed list, no
+failed units, artifact unchanged. Verified as genuinely the other filesystem
+rather than a mislabelled rebuild: superblock magic `0xef53` and label
+`neutrinos-usr` at its `/usr` offset, against `0x0ab0` in the EROFS arm.
+
+The arm is selected by `NEUTRINOS_SLICE_ARM`. `composition/mkosi.repart/` keeps
+the partitions identical across arms and `mkosi.repart.erofs/` and
+`mkosi.repart.ext4/` hold the one `10-usr.conf` that differs; only the arm
+directory is passed, since mkosi picks the shared one up by path suffix and the
+command-line value appends -- verified against `mkosi summary`, not assumed. The
+EROFS arm keeps the `out` directory that every registered check and every
+recorded digest refers to; ext4 gets `out-ext4`, an asymmetry 06 should retire.
+
+**Building the second arm found two declared values that were never true**, both
+written from reasoning rather than measurement, and both caught the first time
+anyone dumped a built ext4 superblock. The declaration said the feature set was
+"builder default plus `-O verity`" -- there is no `verity` feature, because that
+is fs-verity and this partition is sealed by **dm-verity**, which repart
+implements with a separate hash partition and never asks mke2fs for. And the arm
+shipped a **16M journal** on a filesystem mounted read-only under dm-verity that
+can never write it. Removed by ruling, `-O ^has_journal`, feature bit gone
+rather than disabled, and the arm boots without it. This is the argument for
+building both arms before freezing them rather than after.
+
+**The disk image is now bit-reproducible, and the earlier diagnosis here was
+wrong.** Two full EROFS rebuilds produce the same SHA-256 with zero differing
+bytes. The record said `SourceDateEpoch=0` "does not reach `mkfs.fat`"; it
+reaches `mcopy`, which honours it, and `mkfs.fat` 4.2 has no `SOURCE_DATE_EPOCH`
+support for anything to reach. Established by measurement: same input tree,
+fixed volume ID, two runs differ by 18 bytes without `SOURCE_DATE_EPOCH`, by 2
+with it, and by **the same 2 with no file copied at all** -- the creation and
+write time of the FAT volume-label directory entry. `--invariant` closes it,
+paired with an explicit `-i 4E455554` so the volume ID becomes a declared value
+rather than dosfstools' hardcoded `1234abcd`; repart appends these after its own
+`-i`, so the explicit one wins. dosfstools 4.2 is upstream's newest release,
+tagged 2021-01-31, so this is not a Fedora lag and the proper fix is unreleased
+on master. Unsolved in every comparable project: mkosi#1212 proposed exactly
+this and was never implemented, nixpkgs#286969 and archiso#105 are the same
+defect. Both options travel as `SYSTEMD_REPART_MKFS_OPTIONS_<FSTYPE>`; **do not
+take that name from mkosi**, which spells its own ext4 workaround
+`SYSTEMD_REPART_MKFS_EXT4_OPTIONS` that systemd does not recognise.
+
+**One consequence lands on PLN-0002-07.** `Minimize=best` is unavailable on
+ext4 -- `repart.d(5)` supports it only for read-only filesystems and btrfs -- so
+setting it would apply to EROFS alone and introduce an asymmetry rather than
+remove one. Both arms hold `Minimize=guess` by ruling, and **task 07 must
+measure filesystem bytes in use, reporting partition size separately**: EROFS is
+170.9 MiB, ext4 is 282.2 MiB in use inside a 439.8 MiB partition, so a size
+figure read off the partition table measures repart's estimator on one arm and
+the filesystem on the other.
 
 **Timing is not claimed and is deferred to PLN-0002-07 by owner ruling.** Build
 time and boot behavior are two of the eight criteria and need a matched pair

@@ -1098,15 +1098,37 @@ and the load-bearing cell behaving: strict policy plus an unenrolled signer
 gives `Result=exit-code`, `ExecMainStatus=1`, and no merged file.
 
 **A cheaper finding came out of confirming it.** The confext cells were
-sequential only because they shared one writable OVMF variable store. Copying
-the enrolled store per cell makes them independent -- which is what the 2x2
-always claimed they were -- and lets them run at once: five boots, previously
-believed to take about ten minutes, complete in **15 seconds wall**, four cells
-at 10.5 s each after a 3.6 s warm-up. The warm-up remains ordered first because
-its only product *is* the enrolled store. The corollary matters more than the
-speed: an earlier run killed at ten minutes was **hung, not slow**, and "VM
-checks are slow" had been accepted as a property of VMs when it was a property
-of one stuck run.
+sequential only because they shared one *writable* OVMF variable store. They
+now share it **copy-on-write** -- `snapshot=on` on the pflash drive, the same
+mechanism that already protects the artifact -- so each cell reads the enrolled
+state and its writes go to an overlay QEMU discards. Nothing is copied per
+cell, isolation is a property of the attachment rather than a convention, and
+the four cells run at once: five boots, previously believed to take about ten
+minutes, complete in **15 seconds wall**, four cells at ~10.6 s each after a
+3.6 s warm-up. Confirmed rather than assumed: every cell reports
+`secure-boot=1` with five keyring certificates, proving the enrolled state is
+visible through the overlay, and the store's digest is asserted unchanged
+afterwards, proving no cell wrote through it.
+
+The warm-up is the one boot that keeps its writes, since its product *is* the
+enrolled store; `vm.boot` names that case `persist_store=True` so persisting is
+the deliberate act and discarding is the default.
+
+**The speed claim around this was measured only afterwards, and the belief it
+replaced was invented.** Sequential, with everything else held constant, the
+whole check is **47 seconds**; parallel it is 15. It was never a ten-minute
+job. The ten-minute figure came from a different probe earlier the same day --
+the TPM one, whose cost is already diagnosed as a missing poweroff -- and was
+carried across to this check without measurement. An intervening run reported
+as "killed, result unknown" had in fact **completed and passed** before
+anything tried to kill it; that version printed nothing on success, and its
+silence was read as absence of a result rather than as the result. No artifact
+of it survives, so the misreading was caught by timestamps and a fresh
+measurement rather than by evidence.
+
+The methodological point outlasts the numbers: a performance belief was
+asserted, acted on, and written into a commit message before any comparison
+existed, and the comparison took under a minute to run.
 
 Question 7 is **answered by measurement** rather than ruled, and closes: the
 enrollment exists, the control is the unit-form image policy above, and

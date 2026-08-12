@@ -216,6 +216,7 @@ def boot(
     credential_files: Sequence[Path] = (),
     extra_disks: Sequence[Path] = (),
     tpm_socket: Path | None = None,
+    persist_store: bool = False,
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
 ) -> str:
     """Boot one disposable guest. Returns the console text, control stripped.
@@ -228,6 +229,15 @@ def boot(
     load-bearing. A fresh store is in setup mode, so systemd-boot enrolls the
     keys from the ESP and reboots -- a per-boot store makes every boot a first
     boot, and a probe unit never runs.
+
+    It is also attached copy-on-write unless `persist_store=True`, so a boot
+    reads the enrolled state and its writes are discarded into an overlay QEMU
+    throws away. That is what makes concurrent boots off one store safe, and it
+    is a guarantee rather than a convention: without it the cells of a matrix
+    share a writable pflash and can contaminate each other's firmware state, or
+    the baseline, in ways that would surface as an unrelated assertion failing.
+    `persist_store=True` is for the one boot whose *product* is the enrolled
+    store, and is named so that keeping the writes is the deliberate act.
 
     `console=ttyS0` is always appended through the stub credential, never
     optionally. Without it the kernel switches to the framebuffer partway
@@ -248,7 +258,9 @@ def boot(
         "-nographic",
         "-no-reboot",
         "-drive", f"if=pflash,unit=0,format=raw,readonly=on,file={code}",
-        "-drive", f"if=pflash,unit=1,format=raw,file={store}",
+        "-drive",
+        f"if=pflash,unit=1,format=raw,file={store}"
+        + ("" if persist_store else ",snapshot=on"),
         "-drive", f"if=virtio,format=raw,file={artifact},snapshot=on",
     ]
     for disk in extra_disks:

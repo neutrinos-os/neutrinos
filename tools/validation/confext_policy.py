@@ -96,13 +96,15 @@ def boot(
     work: Path,
     tag: str,
     store: Path,
+    persist_store: bool = False,
 ) -> dict[str, str]:
     """One boot. Returns the probe's key=value report, empty if it never ran.
 
     `secure_boot=True` is stated rather than defaulted: every assertion this
     check makes is about signature enforcement, and the plain OVMF build would
     answer every one of them with a boot that looks like a pass. The store is
-    supplied rather than made per boot for the reason recorded in `vm.boot`.
+    supplied rather than made per boot, and is copy-on-write unless the caller
+    asks otherwise, both for the reasons recorded in `vm.boot`.
     """
     run = work / tag
     run.mkdir(parents=True)
@@ -138,6 +140,7 @@ def boot(
         },
         credential_files=credentials,
         extra_disks=() if confext is None else (confext,),
+        persist_store=persist_store,
     )
     if MARKER_BEGIN not in text or MARKER_END not in text:
         return {}
@@ -166,17 +169,18 @@ def check_confext_signature_policy() -> int:
         # the ESP and reboots; `-no-reboot` turns that into QEMU exiting. So it
         # is a warm-up whose only product is an enrolled store, and it is not
         # measured. Its report is expected to be absent, not present.
+        # The one boot whose product is a file rather than a report, so the one
+        # boot that keeps its writes.
         _, variables = vm.firmware_pair(secure_boot=True)
         enrolled_store = work / "OVMF_VARS.fd"
         shutil.copyfile(variables, enrolled_store)
-        boot(artifact, enrolled, None, work, "warmup", enrolled_store)
+        boot(artifact, enrolled, None, work, "warmup", enrolled_store, persist_store=True)
+        enrolled_digest = vm.file_digest(enrolled_store)
 
         # The four cells are independent boots, and the only thing that made
-        # them sequential was sharing one variable store -- pflash unit 1 is
-        # writable, so concurrent cells would be writing the same file. Each
-        # gets its own copy of the *enrolled* store instead, which is both the
-        # thing that lets them run at once and a stronger isolation: a cell can
-        # no longer inherit variable state a previous cell wrote.
+        # them sequential was sharing one writable variable store. They now
+        # share it copy-on-write, so there is nothing to serialise: each reads
+        # the enrolled state and its writes go to an overlay QEMU discards.
         arms = {
             ("strict", "enrolled"): (enrolled, STRICT_POLICY, "s-e"),
             ("strict", "unenrolled"): (unenrolled, STRICT_POLICY, "s-u"),
@@ -186,14 +190,21 @@ def check_confext_signature_policy() -> int:
 
         def run_cell(arm: tuple[Path, str | None, str]) -> dict[str, str]:
             confext, policy, tag = arm
-            store = work / f"OVMF_VARS.{tag}.fd"
-            shutil.copyfile(enrolled_store, store)
-            return boot(artifact, confext, policy, work, tag, store)
+            return boot(artifact, confext, policy, work, tag, enrolled_store)
 
         # Threads, not processes: every one of these blocks in subprocess.run
         # waiting on a QEMU that holds no Python state.
         with ThreadPoolExecutor(max_workers=len(arms)) as pool:
             cells = dict(zip(arms, pool.map(run_cell, arms.values()), strict=True))
+
+        # The copy-on-write claim, asserted rather than trusted. If a cell ever
+        # writes through to the shared store, the cells stop being independent
+        # and this is the only place that would notice.
+        if vm.file_digest(enrolled_store) != enrolled_digest:
+            failures.append(
+                "the shared variable store changed during the parallel cells;"
+                " snapshot=on is not isolating them"
+            )
 
         for name, report in cells.items():
             if not report:

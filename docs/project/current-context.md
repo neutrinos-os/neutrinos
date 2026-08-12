@@ -1086,11 +1086,32 @@ never existed; it came from the same host-side RPM inspection that had already
 produced one false zero the same day. And the image is **systemd 262**
 (`261.999+1208+g827144298`), not 261.
 
-**Not decided**: whether the slice should sign expected PCRs at all. Doing so
-introduces a second signing key with its own identity and lifetime across build
-roots, which is exactly what PLN-0002-05's amendment 4 governs for the verity
-signer, and it is unruled for this key. Until it is ruled, `T4-SLICE-001`
-fails on a gap this project chose by omission rather than on an upstream bug.
+**Supplying that key is out of scope for this plan.** PLN-0002 excludes
+"Encryption, LUKS2, TPM policy, or unlock behavior", and signing expected PCRs
+is TPM policy. It is also not needed by anything this plan measures: tasks
+07-09 measure size, build time, determinism, transfer size, boot behavior,
+memory and corruption, none of which reads a PCR. `systemd-measure` and the
+plan's "measurements" are different senses of the word.
+
+**Ruled 2026-08-12 by Jason Tarasovic: mask the two units in the harness.**
+Delivered as `systemd.mask=` and `rd.systemd.mask=` on the
+`io.systemd.stub.kernel-cmdline-extra` credential -- host-supplied, changing no
+byte of the artifact, the same posture as the console pin. Both prefixes are
+needed because `systemd-tpm2-setup-early` runs in the initrd as well as the
+host. The units are named individually and never as a pattern, so a third
+failure cannot hide behind the accommodation. `T4-SLICE-001` now passes with
+`unit_failures: []`, KVM, readiness at 11.05s, artifact unchanged.
+Failure-sensitivity is established by two runs of the same code the same day:
+unmasked, exactly those two fail; masked, none.
+
+**The condition travels with the result**, in the report's `masked_units`
+field. This matters for PLN-0002-08, whose evidence is "no failed units": under
+a mask that is a weaker claim, and a reader of the retained evidence has no
+other way to tell the two apart. Two consequences for the owner to rule when
+05 is accepted: task 08's record must read "no failed units **except** the two
+masked", and the mask is a declared condition of the comparison, which argues
+for stating it in the PLN-0002-05 declaration rather than inventing it at 08.
+It comes off when boot integrity is ruled.
 
 **A larger finding came out of chasing it, and it is the harness's.** The kernel
 console switches to the bochs framebuffer at about 5.8s, after which systemd's

@@ -77,6 +77,22 @@ CID_ATTEMPTS = 64
 # Synthetic, and visibly so. It appears only in the login banner of a VM that
 # is discarded when this function returns.
 HARNESS_HOSTNAME = "slice-t4-fixture"
+# Named individually, never as a pattern, so a third unit cannot fail behind
+# them. Both fail for one measured reason: the artifact ships no
+# `tpm2-pcr-public-key.pem`, because the composition never requests
+# expected-PCR signing and the UKI therefore carries no `.pcrpkey` section, so
+# every NvPCR initialization returns ENOENT. Supplying that key means signing
+# expected PCRs, which is TPM policy -- explicitly out of scope for PLN-0002.
+# So this is a harness accommodation of an out-of-scope mechanism, not a fix,
+# and it comes off when boot integrity is ruled.
+#
+# The cost is stated rather than hidden: PLN-0002-08's evidence is "no failed
+# units", and under this mask that claim is conditional. The report says so, in
+# `masked_units`, so the condition travels with the result.
+MASKED_UNITS = (
+    "systemd-tpm2-setup-early.service",
+    "systemd-pcrproduct.service",
+)
 UNIT_FAILURE = re.compile(
     r"Failed to start |Failed with result |Dependency failed for ", re.ASCII
 )
@@ -246,9 +262,15 @@ def check_boot() -> int:
                 smbios += ["-smbios", f"type=11,value=io.systemd.credential:{key}={value}"]
             # The UKI carries no command line of its own, so the console comes
             # from the harness. systemd-stub measures this string into PCR12.
+            # MASKED_UNITS rides the same credential, for the same reason: it is
+            # host-supplied and changes no byte of the artifact under test.
+            masks = " ".join(
+                f"systemd.mask={unit} rd.systemd.mask={unit}" for unit in MASKED_UNITS
+            )
             smbios += [
                 "-smbios",
-                "type=11,value=io.systemd.stub.kernel-cmdline-extra=console=ttyS0",
+                "type=11,value=io.systemd.stub.kernel-cmdline-extra="
+                f"console=ttyS0 {masks}",
             ]
 
             vsock_device: list[str] = []
@@ -372,6 +394,11 @@ def check_boot() -> int:
                     "unknown" if kvm_enabled is None else "kvm" if kvm_enabled else "tcg"
                 ),
                 "hostname_from_harness": HARNESS_HOSTNAME,
+                # Declared in the result, not only in the source. "No failed
+                # units" measured under a mask is a weaker claim than "no failed
+                # units", and a reader of the retained evidence has no other way
+                # to tell the two apart.
+                "masked_units": list(MASKED_UNITS),
                 "readiness_source": readiness_source,
                 "ready_seconds": ready_seconds if listener is not None else marker_seconds,
                 "serial_log_bytes": len(log),

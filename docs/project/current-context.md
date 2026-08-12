@@ -1042,14 +1042,20 @@ The overlay that unblocked task 02 is what puts NeutrinOS in that window: Fedora
 **A larger finding came out of chasing it, and it is the harness's.** The kernel
 console switches to the bochs framebuffer at about 5.8s, after which systemd's
 status output stops reaching the serial line unless something pins
-`console=ttyS0`. `slice_boot.py` does not. So **serial-derived evidence in this
-project is systematically incomplete after that point**, which plausibly
-explains the one clean run in five and means `T4-SLICE-001`'s unit-failure
-scraping reads a stream that goes quiet mid-boot. The fix is host-supplied and
-changes no bytes of the artifact: the `io.systemd.stub.kernel-cmdline-extra`
-credential this project already adopted and measured. **Open, unowned**,
-alongside the overlay-attribution gap and the runner reachability problem --
-three independent reasons `check:complete` cannot currently act as a gate.
+`console=ttyS0`. The fix is host-supplied and changes no bytes of the artifact:
+the `io.systemd.stub.kernel-cmdline-extra` credential this project already
+adopted and measured.
+
+**Corrected 2026-08-12**: an earlier draft of this paragraph said
+`slice_boot.py` does not pin it. It does, and has since `b9d8c5b` -- the commit
+that registered `T4-SLICE-001`. So `T4-SLICE-001` was never reading a stream
+that goes quiet, and this is **not** a third reason `check:complete` cannot
+gate. Two remain, both unowned: the overlay-attribution gap and the runner
+reachability problem. The finding itself stands for any *new* probe, which is
+why `vm.boot` pins the console unconditionally -- but `slice_boot.py` builds its
+own QEMU command line rather than calling `vm.boot`, so its pin is a second copy
+of the rule rather than an inherited guarantee, and that duplication is real and
+open.
 
 **A consolidated VM harness exists, `tools/validation/vm.py`**, and both Python
 boot paths are migrated onto it. It exists because four lessons this project had already paid for

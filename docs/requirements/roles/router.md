@@ -12,7 +12,7 @@ for the workstation.
 
 The managed host is named `router`. Its checked-in configuration evidence and
 current hardware unknowns are recorded in the
-[reference-host inventory](../../research/hardware/reference-host-inventory.md#router-configuration-derived-baseline).
+[reference-host inventory](../../research/hardware/reference-host-inventory.md#router-observed-appliance-baseline).
 
 ## Known configuration baseline
 

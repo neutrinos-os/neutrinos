@@ -1,7 +1,7 @@
 ---
 status: informative
-last_updated: 2026-08-11
-source_snapshot_revision: cc87b1d
+last_updated: 2026-08-12
+source_snapshot_revision: c163265
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0001 complete 2026-08-11)
@@ -559,12 +559,14 @@ rather than a comparison: the tools-tree package list and pinned base-image
 digest in `compose.sh` and `spike.sh` are byte-identical, because PLN-0002-02
 added `createrepo_c` to the slice recipe and thereby removed the spike's stated
 reason for a separate tree. It was not rebuilt, so it is not verified
-byte-for-byte, and the repository is unreachable to check. Whether that reuse
-is acceptable, and whether the slice should adopt the tree rather than keep two
-build roots, is the owner's. Switching `LocalMirror=` to the
-`download.fedoraproject.org` redirector, which serves the path with a 200, was
-**not** taken: it would change a declared input to route around an outage.
-`dl.fedoraproject.org` still returns 403.
+byte-for-byte, and the repository was unreachable to check at the time.
+Switching `LocalMirror=` to the `download.fedoraproject.org` redirector, which
+served the path with a 200, was **not** taken: it would change a declared input
+to route around an outage. **Both open ends are now closed** -- the outage
+ended on 2026-08-12 with the declared repository serving `repomd.xml` again at
+the same revision as the retained copy, and the reuse question is ruled the
+same day: consolidate on the slice tree, confirmed by a rebuild rather than by
+the identical declarations alone.
 
 **PLN-0002-02's blocker is therefore closed**: the `/usr`-only artifact exists
 and the systemd 261 overlay is in its manifest, which is the exact thing task 02

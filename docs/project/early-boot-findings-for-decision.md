@@ -1,6 +1,6 @@
 ---
 status: open
-last_updated: 2026-08-11
+last_updated: 2026-08-12
 governing_plan: PLN-0002
 ---
 
@@ -11,15 +11,22 @@ each one, what it blocks, and what the options are, so that a ruling is a
 choice between stated alternatives rather than a decision made in passing by
 whichever task hits it first.
 
-**Findings 2 and 3 are undecided**, and finding 1's design half with them.
-Options are drafted; the recommendation attached to each is an argument, not an
-outcome. Sole acceptance authority is the owner. Finding 1's *plan* half was
-ruled on 2026-08-11 and the ruling is recorded inline below.
+**All three are now ruled, and none of the rulings closes its finding
+entirely.** Finding 1's *plan* half was ruled on 2026-08-11 and its **design
+half remains open**, moving to PLN-0002-03b. Findings 2 and 3 were ruled on
+2026-08-12, both **narrower than the options put up**: finding 2 adopts A and
+leaves B and D open rather than selecting a design, and finding 3 rules the
+direction only and leaves the mechanism to `L-003`. Each ruling is recorded
+inline below at the finding it settles.
+
+Options carry arguments, not outcomes, and where a recommendation was declined
+that is recorded rather than edited away. Sole acceptance authority is the
+owner.
 
 Evidence for all three is the [early-boot record](spike-early-boot-record.md).
-Finding 1 was blocking. Its plan half is now ruled, which unblocks
-PLN-0002-03a; its design half still blocks the confext partition PLN-0002-04
-stopped short of placing.
+Finding 1 was blocking. Its plan half being ruled unblocked PLN-0002-03a; its
+design half still blocks the confext partition PLN-0002-04 stopped short of
+placing, and that is now the only blocking item left in this document.
 
 ---
 
@@ -300,5 +307,5 @@ that it does, and measures nothing depending on machine continuity.
 | Finding | Blocks | Ruling needed before |
 | --- | --- | --- |
 | 1, confext delivery | ~~PLN-0002-03~~ and the confext partition PLN-0002-04 left out | **Plan half ruled D on 2026-08-11**, which unblocks the build-and-carve work. The design half is unruled and blocks only the confext partition and finding 2's option B |
-| 2, runtime enablement | Nothing in PLN-0002 after PLN-0002-02 | PLN-0002-11, which registers what is asserted about `/etc` |
-| 3, machine identity | Nothing in PLN-0002 | Not urgent; `L-003` |
+| 2, runtime enablement | Nothing in PLN-0002 after PLN-0002-02 | **Ruled 2026-08-12: A now, B and D both left open.** PLN-0002-11 still registers what is asserted about `/etc`; the design half carries no deadline |
+| 3, machine identity | Nothing in PLN-0002 | **Ruled 2026-08-12: direction only** -- persistent, provisioned at install. Mechanism is `L-003`'s and is not decided |

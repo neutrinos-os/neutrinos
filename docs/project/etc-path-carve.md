@@ -1,6 +1,6 @@
 ---
 status: open
-last_updated: 2026-08-11
+last_updated: 2026-08-12
 governing_plan: PLN-0002
 ---
 
@@ -18,8 +18,11 @@ task 01 predates the factory, and task 02 has never had a confext merged over
 its output. This document states both collisions, draws the carve anyway
 because the carve is not what they turn on, and takes nothing.
 
-**Nothing here is accepted.** Options carry arguments, not outcomes. Sole
-acceptance authority is the owner.
+**Nothing here is accepted by its author.** Options carry arguments, not
+outcomes. Sole acceptance authority is the owner. Owner rulings made since this
+document was drafted are recorded inline, dated and attributed, in the question
+table at the end and beside the collisions they settle; everything not marked
+that way is still a draft.
 
 ---
 

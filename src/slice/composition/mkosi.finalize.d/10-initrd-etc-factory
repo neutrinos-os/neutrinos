@@ -8,15 +8,27 @@
 # mkosi offers no way to put files in its default initrd. ExtraTrees= is not in
 # the set of settings inherited by the synthesized `default-initrd` image, and
 # the initrd-scoped settings are packages and profiles only. The documented
-# route is $ARTIFACTDIR/io.mkosi.initrd, whose contents mkosi joins onto the
-# initrds "in lexicographical order", and finalize scripts run before
+# route is $ARTIFACTDIR/io.mkosi.initrd, and finalize scripts run before
 # install_kernel, so a file written here is picked up by the UKI built from it.
 #
-# `zz-` so the join order is ours-last. Concatenated cpio archives resolve a
-# repeated path in favour of the last one, so this overlay wins if a later
-# upstream initrd ships either path. Nothing currently collides; the prefix is
-# there so that a collision is a silent no-op in the safe direction rather than
-# in the unsafe one.
+# The alternative is a `mkosi.images/initrd/` subimage with `Include=mkosi-initrd`,
+# which would take a plain mkosi.extra tree and no script. It was not taken, and
+# the reason is not that it does not work: subimages inherit Distribution=,
+# Release=, LocalMirror=, ToolsTree= and PackageDirectories= as universal
+# settings, so nothing would need restating. It is that `Initrds=` has no
+# output-directory specifier and would become another absolute path passed from
+# compose.sh, and that setting it makes want_default_initrd() return False --
+# so we would stop adding to mkosi's initrd and start owning it. PLN-0002-05
+# has to declare what is inside the signed UKI, and "the default initrd plus
+# these two files" is a smaller declaration. Revisit if that stops being true.
+#
+# Ours-last is structural, not alphabetical. finalize_initrds() returns
+# `config.initrds + sorted(artifacts glob)`, and mkosi injects its default
+# initrd into config.initrds -- so anything here already follows it, whatever it
+# is called. Concatenated cpio archives resolve a repeated path in favour of the
+# last one, so this overlay wins if a later upstream initrd ships either path.
+# The `zz-` prefix only orders us against other artifact-dir entries, of which
+# there are currently none.
 #
 # NOTE what this does to the UKI. The initrd is measured and signed as part of
 # the unified kernel image, so these two files are inside the artifact's

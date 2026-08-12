@@ -526,11 +526,36 @@ It is now repository content:
 
 `ExtraTrees=` is not among the settings the synthesized `default-initrd` image
 inherits, and the initrd-scoped settings are packages and profiles only. The
-documented route is `$ARTIFACTDIR/io.mkosi.initrd`, whose contents mkosi joins
-onto the initrds "in lexicographical order"; finalize scripts run before
-`install_kernel`, so a cpio written there reaches the UKI built from it. The
-`zz-` prefix makes the join order ours-last, so a future upstream initrd
-shipping either path loses rather than wins. Nothing collides today.
+documented route is `$ARTIFACTDIR/io.mkosi.initrd`; finalize scripts run before
+`install_kernel`, so a cpio written there reaches the UKI built from it.
+
+Ours-last is structural rather than alphabetical, which the first version of
+this section got wrong. `finalize_initrds()` returns
+`config.initrds + sorted(artifacts glob)`, and mkosi injects its default initrd
+into `config.initrds` -- so an artifact-dir entry already follows it whatever it
+is called, and a repeated path in concatenated cpio archives resolves to the
+last one. The `zz-` prefix orders us only against other artifact-dir entries,
+of which there are none.
+
+### The subimage route, considered and not taken
+
+`mkosi.images/initrd/` with `Include=mkosi-initrd` would give upstream's initrd
+definition plus a plain `mkosi.extra/` tree and no packing script. It works:
+subimages inherit `Distribution=`, `Release=`, `LocalMirror=`, `ToolsTree=` and
+`PackageDirectories=` as **universal** settings, so nothing would need
+restating -- the obvious objection does not hold.
+
+Two things decided against it. `Initrds=` has no output-directory specifier
+(`%C`, `%P`, `%D`, `%I` and `%F` are all there is), so it would become another
+absolute path passed from `compose.sh`, restating a declared input. And setting
+it makes `want_default_initrd()` return `False`, so the default initrd is not
+built at all -- the image stops *adding to* mkosi's initrd and starts *owning*
+it. `Include=` would keep the content upstream, but not the wiring.
+
+The deciding argument is PLN-0002-05's, not mkosi's: task 05 declares what is
+inside the signed UKI, and "the default initrd plus these two files" is a
+smaller claim than "our own initrd image that includes mkosi's definition".
+Worth revisiting if that stops being true.
 
 The cpio is built with pinned mtimes and `--owner=0:0`, because the initrd is
 hashed into the UKI and the UKI's identity is how PLN-0001-07 verifies a

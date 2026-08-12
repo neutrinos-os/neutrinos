@@ -138,4 +138,36 @@ boot console.log
 after=$(sha256sum "$artifact" | cut -d' ' -f1)
 [ "$before" = "$after" ] || { echo "boot: artifact changed during boot" >&2; exit 1; }
 
+# Guard the firmware, because printing a fact nothing checks is how this was
+# lost the first time. boot.sh booted a firmware build without Secure Boot
+# support for the whole spike, the report never mentioned it, and every
+# signature statement measured through it was measured where the mechanism was
+# absent. A regression here -- an edited path, a distribution that renames the
+# file, a host missing the secboot build -- would be silent again, and silent
+# in the direction that makes tests pass.
+#
+# Only asserted when the report ran. A boot that never reaches userspace is a
+# result this harness exists to produce (faults.sh injects exactly that, and
+# calls this script with `|| true`), so an absent report is reported and not
+# turned into a firmware verdict. A firmware regression still gets caught,
+# because the non-secboot build boots perfectly well and runs the report.
+if grep -q SPIKE-REPORT-BEGIN "$run_dir/console.log"; then
+    secure_boot=$(sed -n '/## secure boot/,/## platform keyring/p' \
+        "$run_dir/console.log" | grep -oE '[0-9]+( +[0-9]+)+' | tail -1 |
+        awk '{print $NF}')
+    if [ "${secure_boot:-}" != "1" ]; then
+        echo "boot: SecureBoot is '${secure_boot:-unreported}', expected 1;" \
+             "check that $code is the secboot firmware build" >&2
+        exit 1
+    fi
+    grep -q '\.platform' "$run_dir/console.log" || {
+        echo "boot: no .platform keyring in the report; the firmware loaded" \
+             "no certificates into the kernel" >&2
+        exit 1
+    }
+    echo "boot: SecureBoot=1, .platform keyring present"
+else
+    echo "boot: no report in console; not asserting firmware state" >&2
+fi
+
 echo "boot: qemu exit $status, console at $run_dir/console.log"

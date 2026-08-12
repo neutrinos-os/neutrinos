@@ -710,7 +710,14 @@ end qemu before the report unit runs), and **reports `SecureBoot` and the
 harness could not say whether the mechanism was present. Re-measured on the
 unchanged PLN-0002-01 artifact: `SecureBoot=1`, `.platform: 1`, and every other
 line of the early-boot report unchanged, so the record in
-[spike early boot](spike-early-boot-record.md) stands as written. What the
+[spike early boot](spike-early-boot-record.md) stands as written. **The
+firmware state is now asserted, not just printed** -- `boot.sh` fails if the
+report does not show `SecureBoot=1` and a `.platform` keyring, since a printed
+fact nothing checks is how this was lost. Verified by injection: restoring the
+old firmware path exits 1 with `SecureBoot is 'unreported'`. The assertion is
+skipped when no report ran, because a boot that never reaches userspace is a
+result `faults.sh` exists to produce; a firmware regression is still caught,
+because the non-secboot build boots fine and runs the report. What the
 spike claims about verity, the confext merge, and `/etc` writability did not
 depend on the firmware; only the signature statements did.
 

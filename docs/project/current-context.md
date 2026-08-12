@@ -764,6 +764,20 @@ the unit-configured form is the one NeutrinOS would ship. So PLN-0002-10 now
 injects against a *configuration* rather than a missing mechanism, and the plan
 should say which.
 
+**`T4-CONFEXT-001` is registered and landed, 2026-08-11**, in the `complete`
+profile: `tools/validation/confext_policy.py`, five boots of which four are
+measured, asserting the 2x2 rather than the happy path. Verified by injection
+as well as by passing -- swapping the unenrolled confext for the enrolled one
+fails it, and restoring the non-secboot firmware fails it in all four cells.
+`src/slice/enroll-fixture.sh` builds the enrolled artifact copy as a declared
+build step; the artifact itself is never written. Two limits: it is
+**unreachable through `mise run`** because `sandbox.deny_env` strips the
+declared fixture directory -- pre-existing and shared with `T3-SLICE-001`,
+governed by the validation contract -- and the **slice-side fixture is unrun**,
+since this host has no slice tools tree, so it was exercised against the
+PLN-0002-01 spike artifact instead and the `compose.sh` wiring is written but
+not executed.
+
 **Ruled 2026-08-11 by Jason Tarasovic**, on the draft registration of
 `T4-CONFEXT-001`: the check tests the **unit** form, and it lands **as part of
 PLN-0002-10** rather than before it. The ruling landed on the form previously

@@ -45,6 +45,7 @@ UV_CACHE_ENV = "NEUTRINOS_VALIDATION_UV_CACHE"
 BETTERLEAKS_ENV = "NEUTRINOS_VALIDATION_BETTERLEAKS"
 SLICE_ARTIFACT_ENV = "NEUTRINOS_SLICE_ARTIFACT_DIR"
 SLICE_REPOSITORY_ENV = "NEUTRINOS_SLICE_REPOSITORY_DIR"
+CONFEXT_FIXTURE_ENV = "NEUTRINOS_CONFEXT_FIXTURE_DIR"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -83,6 +84,9 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         # Optional on the same terms: the retained repository subset that
         # composition writes, against which the shipped closure is attributed.
         SLICE_REPOSITORY_ENV,
+        # Optional on the same terms: the enrolled artifact and the pair of
+        # confexts T4-CONFEXT-001 compares signers with.
+        CONFEXT_FIXTURE_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -309,6 +313,28 @@ TESTS = (
         ),
         cleanup_owner="validation runner",
         function="check_slice_boot",
+    ),
+    Test(
+        id="T4-CONFEXT-001",
+        level="T4",
+        # Five boots, four of them measured. Each is well under a minute with
+        # KVM and a few minutes under TCG, and the budget is sized for TCG.
+        timeout_seconds=1800,
+        profiles=("complete",),
+        traces=("PLN-0002/PLN-0002-10", "SYS-123", "SYS-002", "SYS-012"),
+        capabilities=(
+            "user-owned disposable VM",
+            "Secure Boot firmware",
+            "confext signature fixture",
+        ),
+        fixtures=(
+            "artifact copy with the verity signer enrolled in UEFI db",
+            "confext signed by the enrolled key",
+            "confext signed by a valid but unenrolled key",
+            "disposable firmware variable store",
+        ),
+        cleanup_owner="validation runner",
+        function="check_confext_signature_policy",
     ),
     Test(
         id="T5-VAL-001",
@@ -1077,12 +1103,21 @@ def check_slice_boot() -> int:
     return check_boot()
 
 
+def check_confext_signature_policy() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.confext_policy import check_confext_signature_policy as run
+
+    return run()
+
+
 CHECKS: dict[str, Callable[[], int]] = {
     "check_slice_input_set": check_slice_input_set,
     "check_slice_composition": check_slice_composition,
     "check_slice_repository_attribution": check_slice_repository_attribution,
     "check_slice_artifact": check_slice_artifact,
     "check_slice_boot": check_slice_boot,
+    "check_confext_signature_policy": check_confext_signature_policy,
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
     "check_tracked_artifacts": check_tracked_artifacts,
@@ -1192,6 +1227,50 @@ def capability_fat_reader() -> str | None:
     return None
 
 
+def capability_confext_fixture(
+    environment: Mapping[str, str] = os.environ,
+) -> str | None:
+    """The enrolled artifact and the two confexts, produced by composition.
+
+    Built by `src/slice/enroll-fixture.sh` and declared to validation the same
+    way the artifact is. Absence blocks rather than skips: a signature check
+    with nothing to compare signers against would report the same shape as a
+    passing run.
+    """
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.confext_policy import FIXTURE_MEMBERS
+
+    if not environment.get(CONFEXT_FIXTURE_ENV):
+        return f"{CONFEXT_FIXTURE_ENV} is not set"
+    try:
+        directory = declared_directory(CONFEXT_FIXTURE_ENV, environment)
+    except ValueError as error:
+        return str(error)
+    missing = [name for name in FIXTURE_MEMBERS if not (directory / name).is_file()]
+    if missing:
+        return f"confext fixture is missing {', '.join(missing)}"
+    return None
+
+
+def capability_secure_boot_firmware() -> str | None:
+    """Firmware compiled *with* Secure Boot support, which is not the default.
+
+    `OVMF_CODE.4m.fd` and `OVMF_CODE.fd` are built without it. A guest boots
+    fine on them and simply has no SetupMode, no SecureBoot, no db and an empty
+    platform keyring -- so a signature test runs green against a mechanism that
+    is absent rather than working. The PLN-0002-01 spike did exactly that for
+    its whole duration. This blocks rather than skips for the same reason.
+    """
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.confext_policy import SECBOOT_CODE_CANDIDATES
+
+    if not any(Path(candidate).is_file() for candidate in SECBOOT_CODE_CANDIDATES):
+        return "no Secure Boot OVMF build found at any known path"
+    return None
+
+
 # Capabilities with no probe are established by preflight, which fails the
 # whole run when they are absent. Only capabilities that may legitimately be
 # missing from an otherwise valid checkout are probed here.
@@ -1201,6 +1280,8 @@ CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
     "zstd reader": capability_zstd_reader,
     "user-owned disposable VM": capability_virtualization,
     "FAT reader": capability_fat_reader,
+    "confext signature fixture": capability_confext_fixture,
+    "Secure Boot firmware": capability_secure_boot_firmware,
 }
 
 
@@ -1308,7 +1389,7 @@ def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, st
         UV_CACHE_ENV: os.environ[UV_CACHE_ENV],
         BETTERLEAKS_ENV: os.environ[BETTERLEAKS_ENV],
     }
-    for declared in (SLICE_ARTIFACT_ENV, SLICE_REPOSITORY_ENV):
+    for declared in (SLICE_ARTIFACT_ENV, SLICE_REPOSITORY_ENV, CONFEXT_FIXTURE_ENV):
         if declared in os.environ:
             environment[declared] = os.environ[declared]
     if "SYSTEMROOT" in os.environ:

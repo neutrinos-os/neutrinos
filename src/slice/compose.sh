@@ -149,6 +149,25 @@ if [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
     mkdir -p "$confext_staging/usr/lib/confexts" "$confext_staging/usr/lib/verity.d"
     cp "$confext_out/neutrinos-network.raw" "$confext_staging/usr/lib/confexts/"
     cp "$keys_dir/verity.crt" "$confext_staging/usr/lib/verity.d/neutrinos-synthetic.crt"
+
+    # The same tree, signed by the unenrolled key. T4-CONFEXT-001 compares the
+    # two, and the comparison only means something if the signer is the only
+    # difference: a second image built from a second source could be refused
+    # for being the wrong image rather than for being signed by the wrong
+    # authority, which is precisely the confusion the second key exists to
+    # remove.
+    #
+    # It is not staged into the artifact. It exists to be delivered from
+    # outside, as a substitution would be.
+    (
+        cd "$root/confext/neutrinos-network"
+        PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
+            --tools-tree="$build_root/tools" \
+            --verity-key="$keys_dir/verity-wrong.key" \
+            --verity-certificate="$keys_dir/verity-wrong.crt" \
+            --output-directory="$confext_out-unenrolled" \
+            --force build
+    )
 fi
 
 cd "$root/composition"
@@ -170,6 +189,21 @@ PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
 # It runs only when a build produced an image: `mkosi clean`, `--help`, and the
 # other verbs have nothing to retain, and fetching metadata for them would put
 # a network dependency on operations that have none.
+# The signature-enforcement fixture, on the same terms as retention: a build
+# step rather than something to remember afterwards. It copies the artifact and
+# enrolls the verity signer into the copy's ESP, so the artifact every other
+# check asserts the digest of is never touched.
+#
+# Guarded on the confext build having run, because a fixture with an enrolled
+# machine and no confexts to compare would block T4-CONFEXT-001 with a message
+# about missing files rather than about the build that skipped them.
+if [ -f "$build_root/out/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
+    sh "$root/enroll-fixture.sh"
+    cp "$confext_out/neutrinos-network.raw" "$build_root/fixture/confext-enrolled.raw"
+    cp "$confext_out-unenrolled/neutrinos-network.raw" \
+        "$build_root/fixture/confext-unenrolled.raw"
+fi
+
 if [ -f "$build_root/out/neutrinos-slice.manifest" ]; then
     python3 "$root/retain-repository.py" \
         --repository="$repository_url" \

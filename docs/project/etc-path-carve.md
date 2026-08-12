@@ -815,9 +815,10 @@ in the repository. `boot.sh` now asserts its own firmware, but nothing asserts
 that `root=signed` still discriminates. A systemd bump that widened the
 fallback, or a policy-parser change, would land silently and in the direction
 that makes tests pass -- which is this plan's recurring failure mode, observed
-four times. **This is a draft. It registers nothing and is not authority to
-land it.** Both of its open questions have since been ruled -- the unit form is
-what it tests, and it lands as part of PLN-0002-10 -- see below.
+four times. **Landed 2026-08-11**, after both of its open questions were ruled: the unit
+form is what it tests, and it belongs to PLN-0002-10. What follows is the draft
+as written, kept because the reasoning is the check's specification; the
+"as built" section at the end records where it differs.
 
 Proposed entry, in the shape `check.py` already uses:
 
@@ -862,7 +863,7 @@ starts failing closed by itself is a fact this plan needs to learn rather than
 a silent improvement. Artifact digest unchanged across all four, as T4-SLICE-001
 already does.
 
-### What it needs that does not exist yet
+### What it needed, and how each was met
 
 - **Enrolment as a build step.** The enrolled disk was produced by hand:
   `sbsiglist` per certificate, concatenate the ESLs, `sbvarsign` with the
@@ -1014,3 +1015,49 @@ not currently declared inputs and are **not** proposed here: the
 PLN-0002-01 spike build root holds a tools tree built from the identical package
 list before the outage. Either would unblock a build, and both change or reuse a
 declared input, so both are the owner's.
+
+### T4-CONFEXT-001 as built
+
+`tools/validation/confext_policy.py`, registered in the `complete` profile,
+five boots of which four are measured. Verified twice over: it passes against
+the real fixture, and it **fails against two injected faults** --
+
+- the unenrolled confext replaced by the enrolled one, which is a harness that
+  cannot tell signers apart: *"an untrusted confext merged under root=signed;
+  signature enforcement is not closing"*, plus a second failure for the unit
+  having reported success;
+- the non-Secure-Boot firmware restored, which is the defect that produced a
+  whole spike's worth of signature evidence with the mechanism absent:
+  `SecureBoot is '', expected 1`, in all four cells.
+
+Secure Boot is asserted **per cell** rather than once, because a firmware
+regression is invisible in exactly the cells it invalidates.
+
+Four things differ from the draft, all found by running it:
+
+- **db carries the image-signing certificate as well as the verity one.** The
+  first fixture enrolled the verity certificate alone. That machine cannot
+  boot: Secure Boot no longer trusts its own UKI, the firmware refuses it, and
+  the run times out with an empty console. Enrollment replaces db rather than
+  adding to it, so anything already trusted has to be re-supplied.
+- **One variable store for the whole run, not one per boot.** A fresh store is
+  in setup mode, so systemd-boot enrolls and reboots; a per-boot store makes
+  every boot a first boot and the probe never runs.
+- **`unmerge` before restarting the unit.** `merge` refuses an already-merged
+  hierarchy, and without this both arms fail identically before policy is
+  reached -- a difference-free result that reads as "fails closed for
+  everything".
+- **`/proc/keys` prints the type truncated to `asymmetri`.** Matching
+  `asymmetric` counts zero keys on a machine that has them.
+
+Two limits stand, and neither is the check's to fix:
+
+- **It is unreachable through `mise run`.** `sandbox.deny_env = true` strips the
+  declared fixture directory, so the check blocks. This is not new and not
+  specific to it: `T3-SLICE-001` blocks the same way for the same reason, and
+  the environment allowlist is governed by the validation contract.
+- **The slice-side fixture has not been built.** It was exercised end to end
+  against the PLN-0002-01 spike artifact, because this host has no slice tools
+  tree and composition needs the network. `enroll-fixture.sh` is artifact-
+  agnostic for exactly that reason, but the `compose.sh` wiring -- the second
+  confext and the fixture staging -- is **written and unrun**.

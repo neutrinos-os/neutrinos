@@ -808,6 +808,89 @@ acquire one, because the replay unit does not exist after switch-root.
 So the guard covers the merge point it names and not the hierarchy. Closing the
 second one is outside this carve; it is recorded so the gap is visible.
 
+## Draft registration: T4-CONFEXT-001
+
+Everything above is evidence produced by scratchpad scripts that do not exist
+in the repository. `boot.sh` now asserts its own firmware, but nothing asserts
+that `root=signed` still discriminates. A systemd bump that widened the
+fallback, or a policy-parser change, would land silently and in the direction
+that makes tests pass -- which is this plan's recurring failure mode, observed
+four times. **This is a draft. It registers nothing and is not authority to
+land it.**
+
+Proposed entry, in the shape `check.py` already uses:
+
+```python
+Test(
+    id="T4-CONFEXT-001",
+    level="T4",
+    profiles=("complete",),
+    timeout_seconds=900,
+    traces=("PLN-0002/PLN-0002-10", "SYS-123", "DES-0005"),
+    capabilities=(
+        "declared slice artifact",
+        "user-owned disposable VM",
+        "Secure Boot firmware build",
+    ),
+    fixtures=(
+        "composed disk image with the signer enrolled in db",
+        "confext signed by the enrolled key",
+        "confext signed by the unenrolled key",
+        "disposable firmware variable store",
+    ),
+    cleanup_owner="validation runner",
+    function="check_confext_signature_policy",
+),
+```
+
+**The assertion is the 2x2, not the happy path.** Four boots, fresh varstore
+each, one confext and one policy per boot:
+
+| | `root=signed` | default policy |
+| --- | --- | --- |
+| enrolled signer | merges, exit 0 | merges, exit 0 |
+| unenrolled signer | **refused, exit 1** | merges, exit 0 |
+
+Three of the four cells are the check. A run where the enrolled image is
+refused is a broken control, not a pass; a run where the unenrolled image is
+admitted under `root=signed` is the regression this exists to catch; and the
+default-policy row is asserted as *merging* on purpose, because the day it
+starts failing closed by itself is a fact this plan needs to learn rather than
+a silent improvement. Artifact digest unchanged across all four, as T4-SLICE-001
+already does.
+
+### What it needs that does not exist yet
+
+- **Enrolment as a build step.** The enrolled disk was produced by hand:
+  `sbsiglist` per certificate, concatenate the ESLs, `sbvarsign` with the
+  synthetic PK, then `mcopy` the result into the ESP at
+  `\loader\keys\auto\db.auth`. That is four tools (`sbsigntools`, `mtools`) not
+  currently declared by the slice, and a partition offset currently hard-coded
+  in a scratchpad script. It has to become a declared, reproducible step.
+- **Two confexts from one source.** `compose.sh` builds one. The second must be
+  the same tree signed by `verity-wrong.key`, so that the *only* difference is
+  the signer -- otherwise a refusal does not distinguish a bad signature from a
+  bad image, which is the whole reason the second key exists.
+- **A warm-up boot, and a reason it is not load-bearing.** mkosi auto-enrols
+  its own Secure Boot keys and reboots on first boot. The check must not
+  measure that boot.
+- **`sbsigntools` and the secboot firmware as declared capabilities.** Both are
+  host facts the contract currently does not name. A host without the secboot
+  OVMF build must **block**, not skip: a skip here reports the same shape as a
+  pass, which is the defect the guard above was written for.
+
+### Two questions it cannot answer for itself
+
+1. **Which form is under test, CLI or unit?** The matrix used the CLI. The
+   drop-in form measured earlier did *not* close, and the contradiction is
+   unresolved. NeutrinOS would ship the unit form. A check that pins the CLI
+   form green while the shipped form is open would be actively misleading.
+   **This should be resolved before the check is written, not after.**
+2. **Does it belong to PLN-0002-10 or before it?** As drafted it asserts the
+   property task 10 exists to inject against. If it lands first, task 10 is
+   measuring its own harness; if it lands after, the property is unguarded for
+   the intervening work.
+
 ## What this asks the owner for
 
 Questions 1 through 4 were ruled on 2026-08-11 -- collision 1 as A, collision 2

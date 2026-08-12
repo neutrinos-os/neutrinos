@@ -703,6 +703,17 @@ measured where the mechanism was structurally absent. On
 `\loader\keys\auto` on the ESP and Secure Boot comes on by itself
 (`SecureBoot=1`) -- undocumented in the plan and relevant to PLN-0002-05.
 
+**Fixed 2026-08-11.** `boot.sh` now boots the Secure Boot firmware, takes a
+warm-up boot first (auto-enrolment reboots, and `-no-reboot` would otherwise
+end qemu before the report unit runs), and **reports `SecureBoot` and the
+`.platform` keyring in the report itself** -- the defect hid because the
+harness could not say whether the mechanism was present. Re-measured on the
+unchanged PLN-0002-01 artifact: `SecureBoot=1`, `.platform: 1`, and every other
+line of the early-boot report unchanged, so the record in
+[spike early boot](spike-early-boot-record.md) stands as written. What the
+spike claims about verity, the confext merge, and `/etc` writability did not
+depend on the firmware; only the signature statements did.
+
 With that firmware the keyring route is confirmed: `db` loads into
 `.platform`, `.machine` stays empty as the CA restriction predicted, and
 rebuilding the ESP's `db.auth` as a two-certificate list puts the verity

@@ -38,6 +38,7 @@ before and after.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -168,8 +169,8 @@ def check_confext_signature_policy() -> int:
         # The first boot of a fresh variable store enrolls PK, KEK and db from
         # the ESP and reboots; `-no-reboot` turns that into QEMU exiting. So it
         # is a warm-up whose only product is an enrolled store, and it is not
-        # measured. Its report is expected to be absent, not present.
-        # The one boot whose product is a file rather than a report, so the one
+        # measured. Its report is expected to be absent, not present. It is also
+        # the one boot whose product is a file rather than a report, so the one
         # boot that keeps its writes.
         _, variables = vm.firmware_pair(secure_boot=True)
         enrolled_store = work / "OVMF_VARS.fd"
@@ -262,6 +263,40 @@ def check_confext_signature_policy() -> int:
     if before != after:
         failures.append("the fixture changed during the run")
 
-    for failure in failures:
-        print(f"confext policy: {failure}", file=sys.stderr)
-    return 1 if failures else 0
+    if failures:
+        for failure in failures:
+            print(f"confext policy: {failure}", file=sys.stderr)
+        return 1
+
+    # A pass says what it measured, like every other slice check. This one used
+    # to succeed in silence, and silence is not distinguishable from a run that
+    # never happened: on 2026-08-12 an empty stdout from this check was read as
+    # "no result", the process was killed after it had already passed, and a
+    # diagnosis was then invented to explain a slowness that did not exist. That
+    # is this file's own thesis -- a mechanism that fails open reports the same
+    # thing as one that worked -- turned on its author.
+    print(
+        json.dumps(
+            {
+                "artifact_digest": after,
+                "artifact_unchanged_by_run": True,
+                "cells": {
+                    f"{policy}/{signer}": {
+                        "merged": cells[(policy, signer)].get("merged-file"),
+                        "platform_keys": cells[(policy, signer)].get("platform-keys"),
+                        "secure_boot": cells[(policy, signer)].get("secure-boot"),
+                        "unit_result": cells[(policy, signer)].get("unit-result"),
+                        "unit_status": cells[(policy, signer)].get("unit-status"),
+                    }
+                    for policy, signer in sorted(cells)
+                },
+                "result": "passing",
+                "strict_policy": STRICT_POLICY,
+                "variable_store": "shared copy-on-write, digest unchanged",
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+    )
+    return 0

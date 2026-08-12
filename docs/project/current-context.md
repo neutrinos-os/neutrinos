@@ -764,6 +764,16 @@ the unit-configured form is the one NeutrinOS would ship. So PLN-0002-10 now
 injects against a *configuration* rather than a missing mechanism, and the plan
 should say which.
 
+**PLN-0002-10 is started out of order**, on the owner ruling that this check
+belongs to it: `T4-CONFEXT-001` covers the **confext-substitution cell, for the
+signature dimension only**. The rest of task 10's row -- `/usr`, Verity, and
+manifest substitution, a wrong-but-valid key against the artifact rather than
+the confext, and the C-001 cross-product enumeration -- still needs task 06's
+four artifacts, and task 06 needs task 05's declaration. **The declared Fedora
+repository is reachable again** (checked 2026-08-12, `repomd.xml` HTTP 200) and
+its revision `1776864872` is identical to the retained copy, so the outage no
+longer blocks composition and the unrun slice-side fixture can be built.
+
 **`T4-CONFEXT-001` is registered and landed, 2026-08-11**, in the `complete`
 profile: `tools/validation/confext_policy.py`, five boots of which four are
 measured, asserting the 2x2 rather than the happy path. Verified by injection

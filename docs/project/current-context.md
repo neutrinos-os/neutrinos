@@ -741,7 +741,21 @@ and applies the untrusted configuration anyway. The mechanism is **available,
 working, and not enforcing**; the fallback is the defect, not the key. The plan
 now also has a harness that discriminates, so any candidate fix (image policy,
 dissect option, systemd version) can be tested against a pair known to differ
-only in signer. Note also that the `Requires=`
+only in signer.
+
+**That fix has now been found: `--image-policy=root=signed`.** Eight boots, one
+policy per fresh boot, everything else held. Passed on the `systemd-confext`
+command line it admits the enrolled signer and refuses the unenrolled one --
+exit 1, nothing merged, `/etc/systemd/network/` absent. `root=verity` merges
+both, so `signed` is the flag that reaches the validation result; `=signed`
+refuses **both**, including the correct artifact, so the designator has to be
+named and the broad spelling is an outage rather than a control. Two limits,
+both recorded in [the /etc carve](etc-path-carve.md): this is the system merge
+through the CLI, not the initrd merge, and **the drop-in form of the same flag
+was measured earlier as not closing** -- the contradiction is unresolved, and
+the unit-configured form is the one NeutrinOS would ship. So PLN-0002-10 now
+injects against a *configuration* rather than a missing mechanism, and the plan
+should say which. Note also that the `Requires=`
 guard on the replay is fail-closed for the **initrd** merge only -- a failing
 replay still ends with `/etc` overmounted by the post-switch-root merge.
 

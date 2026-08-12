@@ -615,6 +615,53 @@ no policy prevents this.** `image_policy_confext_strict` exists as a named
 built-in and was not reached through the CLI. What is measured is that the
 obvious spelling does not close it.
 
+**Superseded in part, 2026-08-11.** Passed directly to the CLI against an
+enrolled key, the same spelling *does* close it -- see the matrix below. This
+section stands as the record of the drop-in form, which still does not.
+
+### The same flag, re-run against a trust anchor, and it does fail closed
+
+Measured 2026-08-11, eight boots plus a warm-up, one policy per boot on a fresh
+varstore, artifact digest unchanged. The disk is the enrolled one: the verity
+certificate is in `db` and reaches `.platform`. Each boot receives one confext
+as a second virtio disk, copies it to `/run/confexts`, and runs a single
+`systemd-confext refresh`. Nothing else varies.
+
+| policy | enrolled signer | unenrolled signer |
+| --- | --- | --- |
+| *(default)* | exit 0, merged | exit 0, **merged** |
+| `root=verity` | exit 0, merged | exit 0, **merged** |
+| `root=signed` | exit 0, merged | **exit 1, not merged** |
+| `=signed` | **exit 1, not merged** | exit 1, not merged |
+
+**`--image-policy=root=signed` is a fail-closed control.** It admits the image
+signed by the enrolled key and refuses the one signed by a valid but unenrolled
+key, with a non-zero exit and an empty `/etc/systemd/network/`. So the answer
+to the pre-task-10 question is yes: a policy exists, it is a documented CLI
+flag, and it discriminates on the signer rather than on the shape of the image.
+
+Three things bound that:
+
+- **`verity` is not enough.** `root=verity` merges both. The image genuinely
+  carries a verity-signature partition either way, so only `signed` reaches the
+  validation result.
+- **`=signed` is the wrong spelling and fails closed on everything**, including
+  the good image, because it demands the flag of every partition including the
+  verity and signature partitions themselves. A policy that rejects the correct
+  artifact is not a control; it is an outage. The designator has to be named.
+- **This is the system merge**, `/run/confexts` through the `systemd-confext`
+  CLI. It is not the initrd merge and not the unit-level default.
+
+**This contradicts the attempt recorded above, and the contradiction is not
+explained.** That attempt applied the same flag through a drop-in on the
+sysroot merge and saw it merge anyway. Two differences are candidates -- there
+was no enrolled key at all then, and the firmware had no Secure Boot support
+(see the harness defect above) -- but the most likely reading is simply that
+the drop-in did not govern the merge that ran. Recorded as unresolved rather
+than reconciled: **the flag works when passed directly to the CLI, and has not
+been shown to work when configured on a unit**, which is the form NeutrinOS
+would actually ship.
+
 ### Why this matters more than it looks
 
 This is the same shape as PLN-0002-01's central finding, in a third mechanism. A
@@ -643,6 +690,11 @@ that root hash and an authority: anyone who can replace the whole DDI supplies
 their own root hash and it verifies. That is exactly the substitution PLN-0002-10
 exists to inject, and this finding is a **prediction that it will pass** unless
 signature enforcement is real by then.
+
+That prediction now has a condition attached. With the signer enrolled and
+`root=signed` passed to the merge, substitution is refused; with either missing,
+it is not. **PLN-0002-10 therefore measures the configuration, not the
+mechanism**, and the plan should say which of the two it is injecting against.
 
 ## The replay unit, landed, and what landing it changed
 

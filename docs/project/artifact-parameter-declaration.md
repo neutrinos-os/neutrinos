@@ -1,6 +1,8 @@
 ---
-status: draft
+status: accepted
 last_updated: 2026-08-12
+accepted_by: Jason Tarasovic
+accepted_date: 2026-08-12
 governing_plan: PLN-0002
 ---
 
@@ -19,8 +21,20 @@ algorithm and level, `systemd.image_policy=`, and how the trimmed module list is
 confirmed. Where a recommendation was declined or narrowed, that is recorded
 rather than edited away.
 
-**One part is declared but not yet measured**: the trimmed `KernelModules=`
-list, whose confirmation is a boot of both arms before PLN-0002-06.
+**Accepted 2026-08-12 by Jason Tarasovic.** Two parts are declared and not yet
+satisfied, and acceptance is of that state rather than of a clean one:
+
+- The trimmed `KernelModules=` list is declared and **not yet measured**. Its
+  confirmation is a boot of both arms before PLN-0002-06.
+- The single verity signer subject of amendment 4 is declared and **not yet
+  true**. Measured 2026-08-12: the slice build root generates `CN=NeutrinOS
+  slice verity, synthetic` and the PLN-0002-01 build root generates
+  `CN=NeutrinOS PLN-0002-01 spike verity, synthetic`. Satisfying it is coupled
+  to the tools-tree consolidation ruled the same day -- one build root cannot
+  disagree with itself -- and it is due on the same deadline as everything else
+  here, before PLN-0002-06 issues the signing material. The completed spike's
+  script is not retro-edited to reach it; it is the recorded apparatus of
+  RES-0013.
 
 **Deadline: before PLN-0002-06.** Every parameter below is inside the signed
 UKI or inside the artifact it authenticates. A change after 06 means tasks 07

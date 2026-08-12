@@ -1327,6 +1327,36 @@ kernel will now be used repeatedly and successfully, and repeated success is
 how a candidate becomes a decision without an ADR. The test is whether the
 required challengers — bootc, a literal Arch snapshot — are ever actually run.
 
+**PLN-0002-05 is accepted by Jason Tarasovic on 2026-08-12**, and acceptance is
+of a stated incomplete state rather than a clean one. Two declared parameters
+are not yet satisfied: the trimmed `KernelModules=` list is declared and
+unmeasured, its confirmation being a boot of both arms; and amendment 4's single
+verity signer subject is declared and **not yet true** -- measured the same day,
+the slice build root generates `CN=NeutrinOS slice verity, synthetic` and the
+PLN-0002-01 build root generates `CN=NeutrinOS PLN-0002-01 spike verity,
+synthetic`. Both are due before PLN-0002-06, after which a change voids tasks 07
+through 10. The subject is coupled to question 9's tools-tree consolidation,
+since one build root cannot disagree with itself; the completed spike's script
+is not retro-edited to reach it, being the recorded apparatus of RES-0013.
+
+**Questions 8 and 9 must not share a rebuild.** Question 9's evidence is that the
+artifact comes out byte-identical, which is the whole proof that consolidating
+changed nothing; question 8's evidence is that the `/etc` entry and
+resolve/dangle counts move. Run together, question 9 has no clean claim left. So
+question 9 first, then question 8 measured against that baseline.
+
+**`repository_snapshot()` no longer hashes bytecode.** It still hashes every
+other ignored file on purpose -- a check writing an image, a key, or a run
+directory into the checkout is what it exists to catch, and all of those are in
+`.gitignore`, so the exclusion is deliberately not "whatever Git ignores".
+Bytecode is the exception because the interpreter derives it from source already
+hashed here and writing it is a side effect of running the checks: the first
+`check:complete` after any edit under `tools/validation/` reported "validation
+changed repository state" against the tree the runner had itself just compiled.
+Measured twice on 2026-08-12, and **misattributed once to an edit made during
+the run** -- the `AGENTS.md` rule written from that misattribution kept its
+advice, which is independently sound, and lost the false cause.
+
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
 open either for a cold status report.

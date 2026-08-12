@@ -1382,10 +1382,18 @@ recorded before the change exposed it. Forced, rebuilt, and verified in the
 artifact rather than the build root: `/usr/lib/verity.d` carries the declared
 subject, and `check:complete` passes at 13.
 
-**The gap this leaves is a stale artifact, not a stale key.** Nothing detects an
-artifact older than the signing key in its own build root, and once PLN-0002-06
-issues real signing material that state produces a confident, wrong measurement.
-A check is wanted rather than a habit; registering one is not yet ruled. The
+**That gap is now closed by `T3-SLICE-003`, accepted 2026-08-12 by Jason
+Tarasovic.** It detects an artifact that outlived its own signing key. The build
+publishes the verity certificate beside the artifact on every run, whether or not
+mkosi rebuilt -- that is the mechanism, since the certificate moves while a stale
+image does not -- and the check asserts by content that those exact bytes are
+inside the image. No filesystem driver is needed: the certificate is staged into
+`/usr/lib/verity.d` and EROFS stores a file that small contiguously and
+uncompressed, measured before the check was written. Verified failure-sensitive
+against publishing a superseded certificate and against removing it, the second
+failing rather than passing quietly. **It finds bytes; it does not verify a
+signature** and cannot until PLN-0002-06 adds a signature partition, and its own
+report says so. `check:complete` passes at 14. The
 spike build root keeps its original subject deliberately, so its retained
 artifact remains RES-0013's evidence, and a spike rebuild now stops until an
 operator adopts the declared subject on purpose.

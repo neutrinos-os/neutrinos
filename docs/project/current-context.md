@@ -627,10 +627,41 @@ because it encoded the same assumption as the bug, and systemd's own
 sorts first and silently overrode it. Whether the fragment should skip paths
 upstream already owns is open and belongs to task 02.
 
-**Still owed by 03a**: the confext measured is a *directory*, not a signed DDI,
-and `image_policy_confext_strict` requires signed. The initrd replay unit is
-also not yet repository content, and because it changes the initrd it is inside
-the signed UKI and is a PLN-0002-05 declaration due **before PLN-0002-06**.
+**Both of 03a's remaining deliverables have since landed, and each found
+something.**
+
+The confext is now a **signed 3-partition DDI**, built by `compose.sh` from
+`src/slice/confext/neutrinos-network/` and staged into `/usr/lib/confexts` with
+its certificate in `/usr/lib/verity.d`. It merges. **Its signature is not
+enforced**: dm-verity resolves the signing key through the *kernel keyring*, not
+a file, a synthetic key is in no keyring, the kernel returns `-ENOKEY`, and
+systemd retries unsigned and merges. `--image-policy=root=signed` did not close
+it. This is the **third mechanism in this plan to fail open silently**, after
+lazy dm-verity booting a corrupt `/usr` and a refused confext reporting
+`Finished`, and it predicts **PLN-0002-10's confext substitution will pass**.
+Enforcement needs a synthetic key enrolled in the disposable VM's own firmware,
+which the plan permits and nobody has done.
+
+The **initrd replay unit is now repository content** --
+`src/slice/composition/initrd/`, packed into a cpio by
+`mkosi.finalize.d/10-initrd-etc-factory` and handed to mkosi through
+`$ARTIFACTDIR/io.mkosi.initrd`, because mkosi offers no way to put a file in its
+default initrd (`ExtraTrees=` is not inherited by the synthesized
+`default-initrd` image). Shipping it exposed three defects the credential probe
+could not: `--root=` does not redirect NSS, so a full `--create` exits 65 on
+group lookups against the initrd's own database; a positional config path is not
+`--root=`-relative, so the fragment must be named `/sysroot`-prefixed; and a
+`RemainAfterExit` oneshot survives switch-root as `not-found failed` unless it
+conflicts with `initrd-switch-root.target`. It now boots with **zero failed
+units**, `/etc` at 70 entries, read-only, `os-release` readable.
+
+**Still owed by 03a**: the PLN-0002-05 declaration for the initrd change, due
+**before PLN-0002-06**; four paths the narrowed replay no longer establishes
+before the merge (`/etc/mtab`, `/etc/pam.d`, `/etc/credstore`,
+`/etc/credstore.encrypted`), which are instances of the exception-list question
+rather than a new one; and signature enforcement. Note also that the `Requires=`
+guard on the replay is fail-closed for the **initrd** merge only -- a failing
+replay still ends with `/etc` overmounted by the post-switch-root merge.
 
 A hygiene breach was found and closed alongside it.
 `tools/validation/__pycache__/check.cpython-314.pyc` had been tracked since

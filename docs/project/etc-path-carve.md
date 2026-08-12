@@ -511,6 +511,93 @@ their own root hash and it verifies. That is exactly the substitution PLN-0002-1
 exists to inject, and this finding is a **prediction that it will pass** unless
 signature enforcement is real by then.
 
+## The replay unit, landed, and what landing it changed
+
+The option-A replay existed only as an SMBIOS credential a probe script injected.
+It is now repository content:
+
+| Path | What it is |
+| --- | --- |
+| `src/slice/composition/initrd/usr/lib/systemd/system/neutrinos-etc-factory.service` | the replay |
+| `.../systemd-confext-sysroot.service.d/10-neutrinos-etc-factory.conf` | binds it to the initrd merge |
+| `src/slice/composition/mkosi.finalize.d/10-initrd-etc-factory` | packs the two into a cpio for mkosi |
+
+### There is no supported way to put a file in mkosi's default initrd
+
+`ExtraTrees=` is not among the settings the synthesized `default-initrd` image
+inherits, and the initrd-scoped settings are packages and profiles only. The
+documented route is `$ARTIFACTDIR/io.mkosi.initrd`, whose contents mkosi joins
+onto the initrds "in lexicographical order"; finalize scripts run before
+`install_kernel`, so a cpio written there reaches the UKI built from it. The
+`zz-` prefix makes the join order ours-last, so a future upstream initrd
+shipping either path loses rather than wins. Nothing collides today.
+
+The cpio is built with pinned mtimes and `--owner=0:0`, because the initrd is
+hashed into the UKI and the UKI's identity is how PLN-0001-07 verifies a
+reconstruction. Verified in the built artifact: both files present, uid 0, mode
+0644, mtime 0.
+
+### Three defects, each found by a boot and none by review
+
+**The scope was wrong.** `systemd-tmpfiles --root=/sysroot --create` exits
+65/DATAERR in the initrd. `--root=` redirects the files tmpfiles writes; user
+and group names still resolve through the *running* NSS, which is the initrd's,
+and the initrd has no `audio`, `disk`, `kvm`, `systemd-journal` or `utmp`. Those
+lines belong to `systemd-tmpfiles-setup.service` after switch-root anyway, so
+the unit now names the one fragment it exists to replay.
+
+**The fragment path is not `--root=`-relative.** A positional config path is read
+by the running process from the running root. With the unprefixed path the unit
+failed `No such file or directory` and `/etc` reached the merge with **7
+entries**, which is the collision-2 failure again with a different cause.
+
+**The unit outlived the initrd.** systemd serializes unit state across
+switch-root and deserializes it against the artifact's units, where an
+initrd-only unit does not exist -- so a `RemainAfterExit` oneshot returns as
+`not-found failed` on the running machine even though its work succeeded.
+`Conflicts=`/`Before=initrd-switch-root.target` stops it first.
+`systemd-confext-sysroot.service` needs none of this only because the artifact
+installs the same unit system-wide.
+
+None of the three is exotic, and all three were introduced by writing the same
+unit into a different place. The credential probe measured option A; it did not
+measure shipping option A.
+
+### Measured, with no credential supplied
+
+| | |
+| --- | --- |
+| `confext status` | `/etc  neutrinos-network` |
+| `/etc` entries | 70 |
+| symlinks into factory | 59 |
+| `os-release` readable | `NAME="Fedora Linux"` |
+| `/etc` writability | write refused |
+| replay unit | `Result=success`, stopped cleanly before switch-root |
+| failed units | **0** |
+
+### The cost of naming one fragment: four paths
+
+70 entries, where the full initrd `--create` produced 73 and a boot with no
+confext merged produces 74. The difference is systemd's own `etc.conf` lines for
+`/etc/mtab`, `/etc/pam.d`, `/etc/credstore` and `/etc/credstore.encrypted`: no
+longer applied before the merge, and afterwards `/etc` is read-only and they
+fail.
+
+This is not a defect of the unit. It is the `C`/`L` exception list question --
+which paths must be established before the merge because a running system writes
+them -- and those four are now concrete instances rather than hypotheses. The
+list is this task's carve and is still unruled.
+
+### Fail-closed, but only at one of the two merge points
+
+The drop-in's `Requires=` was measured against a genuinely failing replay, and
+`/etc` was still overmounted by the confext: the *post-switch-root*
+`systemd-confext.service` merged it. That unit has no such dependency and cannot
+acquire one, because the replay unit does not exist after switch-root.
+
+So the guard covers the merge point it names and not the hierarchy. Closing the
+second one is outside this carve; it is recorded so the gap is visible.
+
 ## What this asks the owner for
 
 Questions 1 through 4 were ruled on 2026-08-11 -- collision 1 as A, collision 2
@@ -519,7 +606,9 @@ list left to the drafter. What the measurements then raised:
 
 | # | Question | Blocks |
 | --- | --- | --- |
-| 5 | The initrd replay unit is repository content that changes the **initrd**, which is inside the signed UKI. It is a PLN-0002-05 declaration | **PLN-0002-06**, hard |
+| 5 | The initrd replay unit **is now repository content**, and it changes the initrd, which is inside the signed UKI. The PLN-0002-05 declaration is still owed | **PLN-0002-06**, hard |
+| 5a | Four paths -- `/etc/mtab`, `/etc/pam.d`, `/etc/credstore`, `/etc/credstore.encrypted` -- are no longer established before the merge and now fail against a read-only `/etc`. They are instances of the exception-list question, not a separate one | Nothing yet; `/etc` is 70 entries instead of 74 |
+| 5b | `Requires=` on the replay is fail-closed for the **initrd** merge only. A failing replay still ends with `/etc` overmounted, by the post-switch-root merge | The fail-open pattern, item 7 |
 | 6 | Collision 1's option A -- deeper factory emission -- is ruled but **not implemented**, because this carve does not need it. Implement now, or when the first carve needs it | The next carve, not this one |
 | 7 | **Signature enforcement.** The signed DDI exists and merges, but its signature does not validate and the merge proceeds anyway. Making it real needs a synthetic key enrolled in the disposable VM's own firmware, which the plan permits and nobody has done | PLN-0002-10's confext substitution, which this predicts will pass |
 | 8 | Should the generated fragment skip paths systemd's own `etc.conf` owns | PLN-0002-02, whose defect this is |
@@ -548,8 +637,11 @@ produced: a 246.7M EROFS `neutrinos-usr` partition with a 64M
 is in the manifest**, which is the specific thing task 02 was blocked on. `/etc`
 is empty in the tree and the finalize assertion passed.
 
-What is **not** measured is collision 2. It needs a boot with a confext merged,
-and no confext has been built yet.
+Superseded, and kept because the sequence matters: when this was first written,
+collision 2 was the one thing not measured, because no confext had been built.
+Both have since happened -- the signed DDI exists, and collision 2 was measured
+across four boots with it merged, then a further five while landing the replay
+unit.
 
 A superseded note, kept because it explains the correction above: the first
 version of this document drew its `/etc` inventory from the retained

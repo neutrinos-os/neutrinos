@@ -1,0 +1,56 @@
+#!/bin/sh
+# Pack the NeutrinOS initrd overlay and hand it to mkosi. PLN-0002-03a.
+#
+# The overlay is two files -- the factory replay unit and the drop-in that binds
+# it to the confext merge -- and they have to be in the initrd, which is a
+# separate root from the artifact this script is finalizing.
+#
+# mkosi offers no way to put files in its default initrd. ExtraTrees= is not in
+# the set of settings inherited by the synthesized `default-initrd` image, and
+# the initrd-scoped settings are packages and profiles only. The documented
+# route is $ARTIFACTDIR/io.mkosi.initrd, whose contents mkosi joins onto the
+# initrds "in lexicographical order", and finalize scripts run before
+# install_kernel, so a file written here is picked up by the UKI built from it.
+#
+# `zz-` so the join order is ours-last. Concatenated cpio archives resolve a
+# repeated path in favour of the last one, so this overlay wins if a later
+# upstream initrd ships either path. Nothing currently collides; the prefix is
+# there so that a collision is a silent no-op in the safe direction rather than
+# in the unsafe one.
+#
+# NOTE what this does to the UKI. The initrd is measured and signed as part of
+# the unified kernel image, so these two files are inside the artifact's
+# signature and are release content, not configuration. That is a PLN-0002-05
+# declaration and it is due before PLN-0002-06.
+set -eu
+
+overlay="$SRCDIR/initrd"
+dest="$ARTIFACTDIR/io.mkosi.initrd"
+
+mkdir -p "$dest"
+
+# Deterministic, because the initrd is hashed into the UKI and the UKI's
+# identity is how PLN-0001-07 verifies a reconstruction. cpio records mtimes and
+# ownership from the filesystem, so both are pinned rather than inherited: the
+# checkout's mtimes are whenever git wrote them, and the build runs unprivileged
+# so the recorded uid would otherwise be the invoking user's.
+#
+# Sorted with LC_ALL=C for the same reason mkosi.finalize sets it -- the archive
+# is image content and its member order must not depend on the build host's
+# locale.
+LC_ALL=C
+export LC_ALL
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+cp -a "$overlay/." "$work/"
+find "$work" -exec touch -h -d @"${SOURCE_DATE_EPOCH:-0}" {} +
+
+(
+    cd "$work"
+    find . -mindepth 1 -print | LC_ALL=C sort |
+        cpio --quiet --create --format=newc --owner=0:0 --reproducible
+) >"$dest/zz-neutrinos-etc-factory.cpio"
+
+echo "finalize: initrd overlay packed for $(find "$overlay" -type f | wc -l) files"

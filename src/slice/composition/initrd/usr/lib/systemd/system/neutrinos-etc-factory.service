@@ -1,0 +1,99 @@
+# Replay the release's /etc factory into /sysroot before the confext merge.
+#
+# PLN-0002-03a, collision 2, option A. Owner ruling of 2026-08-11.
+#
+# The artifact carries no /etc: mkosi.finalize moved every release default into
+# /usr/share/factory/neutrinos-etc and emitted tmpfiles lines that replay them.
+# Upstream replays those lines in `systemd-tmpfiles-setup.service`, which is
+# ordered *after* the confext merge -- systemd's model is that /etc is already
+# populated when a confext merges, because on a conventional system it is.
+#
+# Measured, across four boots, what happens when it is not: the merge overmounts
+# an /etc holding 2 entries instead of 74. No /etc/passwd, no /etc/os-release,
+# no /etc/machine-id, no D-Bus, sysusers skipped, 8 failed units -- while
+# systemd-tmpfiles-setup.service reports Result=success having exited 65.
+#
+# The alternative -- reordering the system merge after tmpfiles, option B --
+# was measured too and is not available: it produces an ordering cycle, and
+# systemd breaks the cycle by deleting the merge job. The merge silently does
+# not happen. See docs/project/etc-path-carve.md.
+#
+# So the replay moves into the initrd instead, where /sysroot/etc can be
+# populated before the initrd's own merge unit runs. This is a fixture of the
+# `/usr`-only shape and not a decision about where configuration replay belongs;
+# DES-0005 and DES-0006 own that, and neither has ruled.
+[Unit]
+Description=Replay the /usr factory into /sysroot/etc before the confext merge
+
+# The initrd's early transaction has no use for the default dependency set, and
+# taking it would order this after basic.target -- later than the merge unit it
+# has to precede.
+DefaultDependencies=no
+
+# The factory lives in /usr/share/factory/neutrinos-etc inside the artifact, so
+# there is nothing to replay until the artifact is mounted.
+After=sysroot-usr.mount
+Before=systemd-confext-sysroot.service
+
+# Stop before switch-root, and this is not tidiness. systemd serializes unit
+# state across switch-root and the new systemd deserializes it against the
+# artifact's units -- where this unit does not exist, because it is initrd-only
+# content. A oneshot left active by RemainAfterExit therefore comes back as
+# `not-found failed` on the running machine.
+#
+# Measured 2026-08-11, on the first boot of an artifact carrying this unit
+# rather than a probe credential. The replay itself had already succeeded; the
+# failure was purely the carried-over state.
+#
+# systemd-confext-sysroot.service does not need this because the artifact
+# installs the same unit system-wide, so its fragment is still found after
+# switch-root. Nothing here can rely on that.
+Conflicts=initrd-switch-root.target shutdown.target
+Before=initrd-switch-root.target shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# One fragment, named, and not a bare --create. The scope is deliberate and it
+# was measured the other way first.
+#
+# `systemd-tmpfiles --root=/sysroot --create` applies every fragment in the
+# artifact, and it exits 65/DATAERR here: --root= redirects the filesystem it
+# writes to, but user and group names still resolve through the *running* NSS,
+# which in the initrd is the initrd's. static-nodes-permissions.conf wants
+# `audio`, `disk` and `kvm`, systemd.conf wants `systemd-journal`, var.conf
+# wants `utmp`, and the initrd has none of them. Measured 2026-08-11.
+#
+# Those lines are not this unit's business. The initrd replay exists for exactly
+# one reason -- /etc must be populated before the confext merges over it -- and
+# everything else is correctly owned by systemd-tmpfiles-setup.service after
+# switch-root, where the artifact's own group database is what NSS reads.
+#
+# So the fragment is named. This also fails visibly rather than silently if
+# mkosi.finalize ever renames it, which a bare --create would not.
+#
+# Naming it costs four paths, and the cost is recorded rather than absorbed.
+# /etc reaches userspace with 70 entries where a full initrd --create produced
+# 73, because systemd's own /usr/lib/tmpfiles.d/etc.conf lines for /etc/mtab,
+# /etc/pam.d, /etc/credstore and /etc/credstore.encrypted are no longer applied
+# before the merge, and afterwards /etc is read-only and they fail. A boot with
+# no confext merged applies all of them and reaches 74.
+#
+# That is not a defect of this unit. It is the same open question as the `C`/`L`
+# exception list: which paths must be established before the merge because a
+# running system writes them. Those four are now concrete instances of it rather
+# than hypotheses, and the list is PLN-0002-03a's carve and still unruled.
+#
+# A partial failure of *this* fragment is left as a failure, deliberately. The
+# drop-in that pulls this unit in uses Requires=, so a partial replay stops the
+# merge rather than letting it overmount a half-populated /etc -- which is the
+# exact failure this unit exists to prevent, and which reported success when it
+# happened. That is a drafter's choice and not a ruling; it is the fail-closed
+# option, and this plan has now measured several mechanisms that failed open.
+# The fragment path is /sysroot-prefixed and --root= is *not* applied to it.
+# --root= redirects the files tmpfiles writes; a positional config path is read
+# by the running process from the running root. Measured 2026-08-11: with the
+# unprefixed path this fails `No such file or directory` and /etc reaches the
+# merge with 7 entries.
+ExecStart=/usr/bin/systemd-tmpfiles --root=/sysroot --create /sysroot/usr/lib/tmpfiles.d/00-neutrinos-factory-etc.conf

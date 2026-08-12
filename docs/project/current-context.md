@@ -1124,12 +1124,37 @@ adopted and measured.
 `slice_boot.py` does not pin it. It does, and has since `b9d8c5b` -- the commit
 that registered `T4-SLICE-001`. So `T4-SLICE-001` was never reading a stream
 that goes quiet, and this is **not** a third reason `check:complete` cannot
-gate. Two remain, both unowned: the overlay-attribution gap and the runner
-reachability problem. The finding itself stands for any *new* probe, which is
+gate. The finding itself stands for any *new* probe, which is
 why `vm.boot` pins the console unconditionally -- but `slice_boot.py` builds its
 own QEMU command line rather than calling `vm.boot`, so its pin is a second copy
 of the rule rather than an inherited guarantee, and that duplication is real and
 open.
+
+**`check:complete` is green and can act as a gate, 2026-08-12**: 13 passing, 0
+failing, 0 blocked, the first fully green complete run. All three recorded
+reasons it could not are closed.
+
+- **Overlay attribution** was a real gap, now fixed. Attribution knew only
+  about the declared repository, so the six declared systemd 261 overlay
+  packages reported as discrepancies. It now attributes them by declared file
+  name -- built from the manifest's separate fields, never parsed back out of
+  one -- names them in the report, and asserts the converse, since a declared
+  overlay package absent from the closure means the build resolved it
+  elsewhere.
+- **Runner reachability was never a mechanism gap.** `mise run --allow-env=`
+  passes a declaration through `sandbox.deny_env`, and
+  [validation](validation.md) already documented it. What was wrong is that it
+  named one variable where three are needed; that section now names all three.
+  Recorded here because the earlier entry asserted no allowlist existed, on the
+  strength of `mise settings ls --all` showing only `deny_*` booleans -- one
+  surface generalised to another, without reading this project's own doc.
+- **Console pinning** was never real; see the correction above.
+
+Two defects surfaced on the first run that `check:fast` structurally could not
+see, both in `tools/validation/`: the migration to `vm.py` deleted a symbol
+`check.py` imports, and `T5-VAL-001` cleared two of the three optional fixture
+declarations. `AGENTS.md` now requires `check:complete` for edits under
+`tools/validation/`.
 
 **A consolidated VM harness exists, `tools/validation/vm.py`**, and both Python
 boot paths are migrated onto it. It exists because four lessons this project had already paid for

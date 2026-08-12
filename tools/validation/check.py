@@ -1264,7 +1264,7 @@ def capability_secure_boot_firmware() -> str | None:
     """
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
-    from tools.validation.confext_policy import SECBOOT_CODE_CANDIDATES
+    from tools.validation.vm import SECBOOT_CODE_CANDIDATES
 
     if not any(Path(candidate).is_file() for candidate in SECBOOT_CODE_CANDIDATES):
         return "no Secure Boot OVMF build found at any known path"

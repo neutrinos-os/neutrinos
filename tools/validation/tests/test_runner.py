@@ -240,11 +240,14 @@ def test_child_environment_is_allowlisted(monkeypatch: pytest.MonkeyPatch) -> No
     home = Path("/synthetic/home")
     cache = Path("/synthetic/cache")
     canary = check.make_synthetic_canary()
-    # The slice artifact and retained repository declarations are optional and
-    # must reach the child only when the operator set them, so the closed set
-    # below is the unset case.
+    # Every optional fixture declaration must reach the child only when the
+    # operator set one, so the closed set below is the unset case. All three are
+    # cleared: the confext one was missed when it was added, and went unnoticed
+    # because `sandbox.deny_env` meant it was never set in the first place.
+    # Once declarations could arrive from a file it was, and this failed.
     monkeypatch.delenv(check.SLICE_ARTIFACT_ENV, raising=False)
     monkeypatch.delenv(check.SLICE_REPOSITORY_ENV, raising=False)
+    monkeypatch.delenv(check.CONFEXT_FIXTURE_ENV, raising=False)
     environment = check.child_environment(home, cache, canary)
     assert set(environment) == {
         "GIT_CONFIG_GLOBAL",

@@ -226,7 +226,19 @@ def check_repository_attribution() -> int:
             f"declaration names {repository['url']!r}"
         )
 
+    # The closure has two declared sources: the repository, and an overlay
+    # supplying systemd 261 because C-013 needs it and Fedora 44 ships 259.x.
+    # Keyed by file name, matched against one built from the manifest's separate
+    # fields -- never parsed back out of one, since only the last two hyphens of
+    # `name-version-release.arch` are separators and the name may contain more.
+    overlay_published: dict[str, str] = {
+        member["name"]: overlay["name"]
+        for overlay in declared["packages"].get("overlays", [])
+        for member in overlay["files"]
+    }
+
     unattributed: list[str] = []
+    overlay_attributed: dict[str, str] = {}
     attributed = 0
     for package in manifest.get("packages", []):
         # `gpg-pubkey` is a key in the RPM database, not a build from a
@@ -236,15 +248,28 @@ def check_repository_attribution() -> int:
         version = str(package.get("version"))
         epoch, _, evr = version.rpartition(":") if ":" in version else ("0", "", version)
         nevra = f"{package['name']}-{epoch or '0'}:{evr}.{package['architecture']}"
+        filename = f"{package['name']}-{evr}.{package['architecture']}.rpm"
         if nevra in published:
             attributed += 1
+        elif filename in overlay_published:
+            overlay_attributed[filename] = overlay_published[filename]
         else:
             unattributed.append(nevra)
 
     if unattributed:
         failures.append(
-            "packages in the shipped closure are not published by the declared "
-            "repository:\n  " + "\n  ".join(sorted(unattributed))
+            "packages in the shipped closure are published by neither the "
+            "declared repository nor a declared overlay:\n  "
+            + "\n  ".join(sorted(unattributed))
+        )
+
+    # The converse: a declared overlay package that ships nothing means the
+    # build resolved it elsewhere, which is what this check exists to catch.
+    unshipped = sorted(set(overlay_published) - set(overlay_attributed))
+    if unshipped:
+        failures.append(
+            "declared overlay packages are absent from the shipped closure:\n  "
+            + "\n  ".join(unshipped)
         )
 
     if failures:
@@ -263,6 +288,9 @@ def check_repository_attribution() -> int:
                 # NEVRA, which would need per-package checksums the manifest
                 # does not carry.
                 "attribution_basis": "exact NEVRA in the declared repository's primary index",
+                # Named, not counted: these are the packages that do not come
+                # from the distribution.
+                "overlay_attributed": dict(sorted(overlay_attributed.items())),
                 "published_packages": len(published),
                 "repository_metadata_sha256": metadata_digest,
                 "result": "passing",

@@ -150,12 +150,24 @@ the GPT rather than assumed.
 Composition needs the network, and canonical validation is offline, so the
 artifact is an operator-declared input:
 
+There are three such declarations, and `sandbox.deny_env` means each must be
+passed through explicitly -- it strips everything otherwise, including mise's
+own `[env]`. A complete run with every fixture available therefore needs all
+three named, which is what an earlier reading of this section missed by naming
+only the first:
+
 ```sh
 export NEUTRINOS_SLICE_ARTIFACT_DIR=/path/to/mkosi/output
-mise run --allow-env=NEUTRINOS_SLICE_ARTIFACT_DIR check:complete
+export NEUTRINOS_SLICE_REPOSITORY_DIR=/path/to/retained/repository
+export NEUTRINOS_CONFEXT_FIXTURE_DIR=/path/to/confext/fixture
+mise run \
+  --allow-env=NEUTRINOS_SLICE_ARTIFACT_DIR \
+  --allow-env=NEUTRINOS_SLICE_REPOSITORY_DIR \
+  --allow-env=NEUTRINOS_CONFEXT_FIXTURE_DIR \
+  check:complete
 ```
 
-**Without it, `check:complete` fails with `blocked=1`.** That is deliberate and
+**Without them, `check:complete` fails with `blocked=1` or more.** That is deliberate and
 follows the contract: a required test that cannot run is blocked, not skipped,
 and blocked fails the profile. A complete run that reported green while
 silently omitting its artifact evidence would be worse than one that fails.

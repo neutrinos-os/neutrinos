@@ -53,6 +53,10 @@
 - After edits: `mise run check:fast`; run additional checks required by the
   governing plan. Bootstrap/details: [validation](docs/project/validation.md).
   Report checks run/not run.
+- Editing `tools/validation/`: `mise run check:complete`, not `check:fast`.
+  Every VM and fixture check is `complete`-only, so `fast` cannot see the code
+  being changed. Do not edit the tree while it runs; it asserts repository
+  state is unchanged.
 - Small coherent commits; only after user approval/request; no unrelated work.
 - Update source + affected indexes/context/work register together when their
   declared triggers fire.

@@ -1339,6 +1339,30 @@ through 10. The subject is coupled to question 9's tools-tree consolidation,
 since one build root cannot disagree with itself; the completed spike's script
 is not retro-edited to reach it, being the recorded apparatus of RES-0013.
 
+**Question 9 is implemented and confirmed 2026-08-12.** `spike.sh` no longer
+builds its own tools tree; it takes the slice's, as it already did the mkosi
+checkout, and the duplicate tree is deleted. Two guards were required because
+this edits the apparatus of a completed spike. First the trees were measured
+directly and found identical -- 16293 identical entries, 234 identical package
+NEVRAs, nine differing files all nondeterministic build metadata. Then the
+artifact was rebuilt through the slice tree: `/usr`, the verity tree, the verity
+signature, the root hash, the UKI, the initrd and the manifest are **all
+byte-identical** to the retained artifact, so RES-0013's evidence is unchanged
+rather than assumed unchanged. The retained artifact was never overwritten.
+
+**The ESP is not reproducible, and this is a PLN-0002-07 finding rather than a
+question 9 one.** The ESP and the whole-disk image differ across rebuilds, by
+between two and seven bytes of FAT directory-entry timestamps in a 512 MiB
+filesystem. A control -- the same script run twice -- differs the same way, which
+is what attributes it to the build rather than to the tools tree. So
+`SourceDateEpoch=0` is not reaching `mkfs.fat`, and **build determinism, one of
+C-007's eight criteria, cannot be measured as a single yes/no on the disk
+image**: the authenticated payload reproduces exactly and the ESP never will
+until the FAT timestamps are pinned. Task 07 must state it per output or fix the
+epoch first. Measured on the spike; the slice composition shares
+`SourceDateEpoch=0` and a vfat ESP, so it is expected to inherit the same
+property and has not been measured.
+
 **Questions 8 and 9 must not share a rebuild.** Question 9's evidence is that the
 artifact comes out byte-identical, which is the whole proof that consolidating
 changed nothing; question 8's evidence is that the `/etc` entry and

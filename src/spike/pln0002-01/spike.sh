@@ -4,13 +4,15 @@
 # Same boundary as src/slice/compose.sh: no host mutation, no root, nothing
 # written inside the checkout.
 #
-# It builds its own tools tree rather than reusing the slice's. The slice's is a
-# declared input of PLN-0001, pinned in src/slice/input-set.toml, and injecting
-# a package overlay needs createrepo_c, which that recipe does not contain.
-# Adding it there would edit a completed plan's declared inputs to satisfy this
-# one. So the recipe is copied, createrepo_c is added, and the two trees stay
-# separate. The package cache is still shared: it is content-addressed by the
-# frozen repository and holds no decision.
+# It reuses the slice's tools tree. It did not always: the slice's is a declared
+# input of PLN-0001, injecting a package overlay needs createrepo_c, and adding
+# it to that declaration would have edited a completed plan's declared inputs to
+# satisfy this one -- so the recipe was copied instead and the trees stayed
+# separate. PLN-0002-02 then added createrepo_c to the declaration on its own
+# merits, with its reason recorded in src/slice/input-set.toml, which spent the
+# argument for a copy. See the tools-tree block below. The package cache was
+# always shared: it is content-addressed by the frozen repository and holds no
+# decision.
 #
 # What this adds over the slice is the systemd overlay. Fedora 44 ships
 # systemd 259.5 and stays on the 259.x series, so the declared closure has no
@@ -39,33 +41,30 @@ keys_dir="$build_root/keys"
 # run with nothing to compare against.
 out_dir=${NEUTRINOS_SPIKE_OUT:-$build_root/out}
 
-if [ ! -d "$slice_root/mkosi" ]; then
-    echo "spike: no mkosi checkout at $slice_root/mkosi; run src/slice/compose.sh first" >&2
-    exit 1
-fi
-
-# The slice's tools-tree recipe verbatim, plus createrepo_c. mkosi needs it to
-# turn --package-directory into a local repository, and without it the build
-# stops after syncing metadata with "createrepo_c not found."
-tools_image=registry.fedoraproject.org/fedora@sha256:93f227979b6ef8395cde2a38dee260ef4cbecaab7668ee45d97960aba910e918
-repository_url=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os
-tools_packages="distribution-gpg-keys cpio systemd systemd-ukify systemd-boot
-                dosfstools mtools e2fsprogs erofs-utils btrfs-progs
-                squashfs-tools tar zstd xz python3 createrepo_c"
-
-if [ ! -d "$build_root/tools" ]; then
-    mkdir -p "$build_root"
-    # shellcheck disable=SC2086 -- word splitting of the package list is intended
-    container=$(podman create --net=host "$tools_image" \
-        dnf5 -y --repofrompath="pin,$repository_url" --repo=pin --nogpgcheck \
-        install $tools_packages)
-    podman start --attach "$container" >"$build_root/tools-build.log" 2>&1
-    podman export "$container" >"$build_root/tools.tar"
-    podman rm --force "$container" >/dev/null
-    mkdir -p "$build_root/tools"
-    tar -C "$build_root/tools" -xf "$build_root/tools.tar"
-    touch "$build_root/tools/etc/resolv.conf"
-fi
+# Both the mkosi checkout and the tools tree come from the slice build root.
+#
+# This script used to build its own tools tree from a recipe it described as
+# "the slice's recipe verbatim, plus createrepo_c". PLN-0002-02 added
+# createrepo_c to the slice recipe, which removed the only stated difference,
+# and the two were measured identical on 2026-08-12: the same 16293 entries,
+# the same 234 package NEVRAs, and nine differing files that are all
+# nondeterministic build metadata -- machine-id, the rpm and dnf databases,
+# ldconfig's cache, the random seed, and a log. So two trees were duplication
+# rather than independence. Owner ruling of 2026-08-12, question 9.
+#
+# Editing the apparatus of a completed spike is otherwise something this
+# project does not do, and the guard that makes it admissible here is the one
+# the ruling asked for: the artifact rebuilt through the slice tree is
+# byte-identical to the retained one, so the recorded evidence is unchanged
+# rather than assumed unchanged.
+for required in mkosi tools; do
+    if [ ! -d "$slice_root/$required" ]; then
+        echo "spike: no $required at $slice_root/$required;" \
+             "run src/slice/compose.sh first" >&2
+        exit 1
+    fi
+done
+tools_tree="$slice_root/tools"
 
 mkdir -p "$overlay_dir" "$keys_dir" "$out_dir"
 
@@ -108,7 +107,7 @@ fi
 
 cd "$root"
 PYTHONPATH="$slice_root/mkosi" python3 -m mkosi \
-    --tools-tree="$build_root/tools" \
+    --tools-tree="$tools_tree" \
     --package-cache-directory="$slice_root/pkgcache" \
     --package-directory="$overlay_dir" \
     --secure-boot-key="$keys_dir/secureboot.key" \

@@ -59,6 +59,30 @@ if [ ! -f "$keys_dir/verity.crt" ]; then
         -keyout "$keys_dir/verity.key" -out "$keys_dir/verity.crt"
 fi
 
+# The second key: valid material, wrong signer. PLN-0002-10 must distinguish a
+# substitution failure from a signature failure, and it cannot do that with only
+# one key -- a rejection could mean "this is not the artifact" or "this signature
+# does not verify" and the test would not say which. So this one is generated in
+# the same shape as the first and enrolled in nothing.
+#
+# It exists from now rather than from task 10 because both keys have to predate
+# the artifacts they sign, and because a key introduced later is a parameter
+# introduced later. Owner ruling 2026-08-11.
+if [ ! -f "$keys_dir/verity-wrong.crt" ]; then
+    openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
+        -subj "/CN=NeutrinOS slice verity, synthetic, unenrolled/" \
+        -keyout "$keys_dir/verity-wrong.key" -out "$keys_dir/verity-wrong.crt"
+fi
+
+# DER for firmware. UEFI db takes DER, openssl emitted PEM, and the enrollment
+# path is the one place the distinction bites. Both are converted so that the
+# negative case is enrollable too if task 10 ever needs it to be.
+for k in verity verity-wrong; do
+    if [ ! -f "$keys_dir/$k.der" ]; then
+        openssl x509 -outform DER -in "$keys_dir/$k.crt" -out "$keys_dir/$k.der"
+    fi
+done
+
 if [ ! -d "$build_root/mkosi" ]; then
     git clone --quiet --filter=blob:none "$mkosi_repository" "$build_root/mkosi"
 fi

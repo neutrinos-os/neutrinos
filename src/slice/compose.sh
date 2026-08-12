@@ -14,6 +14,41 @@ set -eu
 root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 build_root=${NEUTRINOS_SLICE_BUILD_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/neutrinos/slice}
 
+# The arm under test: the value of Format= on the /usr partition, which is the
+# one variable PLN-0002 exists to measure. Everything else about the two arms is
+# held identical by construction -- same tools tree, same package closure, same
+# initrd, same verity pairing, same signing material -- so that a difference in
+# any C-007 criterion is attributable to the filesystem and not to the build.
+#
+# Selected here rather than by editing a file, because editing a file to switch
+# arms means the arm is whatever the working tree happened to say at build time
+# and no artifact can be traced back to a declared value.
+#
+# Only the arm directory is passed below. The shared composition/mkosi.repart/
+# is picked up by mkosi's own path suffix and the CLI value **appends** to it --
+# verified against `mkosi summary`, which reported both directories, and not
+# assumed. Passing the shared one explicitly as well listed it twice and would
+# have handed systemd-repart the same --definitions path twice.
+arm=${NEUTRINOS_SLICE_ARM:-erofs}
+
+if [ ! -d "$root/composition/mkosi.repart.$arm" ]; then
+    echo "compose: no arm '$arm'; expected a partition definition directory at" \
+         "$root/composition/mkosi.repart.$arm" >&2
+    exit 1
+fi
+
+# The EROFS arm keeps the historic output path and the ext4 arm gets its own,
+# and that asymmetry is deliberate and temporary. `out` is what every registered
+# check reads through NEUTRINOS_SLICE_ARTIFACT and what the recorded artifact
+# digests refer to; renaming it to `out-erofs` now would invalidate those
+# records to buy a symmetry that nothing yet consumes. PLN-0002-06 builds all
+# four artifacts as first-class peers and is where the naming should become
+# symmetric.
+out_dir="$build_root/out"
+if [ "$arm" != erofs ]; then
+    out_dir="$build_root/out-$arm"
+fi
+
 # Declared inputs. These duplicate input-set.toml deliberately: a shell script
 # cannot validate TOML without adding a dependency this slice has not declared,
 # so the values are repeated and PLN-0001-05 registers the check that they
@@ -211,8 +246,9 @@ PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
     --package-cache-directory="$build_root/pkgcache" \
     --package-directory="$overlay_dir/systemd-261" \
     --extra-tree="$confext_staging" \
-    --output-directory="$build_root/out" \
-    --initrd="$build_root/out/initrd" \
+    --repart-directory="$root/composition/mkosi.repart.$arm" \
+    --output-directory="$out_dir" \
+    --initrd="$out_dir/initrd" \
     "$@"
 
 # Publish the verity signer beside the artifact, every run, whether or not mkosi
@@ -227,7 +263,7 @@ PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
 # artifact does not, and T3-SLICE-003 fails because the bytes it searches for
 # are no longer inside the image.
 if [ -f "$keys_dir/verity.crt" ]; then
-    cp "$keys_dir/verity.crt" "$build_root/out/neutrinos-slice.verity.crt"
+    cp "$keys_dir/verity.crt" "$out_dir/neutrinos-slice.verity.crt"
 fi
 
 # Retention is a build step, not something to remember afterwards. Without it
@@ -240,7 +276,7 @@ fi
 # It runs only when a build produced an image: `mkosi clean`, `--help`, and the
 # other verbs have nothing to retain, and fetching metadata for them would put
 # a network dependency on operations that have none.
-if [ -f "$build_root/out/neutrinos-slice.manifest" ]; then
+if [ -f "$out_dir/neutrinos-slice.manifest" ]; then
     python3 "$root/retain-repository.py" \
         --repository="$repository_url" \
         --cache="$build_root/pkgcache" \
@@ -266,7 +302,7 @@ fi
 # Saying so loudly is the point. The fixture's absence is not swallowed: it
 # **blocks** T4-CONFEXT-001, which is the same signal in the place that reads
 # it.
-if [ -f "$build_root/out/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
+if [ -f "$out_dir/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
     if [ -f "$keys_dir/secureboot.crt" ]; then
         sh "$root/enroll-fixture.sh"
         cp "$confext_out/neutrinos-network.raw" "$build_root/fixture/confext-enrolled.raw"

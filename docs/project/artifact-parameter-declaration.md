@@ -219,9 +219,25 @@ bit-reproducible disk image.
 | `mkfs.fat` options | **`--invariant -i 4E455554`** | Ruled 2026-08-12 |
 | `Minimize=` | **`guess`**, both arms | Ruled 2026-08-12; see below |
 
-**The disk image is now bit-identical across rebuilds.** Measured 2026-08-12:
-two full EROFS-arm builds produced the same SHA-256 and zero differing bytes.
-Before this ruling they differed by 2.
+**The disk image is bit-identical across rebuilds, including a rebuilt
+confext.** Measured 2026-08-14: two full EROFS-arm builds produced the same
+SHA-256 and zero differing bytes.
+
+The 2026-08-12 measurement recorded here previously said the same thing and was
+narrower than its claim. Its two builds differed by 2 bytes before the ESP
+ruling and 0 after, and 2 bytes is only reachable with the confext **not**
+rebuilt -- `compose.sh`'s `NEUTRINOS_SKIP_CONFEXT` guard reuses a previously
+built one. The confext had no `Seed=`, so systemd-repart randomised its
+partition UUIDs, filesystem UUID and verity salt on every build; the salt moves
+the root hash, the root hash moves the signature, and the image changed by 607
+bytes. `compose.sh` copies it into `/usr/lib/confexts`, so `/usr` changed by
+1497 bytes and the artifact with it. A missing seed on a 1 MiB extension was the
+larger of the two defects standing between this build and reproducibility, and
+this section previously attributed all of it to the FAT volume label.
+
+Fixed by `Seed=` on the confext, owner ruling of 2026-08-14, reusing the
+composition's seed. **Any determinism evidence for this slice must state whether
+the confext was rebuilt**, or it does not mean what it says.
 
 Those 2 bytes were the creation time and write time of the FAT volume-label
 directory entry, stamped by `mkfs.fat` from the wall clock. The mechanism was

@@ -243,6 +243,7 @@ def boot(
     extra_disks: Sequence[Path] = (),
     tpm_socket: Path | None = None,
     persist_store: bool = False,
+    cmdline_extra: Sequence[str] = (),
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
 ) -> str:
     """Boot one disposable guest. Returns the console text, control stripped.
@@ -266,6 +267,11 @@ def boot(
     store, and is named so that keeping the writes is the deliberate act.
 
     The console pin comes from `smbios_args`, which is where that rule lives.
+    `cmdline_extra` rides the same mechanism and carries the same caveat: it is
+    supplied by the host and appended by systemd-stub, so it changes no byte of
+    the artifact and is **not** covered by the UKI's signature. That makes it the
+    right tool for measuring what a command-line option does and the wrong one
+    for shipping a declared value, which has to be built into the UKI.
     """
     code, _ = firmware_pair(secure_boot=secure_boot)
     work.mkdir(parents=True, exist_ok=True)
@@ -292,7 +298,7 @@ def boot(
             "-tpmdev", "emulator,id=tpm0,chardev=chrtpm",
             "-device", "tpm-tis,tpmdev=tpm0",
         ]
-    command += smbios_args(credentials, credential_files)
+    command += smbios_args(credentials, credential_files, cmdline_extra)
     command += ["-serial", "mon:stdio"]
 
     with console.open("wb") as stream:

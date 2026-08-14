@@ -1469,6 +1469,56 @@ Measured twice on 2026-08-12, and **misattributed once to an edit made during
 the run** -- the `AGENTS.md` rule written from that misattribution kept its
 advice, which is independently sound, and lost the false cause.
 
+**PLN-0002-06 is under way, 2026-08-14. 06a and 06b are complete.** The artifact
+carries a detached `usr-verity-sig` partition and a UKI signed by a third
+synthetic subject, `CN=NeutrinOS image, synthetic`, kept distinct from the two
+verity signers because `T4-CONFEXT-001`'s whole content is which signer `db`
+holds. `systemd.image_policy=usr=signed`, ruled 2026-08-12, is now embedded in
+the UKI rather than appended, and both enrollment arms boot from
+`/dev/mapper/usr` with no policy complaint.
+
+**What that policy asserts is narrower than the accepted declaration said, and
+the declaration is corrected rather than extended.** It was recorded as the
+mechanism that makes tasks 09 and 10 fail closed. It is not. `usr=signed` is a
+*structural* predicate: `dissect-image.c` sets the SIGNED flag when the
+signature partition is **found**, with no verification and no keyring, so the
+enrolled and unenrolled arms both satisfy it. It is evaluated by
+`systemd-gpt-auto-generator` at ~5.25s in the real root, after the initrd
+mounted `/usr` at ~2.4s, and a generator's non-zero exit is non-fatal. Naming
+`usr-verity=` or `usr-verity-sig=` would make it worse, not better: `signed` is
+a flag of the data partition, sets no flags on a verity partition, and
+`systemd.image-policy(7)` says no flags implies `open`, which permits absent.
+
+**The sixth instance of this plan's silent-success pattern is upstream and by
+design, and it is recorded as an open question under `S-005` rather than
+answered.** An untrusted `/usr` verity signer does not stop the boot. The kernel
+does refuse it -- `Required key not available` -- but `systemd-veritysetup`
+retries without the signature, succeeds, and reports the unit Finished
+(`veritysetup.c:437-443`, unconditional). The outcome is not discarded, it is
+measured: `signed_activation` feeds `pcrextend_verity_now()`, so signed and
+unsigned activations extend different PCRs. Upstream's enforcement point is the
+**unseal**, not the mount, which is TPM policy and out of this plan's scope.
+
+**Build determinism was reopened and is now closed properly, 2026-08-14.** The
+2026-08-12 closure recorded a claim broader than its measurement. The confext
+had `SourceDateEpoch=` but no `Seed=`, so systemd-repart randomised its
+partition UUIDs, filesystem UUID and verity salt every build; the salt moves the
+root hash, the root hash moves the signature, and `compose.sh` copies that image
+into `/usr/lib/confexts` inside the authenticated artifact. The 2-byte delta the
+old record cites is only reachable with the confext **not** rebuilt, which
+`NEUTRINOS_SKIP_CONFEXT` does. Fixed by reusing the composition's seed, owner
+ruling 2026-08-14, and verified with the confext rebuilt. **Any determinism
+evidence for this slice must state whether the confext was rebuilt.**
+
+**mkosi is repinned to `d5ff0d0`, 2026-08-11, contemporaneous with the declared
+systemd snapshot `g827144298` of the same day.** The old pin was the v26 tag of
+2025-12-17, so an eight-month-old mkosi was building a current-main systemd from
+the OBS `system:systemd` project. The pin did not cause the determinism defect;
+that was ruled out by building the pair at both pins.
+
+**Next action: PLN-0002-06c and 06d** -- build the six declared artifacts, then
+retain their digests and retire the `out`/`out-ext4` asymmetry.
+
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not
 open either for a cold status report.

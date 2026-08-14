@@ -54,7 +54,9 @@ fi
 # so the values are repeated and PLN-0001-05 registers the check that they
 # agree. Until then a drift between the two is possible and unguarded.
 mkosi_repository=https://github.com/systemd/mkosi
-mkosi_commit=84af20892b61c8e177e391f997ded8b4cb5514f2
+# Paired with the systemd-261 OBS overlay in input-set.toml: both are the
+# 2026-08-11 snapshot, twenty minutes apart. They move together or not at all.
+mkosi_commit=d5ff0d0d9884cc4e06900057e2ad44adee29cb8e
 tools_image=registry.fedoraproject.org/fedora@sha256:93f227979b6ef8395cde2a38dee260ef4cbecaab7668ee45d97960aba910e918
 repository_url=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os
 

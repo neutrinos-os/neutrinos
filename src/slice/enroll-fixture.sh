@@ -39,8 +39,14 @@ image_cert=${NEUTRINOS_ENROLL_IMAGE_CERT:-$keys_dir/secureboot.crt}
 [ -f "$image_cert" ] || {
     echo "enroll-fixture: no image-signing certificate at $image_cert;" \
          "db without it produces an unbootable machine" >&2; exit 1; }
-[ -f "$keys_dir/verity.crt" ] || {
-    echo "enroll-fixture: no verity certificate at $keys_dir/verity.crt;" \
+# Which verity signer db carries. Overridable so the same enrollment can build
+# the negative fixture -- a machine whose db trusts a *different* verity
+# authority -- without a second script that would drift from this one. The
+# default is the enrolled signer; PLN-0002-06's image-policy matrix passes
+# verity-wrong.crt to get the other arm.
+verity_cert=${NEUTRINOS_ENROLL_VERITY_CERT:-$keys_dir/verity.crt}
+[ -f "$verity_cert" ] || {
+    echo "enroll-fixture: no verity certificate at $verity_cert;" \
          "compose.sh generates it" >&2; exit 1; }
 
 for tool in sbsiglist sbvarsign mcopy sfdisk; do
@@ -80,14 +86,16 @@ fi
 # absent rather than depending on the order the two scripts ran in: a fixture
 # that silently skips enrollment because one file was missing would produce a
 # machine that trusts nothing and a check that fails for the wrong reason.
-[ -f "$keys_dir/verity.der" ] || openssl x509 -outform DER \
-    -in "$keys_dir/verity.crt" -out "$keys_dir/verity.der"
+# Derived beside the fixture rather than in the keys directory, because the
+# certificate is now a parameter: writing verity-wrong's DER to verity.der would
+# corrupt the shared keys directory for every later run.
+openssl x509 -outform DER -in "$verity_cert" -out "$fixture_dir/verity.der"
 
 [ -f "$keys_dir/secureboot.der" ] || openssl x509 -outform DER \
     -in "$image_cert" -out "$keys_dir/secureboot.der"
 
 sbsiglist --owner "$owner" --type x509 \
-    --output "$fixture_dir/verity.esl" "$keys_dir/verity.der"
+    --output "$fixture_dir/verity.esl" "$fixture_dir/verity.der"
 sbsiglist --owner "$owner" --type x509 \
     --output "$fixture_dir/image.esl" "$keys_dir/secureboot.der"
 # A signature list is a concatenation of lists, so db is built by appending

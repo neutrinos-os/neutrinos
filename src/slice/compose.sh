@@ -134,10 +134,34 @@ if [ ! -f "$keys_dir/verity-wrong.crt" ]; then
         -keyout "$keys_dir/verity-wrong.key" -out "$keys_dir/verity-wrong.crt"
 fi
 
+# The image signer. PLN-0002-06, and the third of the three subjects the
+# declaration's signing-material table keeps distinct.
+#
+# Distinct is load-bearing rather than tidy. T4-CONFEXT-001's entire content is
+# which signer the disposable VM's `db` holds; if the image signer and the
+# verity signer shared a subject, enrolling one would enroll the other and the
+# measurement would stop discriminating. The same applies to the unenrolled
+# verity key above.
+#
+# This is what `SecureBoot=` in the composition signs the UKI with, and it is
+# also the certificate compose.sh has been reporting as absent every run since
+# T4-CONFEXT-001 was registered: the slice-side fixture could not be built
+# without it, so that check has been running against the PLN-0002-01 spike's
+# artifact. From here it can be built against the slice's own.
+#
+# Synthetic, generated into the build root, never enrolled outside a disposable
+# VM, destroyed with the build root. PLN-0002's boundary forbids production
+# signing material and this needs none.
+if [ ! -f "$keys_dir/secureboot.crt" ]; then
+    openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
+        -subj "/CN=NeutrinOS image, synthetic/" \
+        -keyout "$keys_dir/secureboot.key" -out "$keys_dir/secureboot.crt"
+fi
+
 # DER for firmware. UEFI db takes DER, openssl emitted PEM, and the enrollment
-# path is the one place the distinction bites. Both are converted so that the
-# negative case is enrollable too if task 10 ever needs it to be.
-for k in verity verity-wrong; do
+# path is the one place the distinction bites. All three are converted so that
+# the negative cases are enrollable too if task 10 needs them to be.
+for k in verity verity-wrong secureboot; do
     if [ ! -f "$keys_dir/$k.der" ]; then
         openssl x509 -outform DER -in "$keys_dir/$k.crt" -out "$keys_dir/$k.der"
     fi
@@ -249,6 +273,10 @@ PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
     --repart-directory="$root/composition/mkosi.repart.$arm" \
     --output-directory="$out_dir" \
     --initrd="$out_dir/initrd" \
+    --secure-boot-key="$keys_dir/secureboot.key" \
+    --secure-boot-certificate="$keys_dir/secureboot.crt" \
+    --verity-key="$keys_dir/verity.key" \
+    --verity-certificate="$keys_dir/verity.crt" \
     "$@"
 
 # Publish the verity signer beside the artifact, every run, whether or not mkosi

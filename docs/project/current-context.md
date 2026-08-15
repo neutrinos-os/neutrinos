@@ -1,7 +1,7 @@
 ---
 status: informative
-last_updated: 2026-08-14
-source_snapshot_revision: 4d38c73
+last_updated: 2026-08-15
+source_snapshot_revision: 07a387f
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
@@ -76,7 +76,7 @@ authority.
 
 ## PLN-0002 task state
 
-Authority is the plan's task table. Summary as of 2026-08-14:
+Authority is the plan's task table. Summary as of 2026-08-15:
 
 | Task | State |
 | --- | --- |
@@ -87,7 +87,8 @@ Authority is the plan's task table. Summary as of 2026-08-14:
 | 04 disposable layout | **partial**; the confext partition is deliberately not placed, pending 03b |
 | 05 parameter declaration | **accepted 2026-08-12** of a stated incomplete state; implemented in the composition and **audited against the built artifacts 2026-08-14**, which took three corrections; both of its open parameters were ruled the same day ([declaration](artifact-parameter-declaration.md)) |
 | 06 six authenticated artifacts | **complete**, accepted 2026-08-14: six artifacts from one tree state, digests retained, command line uniform across the set, determinism re-measured with the confext rebuilt ([artifact set](usr-artifact-set.md)). The verity signature partition, a UKI signed by `CN=NeutrinOS image, synthetic`, and `systemd.image_policy=usr=signed` in the UKI landed earlier the same day |
-| 07-09, 11-14 | pending |
+| 07 offline measurements | **complete and accepted 2026-08-15**: five of C-007's eight criteria measured over the six artifacts ([measurements](artifact-format-measurements.md)). No recommendation; the five do not agree |
+| 08-09, 11-14 | pending |
 | 10 negative evidence | **started out of order** on an owner ruling; one cell covered by `T4-CONFEXT-001` (confext substitution, signature dimension only) |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
@@ -95,12 +96,15 @@ labels were an agent decomposition and are retracted.
 
 ## Standing findings that govern current work
 
-- **This plan's mechanisms fail open silently.** Six observed instances: lazy
+- **This plan's mechanisms fail open silently.** Seven observed instances: lazy
   dm-verity booted a corrupt `/usr` normally; a refused confext reported
   `Finished` and left the machine unconfigured; an unenrolled confext signer
   merged anyway; the initrd replay's fail-closed guard covers the initrd merge
   only; a regenerated key sat beside an unrebuilt artifact; and an untrusted
-  `/usr` verity signer does not stop the boot. **A successful boot is therefore
+  `/usr` verity signer does not stop the boot; and `fsck.erofs
+  --extract=X --path=<file>` reports success and writes nothing, the first
+  instance that is a measurement hazard rather than a boot one. **A successful
+  boot is therefore
   not a statement about the artifact**, which is why tasks 09 and 10 carry the
   plan's weight rather than the positive boots.
 - **`systemd.image_policy=usr=signed` is a structural predicate, not an
@@ -125,11 +129,16 @@ labels were an agent decomposition and are retracted.
   digest exactly, **with the confext rebuilt**. **Any determinism evidence for
   this slice must state whether the confext was rebuilt**
   (`NEUTRINOS_SKIP_CONFEXT` skips it); `retain-artifact-digests.py` records it
-  as a field.
+  as a field. **Re-measured again in task 07: all six artifacts reproduced on
+  all three rebuilds, 18 of 18, confext rebuilt on every run.** Determinism is
+  a tie between the arms and separates nothing.
 - **`Minimize=best` is unavailable on ext4**, so both arms hold
-  `Minimize=guess` and **task 07 must measure filesystem bytes in use,
-  reporting partition size separately**, or its size figure measures repart's
-  estimator on one arm and the filesystem on the other.
+  `Minimize=guess` and a partition-size figure measures repart's estimator on
+  one arm and the filesystem on the other. Task 07 measured bytes in use
+  accordingly, and the difference was not cosmetic: **partition size would have
+  overstated EROFS's advantage by 56%** (2.57x against the real 1.65x). The
+  estimator's margin lands inside the ext4 filesystem as free blocks, not in
+  the partition outside it. Any later size claim carries the same requirement.
 - **Two systemd TPM units are masked from the host** in `T4-SLICE-001`
   (`systemd-tpm2-setup-early`, `systemd-pcrproduct`), because the artifact
   ships no `tpm2-pcr-public-key.pem` and supplying one is TPM policy. The mask
@@ -190,7 +199,8 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-**One item is open.** Three others were ruled on 2026-08-14 and are recorded
+**One item is open.** PLN-0002-07 was accepted 2026-08-15. Three other items
+were ruled on 2026-08-14 and are recorded
 where they belong -- the six-artifact count as PLN-0002 amendment 5, and
 `systemd.image_filter=` and the initrd module list in the
 [declaration](artifact-parameter-declaration.md). They are not repeated here.
@@ -213,23 +223,21 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-07**, the measurement task: image size, build time, build
-determinism, and update transfer size across the six artifacts. Not started.
-It must measure **filesystem bytes in use** and report partition size
-separately, because `Minimize=guess` on both arms means a partition-table
-figure measures repart's estimator on one arm and the filesystem on the other.
+**PLN-0002-08**, boot records on both arms: `/usr` read-only and
+verity-authenticated, `/etc` regenerated, no failed units except the two masked
+TPM units, boot behaviour and memory with **repetition count and accelerator
+state recorded per run** -- PLN-0001 measured the same boot at 72s TCG and 18s
+KVM, so the accelerator is the figure's precondition, not a footnote. Not
+started. The six artifacts have **never been booted**: this is a first boot,
+not a repeat.
 
-PLN-0002-06 is complete and accepted 2026-08-14
-([artifact set](usr-artifact-set.md)). **PLN-0002-03b is deferred**, not
-sequenced ahead of 07: the 2026-08-12 ruling that put it there was taken to keep
-question 5b's fail-open out of the measurements, and that fail-open is now
-closed and registered. The plan's own text says no task depends on it.
+Task 07 is complete and **accepted 2026-08-15**
+([measurements](artifact-format-measurements.md)). Its rebuilds overwrote the accepted set in place and all 18 reproduced their
+retained digests, so the set is unchanged. **PLN-0002-03b remains deferred**,
+not sequenced ahead of the measurement tasks.
 
-Two things 07 and 08 inherit: the six artifacts have **never been booted** -- the
-2026-08-12 confirmation boots were of earlier artifacts, so task 08 is a first
-boot rather than a repeat -- and the synthetic signing material expires
-**2026-09-11**, after which these artifacts are measured against expired
-enrollment material.
+The synthetic signing material expires **2026-09-11**, after which these
+artifacts are measured against expired enrollment material.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not

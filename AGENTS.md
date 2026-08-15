@@ -65,6 +65,8 @@
   shared-file conflict resolution.
 - Agent memory: non-authoritative; never sole home of decisions/results/next
   action.
+- MUST NOT block the turn over 90s. Anything expected to run longer (VM
+  matrices, `check:complete`, composition) runs in the background; keep working.
 
 ## Communication
 

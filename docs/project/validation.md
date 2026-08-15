@@ -12,6 +12,13 @@ current operator interface; it is not a second policy source.
 
 ## Bootstrap
 
+Bootstrap below covers the tools mise and uv install from the lock files. The
+**system** tools the composition and the VM harnesses call are not in any lock
+file; `python3 tools/host-tools.py` checks for them and names what each missing
+one would break, and `--packages` prints the package list for provisioning a
+container, VM, or replacement machine. It is a preflight, not a canonical check:
+it installs nothing, pins nothing, and is not registered in a profile.
+
 Install mise using the independently pinned method for the execution
 environment, then run the following from the repository root after reviewing
 `mise.toml`:

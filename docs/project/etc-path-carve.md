@@ -710,6 +710,16 @@ It is now repository content:
 | `.../systemd-confext-sysroot.service.d/10-neutrinos-etc-factory.conf` | binds it to the initrd merge |
 | `src/slice/composition/mkosi.finalize.d/10-initrd-etc-factory` | packs the two into a cpio for mkosi |
 
+**The three paths above are superseded and no longer resolve**, by PLN-0002-05's
+route ruling of 2026-08-12. The two units live in the `mkosi.images/initrd/`
+subimage's `mkosi.extra` tree, under
+`src/slice/composition/mkosi.images/initrd/mkosi.extra/usr/lib/systemd/system/`,
+and the finalize script is deleted, its `Initrds=` handling replaced by
+`--initrd` in `compose.sh`. The account below is kept as written because it is
+what this task measured and why the route question reached task 05; see the
+[parameter declaration](artifact-parameter-declaration.md) for the route
+actually taken.
+
 ### There is no supported way to put a file in mkosi's default initrd
 
 `ExtraTrees=` is not among the settings the synthesized `default-initrd` image

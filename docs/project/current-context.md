@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-15
-source_snapshot_revision: a256ede
+source_snapshot_revision: a4496e0
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
@@ -89,7 +89,8 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | 06 six authenticated artifacts | **complete**, accepted 2026-08-14: six artifacts from one tree state, digests retained, command line uniform across the set, determinism re-measured with the confext rebuilt ([artifact set](usr-artifact-set.md)). The verity signature partition, a UKI signed by `CN=NeutrinOS image, synthetic`, and `systemd.image_policy=usr=signed` in the UKI landed earlier the same day |
 | 07 offline measurements | **complete and accepted 2026-08-15**: five of C-007's eight criteria measured over the six artifacts ([measurements](artifact-format-measurements.md)). No recommendation; the five do not agree |
 | 08 boot records | **complete and accepted 2026-08-15**: three boots per arm, both primaries. Boot behaviour and memory are a **tie** ([boot records](artifact-boot-records.md)) |
-| 09, 11-14 | pending |
+| 09 corruption behaviour | **complete and accepted 2026-08-15**: four injections, two targets per arm. The **first criterion to separate the arms** ([corruption records](artifact-corruption-records.md)) |
+| 11-14 | pending |
 | 10 negative evidence | **started out of order** on an owner ruling; one cell covered by `T4-CONFEXT-001` (confext substitution, signature dimension only) |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
@@ -107,7 +108,11 @@ labels were an agent decomposition and are retracted.
   instance that is a measurement hazard rather than a boot one. **A successful
   boot is therefore
   not a statement about the artifact**, which is why tasks 09 and 10 carry the
-  plan's weight rather than the positive boots.
+  plan's weight rather than the positive boots. **Task 09 reproduced instance
+  one on the accepted artifacts and on both arms**: four corrupted copies each
+  booted to `running` with no failed units, and detection came at first read of
+  the damaged block. That is a reproduction, not an eighth instance. Task 10 now
+  carries the remaining weight alone.
 - **`systemd.image_policy=usr=signed` is a structural predicate, not an
   enforcement mechanism.** It is satisfied by both enrollment arms, evaluated
   after the initrd already mounted `/usr`, and non-fatal. The declaration
@@ -135,7 +140,20 @@ labels were an agent decomposition and are retracted.
   a tie between the arms and separates nothing -- as are **boot time and
   memory**, measured in task 08: 22ms apart on a 6.2s boot and 1 MiB apart in
   page cache, both inside the run-to-run spread. Three of the eight criteria
-  now separate the arms not at all.
+  separate the arms not at all.
+- **Corruption behaviour is the first criterion to separate the arms on a
+  mechanism rather than a number**, measured in task 09. With readahead
+  disabled, one flipped bit costs ext4 exactly one 4 KiB block and EROFS its
+  physical cluster's logical span -- 4 blocks on data compressing to 25.43%,
+  2 on already-compressed data, worst case 9 across the two target files'
+  5,176 clusters. Two measurement findings outrank that ratio and both are in
+  the [corruption records](artifact-corruption-records.md): a 4 KiB read still
+  triggers readahead, so the first pass measured a non-reproducible 45 KiB
+  against 16 KiB; and readahead on the dm device is 8 MiB, so a sequential
+  reader fails at the last aligned boundary *before* the damage and discards
+  up to 1.7 MB of intact data, identically on both arms. **Any later blast-radius
+  claim must state whether readahead was disabled**, the same requirement the
+  `Minimize` finding below imposes on any size claim.
 - **`Minimize=best` is unavailable on ext4**, so both arms hold
   `Minimize=guess` and a partition-size figure measures repart's estimator on
   one arm and the filesystem on the other. Task 07 measured bytes in use
@@ -150,7 +168,8 @@ labels were an agent decomposition and are retracted.
   that condition** and its record says so: no failed units on either arm, with
   the two masks named in the retained result. Whether the mask belongs in the
   PLN-0002-05 declaration is still an owner question. The **two primaries have
-  now been booted** three times each; the four variants have not.
+  now been booted** three times each, and task 09 booted four corrupted copies
+  of them under the same masks with the same result; the four variants have not.
 - **A declared parameter can be wrong rather than merely missing.** The
   2026-08-14 audit of PLN-0002-05 read the built artifacts instead of the
   configuration. Most of the declaration held: the ext4 superblock, the ESP
@@ -204,8 +223,8 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-**One item is open.** PLN-0002-07 and PLN-0002-08 were both accepted
-2026-08-15; three further items were ruled on 2026-08-14 and are recorded
+**One item is open.** PLN-0002-07, PLN-0002-08 and PLN-0002-09 were all
+accepted 2026-08-15; three further items were ruled on 2026-08-14 and are recorded
 where they belong -- the six-artifact count as PLN-0002 amendment 5, and
 `systemd.image_filter=` and the initrd module list in the
 [declaration](artifact-parameter-declaration.md). They are not repeated here.
@@ -228,20 +247,28 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-09**, corruption behaviour: a single bit flipped in an authenticated
-region of each artifact, recording detection point, diagnostic and blast radius
-per format. Compressed EROFS clusters against ext4 blocks is where the formats
-are expected to diverge, and it is the first criterion where a difference is
-predicted rather than hoped for. Not started.
+**PLN-0002-10**, negative evidence, and the **last measurement task**: it is the
+only remaining one that can move C-007. Started out of order on an owner ruling
+and one cell is covered -- `T4-CONFEXT-001`, confext substitution on the
+signature dimension. Still owed: `/usr` substitution, Verity substitution,
+manifest substitution, the wrong-but-valid key against the *artifact* rather
+than the confext, and the C-001 cross-product enumeration. All five now have
+what they waited for, which is task 06's substitution sources.
 
-It also carries the plan's weight in a way the positive boots do not. Task 08
-measured that both arms boot correctly; the standing finding is that a
-successful boot is not a statement about the artifact, so 09 and 10 are where
-the mechanisms are actually tested.
+Two things are already recorded about it and neither is new. The plan **predicts
+it fails open**, because `systemd.image_policy=usr=signed` is a structural
+predicate evaluated after the initrd has mounted `/usr`; measuring an absence of
+enforcement is a real result and the reason the task exists. And it injects
+against a *configuration* rather than a missing mechanism, so which state is
+under test is a question the task must settle rather than inherit.
 
-Tasks 07 and 08 are complete and **accepted 2026-08-15**.
-**PLN-0002-03b remains deferred**, not sequenced ahead of the measurement
-tasks.
+Then 11 (slice tests), 12 (recovery disposition, the owner's), 13 (the C-007
+recommendation, drafted and not accepted by its drafter), 14 (evidence bundle
+and DES-0006 disposition).
+
+Tasks 07, 08 and 09 are complete and **accepted 2026-08-15**.
+**PLN-0002-03b remains deferred**, not sequenced ahead of the measurement tasks,
+and no task depends on it.
 
 The synthetic signing material expires **2026-09-11**, after which these
 artifacts are measured against expired enrollment material.

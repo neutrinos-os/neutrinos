@@ -116,6 +116,20 @@ it cannot speak for an image built somewhere else -- which is what
 literal `LocalMirror=`-to-`Mirror=` fault, a `Release=45` branch drift, and a
 `compose.sh` mkosi commit that disagrees with the declaration.
 
+PLN-0002-11 widened it to the premise of the C-007 comparison: the two arm
+directories must differ **only** in the variable under test. `Format=` is that
+variable and must match the arm directory's own name; `Compression=` and
+`CompressionLevel=` are permitted on the EROFS arm alone, because ext4 cannot
+compress; `Type`, `Label`, `CopyFiles`, `Verity`, `VerityMatchKey` and
+`Minimize` are held constant and now checked as such. A `10-usr.conf` in the
+shared `mkosi.repart/` fails, because it would make masking order between
+definition directories decide which `/usr` definition wins. Verified
+failure-sensitive against five injections. One of them exposed a defect in the
+first draft: with the permitted asymmetry expressed as a list of keys rather
+than as a shape, an injected `Compression=zstd` on the **ext4** arm passed,
+which would have turned two measured criteria into a comparison of two
+compressors.
+
 `T3-SLICE-002` attributes the shipped closure. Every package in the retained
 manifest must exist, at its exact NEVRA, in the declared repository's own
 published index. mkosi's manifest carries no per-package repository field, so
@@ -174,9 +188,43 @@ and removing it. The second fails rather than passing quietly, because an
 artifact directory that cannot answer this question must not report that nothing
 is wrong.
 
-It **finds bytes; it does not verify a signature**, and cannot until PLN-0002-06
-adds a verity signature partition to check against. Its own report says so, so a
-reader of retained evidence cannot mistake it for cryptographic verification.
+It **finds bytes; it does not verify a signature**. `T3-SLICE-004`, registered
+by PLN-0002-11 now that the verity signature partition exists, is the check that
+does.
+
+`T3-SLICE-004` binds the root hash to the UKI, statically and offline. The UKI's
+signed `.cmdline` must carry exactly one `usrhash=`; its two halves must be the
+`/usr` and `/usr`-verity partition UUIDs, which is how the Discovered Partition
+Specification binds a root hash to the partitions it covers; the verity
+signature partition's payload must name the same root hash; its
+`certificateFingerprint` and the certificate embedded in the CMS blob must both
+be the certificate published beside the artifact; and the detached CMS signature
+over that root hash must verify against it. Partitions are found by DPS **type**
+UUID rather than by this repository's labels, because the type is what systemd's
+dissection reads. Verified failure-sensitive against six injections.
+
+Its boundaries are stated in its own report. It **does not verify the hash tree
+against the data** -- an image whose `/usr` was replaced and whose UUIDs, root
+hash and signature were reissued consistently passes, and `veritysetup verify`
+in `src/slice/measure-corruption.py` is that assertion -- and it **anchors trust
+on the certificate shipped beside the artifact**, so it says the signature is by
+that certificate, never that any machine trusts it.
+
+`T4-SLICE-002` boots the artifact and asserts the two runtime properties
+DES-0006 C-013 depends on: `/usr` is read-only, and nothing in `/etc` is
+durable. The probe writes rather than reading mount options, because `/usr`
+mounted `ro` is not the same claim as `/usr` cannot be written. It also checks
+that `/usr` comes from a device-mapper device: mounted straight off the
+partition, every read-only assertion would still pass with no verity underneath.
+Durability is a disjunction -- a write to `/etc` must be refused outright, or
+must land on a volatile filesystem -- with the general form checked behind it:
+no block-backed mount is writable anywhere. Measured on both arms, the `/etc`
+overlay is mounted `ro` with lowerdirs only and no upperdir, so writes are
+refused. It runs under the same two TPM masks as `T4-SLICE-001` and names them
+in its result. It says nothing about authentication; a successful mount is not a
+signature claim. Verified failure-sensitive against seven mutated observations
+and one boot in which the probe never ran; details and the accepted-by-design
+case are in the [check updates](slice-check-updates.md).
 
 Composition needs the network, and canonical validation is offline, so the
 artifact is an operator-declared input:
@@ -297,6 +345,89 @@ declared installations, and every cache file created. Only mise's local
 per-version `bin_paths-*.msgpack.z` resolution record is permitted; any other
 cache file fails the test. This is repeatable development/CI result evidence,
 not qualification retention.
+
+## Admission standard for a new check
+
+Ruled 2026-08-15 by Jason Tarasovic, under PLN-0002-11. A convention, revisable
+on evidence; the accepted [validation contract](validation-contract.md) governs
+what a registration *declares* and has never spoken to who registers or when.
+
+**Registration belongs to whichever task first needs the assertion enforced**,
+which in practice is the task that measured the thing. Authoring belongs with
+whoever holds the fixture and the evidence; a later task rewriting it from
+scratch re-derives what the measurement already knew. A dedicated suite task
+keeps the separate obligation of auditing that every registered check is still
+true of the current artifact, which no single measuring task can do.
+
+Before a check is registered it must:
+
+- **reject something.** Failure sensitivity against at least one injection, with
+  the injections named where the check is documented. A check shown only to
+  accept is not evidence -- and both checks PLN-0002-11 added passed their
+  baseline while fail-opening under injection;
+- **be reachable through `mise run`** with its declared environment passed by
+  `--allow-env=`, verified rather than assumed. `sandbox.deny_env` strips
+  everything else, and `T4-CONFEXT-001` was registered and unreachable for a
+  period because of it;
+- **declare its capabilities**, so an absent fixture blocks and fails the
+  profile rather than skipping;
+- **state its timeout against the profile budget.** `complete` now carries
+  roughly seven guest boots across `T4-SLICE-001`, `T4-SLICE-002` and
+  `T4-CONFEXT-001`; each check that adds "just one boot" is spending a shared
+  budget no single task can see. A deferred registration declares its budget
+  and spends none of it until the deferral is lifted, which is part of what
+  lifting one costs; and
+- **be documented here**, with what it establishes and what it does not.
+
+## Deferred checks
+
+Ruled 2026-08-15 by Jason Tarasovic, under PLN-0002-11. The accepted
+[validation contract](validation-contract.md) already defines `deferred` --
+`complete` "never silently includes ... a deferred test", the manifest lists
+every registered test with its reason, and `deferred` is "valid only when
+already justified in the governing requirements-to-test trace". Nothing had
+needed it, so nothing implemented it. These two do.
+
+A registration declares deferral by carrying a justification: `Test.deferred`
+is that text, and it must name the trace that carries the deferral. The runner
+then guarantees, in four places rather than one, that a deferred check cannot
+be mistaken for coverage:
+
+- **selection** excludes it from `fast` and `complete`, so it produces no
+  result at all -- not `passing`, not `blocked`;
+- **`check:run <ID>`** on a deferred ID is a selection error. Reporting the ID
+  unknown would be false and running it would defeat the deferral;
+- **the runner-private `_execute` path** refuses it, closing the last route by
+  which it could report success; and
+- **the manifest** carries it under `omissions` with `"state": "deferred"` and
+  the declared justification as its reason, and `counts.deferred` reports the
+  deferred registrations belonging to the profile that ran. `check:list` shows
+  a `STATE` column, because a deferred check that listed identically to a
+  running one reads as coverage the profile does not have.
+
+Deferral does not fail the profile. What fails is **lifting one without writing
+the assertion**: `tools/validation/slice_signature.py` holds bodies that report
+"not implemented" and return nonzero, so removing a `deferred=` declaration
+turns the profile red rather than green. A deferred registration whose body
+returned zero would be this plan's ninth fail-open and the worst of them,
+sitting in the registry looking like coverage of the one requirement the
+artifact does not meet.
+
+`T4-SLICE-003` and `T4-SLICE-004` are the two, both tracing `SYS-049` to
+PLN-0002-10. That task measured a `/usr` verity signature by the **enrolled**
+authority over a root hash the image does not carry (`sig-foreign`), and one by
+an **unenrolled** authority (`sig-wrong-key`), each booting to `running` with
+zero failed units under firmware whose `db` carries the verity signer. They are
+registered separately because they are distinct substitutions with distinct
+diagnostics, and one check would hide whichever half was fixed first. Neither
+asserts the observed behaviour: a check that encodes a fail-open passes because
+the mechanism is broken and goes red when it is fixed. They assert what SYS-049
+requires, which is why they are deferred rather than failing -- until `S-005`
+decides the mechanism, there is no refusal to assert, because the kernel
+refuses a signature it has no key for and `systemd-veritysetup` retries without
+it. The measurement itself stays in `src/slice/measure-substitution.py` and the
+[substitution records](artifact-substitution-records.md); what these
+registrations carry is the obligation, so it survives PLN-0002 closing.
 
 ## Current implementation boundary
 

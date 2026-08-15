@@ -44,6 +44,35 @@ ASSIGNMENT = re.compile(r"^([a-z_]+)=(\S+)$")
 # `updates`.
 FORBIDDEN_SETTINGS = ("Mirror", "Repositories")
 
+# The two arms of the C-007 comparison, each an arm directory beside the shared
+# repart definitions, selected by NEUTRINOS_SLICE_ARM in compose.sh.
+DECLARED_ARMS = ("erofs", "ext4")
+ARM_DEFINITION = "10-usr.conf"
+# Every setting the arms are allowed to disagree about, with why, and on which
+# arms it may appear at all. Anything else that differs is a second variable in
+# a comparison whose whole design is one.
+#
+# `present_on` is the part that does the work, and it was added after the first
+# draft was measured: with the permission expressed as a bare list of keys, an
+# injected `Compression=zstd` on the ext4 arm passed. That is not a hypothetical
+# -- a compressing ext4 arm would silently turn the size and transfer-size
+# criteria into a comparison of two compressors. The permission is a shape, not
+# a key.
+PERMITTED_ARM_ASYMMETRY = {
+    "Format": {
+        "reason": "the variable under test",
+        "present_on": DECLARED_ARMS,
+    },
+    "Compression": {
+        "reason": "ext4 cannot compress, so no symmetric setting exists",
+        "present_on": ("erofs",),
+    },
+    "CompressionLevel": {
+        "reason": "ext4 cannot compress, so no symmetric setting exists",
+        "present_on": ("erofs",),
+    },
+}
+
 
 def composition_settings() -> dict[str, str]:
     """Read `Key=Value` settings from the composition fixture.
@@ -138,6 +167,11 @@ def check_composition_fixture() -> int:
                 f"{expected!r}"
             )
 
+    # PLN-0002-11: the fixture this check reads is no longer one artifact's.
+    # It builds two arms, and the comparison they exist for is void if they
+    # differ anywhere but the measured variable.
+    arms = arm_symmetry(failures)
+
     if failures:
         print("\n".join(failures), file=sys.stderr)
         return 1
@@ -145,6 +179,7 @@ def check_composition_fixture() -> int:
     print(
         json.dumps(
             {
+                "arms": arms,
                 "declared_repository": repository,
                 "enforced_by": "LocalMirror",
                 "forbidden_settings_absent": list(FORBIDDEN_SETTINGS),
@@ -157,6 +192,114 @@ def check_composition_fixture() -> int:
         )
     )
     return 0
+
+
+def partition_settings(path: Path) -> dict[str, str]:
+    """Read `Key=Value` settings from a repart definition.
+
+    Same line-anchored rule as `composition_settings`, and for the same reason:
+    a continuation line carries no `=` at column zero.
+    """
+    settings: dict[str, str] = {}
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.startswith("#") or line.startswith("["):
+            continue
+        match = SETTING.match(line)
+        if match:
+            settings[match.group(1)] = match.group(2).strip()
+    return settings
+
+
+def arm_symmetry(failures: list[str]) -> dict[str, Any]:
+    """Assert the two arms differ only in the variable PLN-0002 measures.
+
+    `mkosi.repart.erofs/10-usr.conf` says it out loud -- "the diff between them
+    is the whole of what PLN-0002 is measuring, and anything else that drifts
+    apart here is a second variable and voids the comparison" -- and then asks
+    the reader to enforce it by eye. Every other control in this repository that
+    was left to the eye has been caught failing: the superseded certificate, the
+    module list that ships 130 against 21 declared, the uncompressed EROFS arm.
+    This makes the comparison's central premise a check.
+
+    The permitted asymmetry is enumerated rather than tolerated as a class.
+    `Format=` is the variable. Compression is asymmetric because ext4 cannot
+    compress, which is a stated limit of the comparison and not a free
+    parameter: it is what makes PLN-0002-13 owe a sentence saying part of any
+    EROFS win is compression rather than format. A third difference appearing
+    here is a second variable, and it fails.
+    """
+    arm_directories = sorted(
+        path for path in COMPOSITION.parent.glob("mkosi.repart.*") if path.is_dir()
+    )
+
+    if {path.name for path in arm_directories} != {
+        f"mkosi.repart.{arm}" for arm in DECLARED_ARMS
+    }:
+        failures.append(
+            f"arm definition directories are {[p.name for p in arm_directories]}; "
+            f"the declared arms are {sorted(DECLARED_ARMS)}"
+        )
+
+    # The arm files share a filename and the shared directory has none, so
+    # exactly one is ever read. If the shared directory grew a 10-usr.conf the
+    # result would depend on systemd's masking order between definition
+    # directories, which is precisely the reasoning the arm files rely on.
+    shared = COMPOSITION.parent / "mkosi.repart" / ARM_DEFINITION
+    if shared.is_file():
+        failures.append(
+            f"{shared.relative_to(ROOT)} exists, so which /usr definition wins "
+            f"depends on masking order between definition directories"
+        )
+
+    settings: dict[str, dict[str, str]] = {}
+    for arm in sorted(DECLARED_ARMS):
+        definition = COMPOSITION.parent / f"mkosi.repart.{arm}" / ARM_DEFINITION
+        if not definition.is_file():
+            failures.append(f"arm {arm} has no {ARM_DEFINITION}")
+            continue
+        settings[arm] = partition_settings(definition)
+
+    differing: dict[str, dict[str, str | None]] = {}
+    if len(settings) == len(DECLARED_ARMS):
+        keys = set().union(*(set(values) for values in settings.values()))
+        for key in sorted(keys):
+            observed = {arm: values.get(key) for arm, values in settings.items()}
+            if len(set(observed.values())) > 1:
+                differing[key] = observed
+        unexpected = sorted(set(differing) - set(PERMITTED_ARM_ASYMMETRY))
+        if unexpected:
+            failures.append(
+                "the arms differ in settings beyond the measured variable, so "
+                "the comparison carries more than one variable: "
+                + "; ".join(f"{key}={differing[key]}" for key in unexpected)
+            )
+        for key, permission in PERMITTED_ARM_ASYMMETRY.items():
+            allowed = set(permission["present_on"])
+            observed = {arm for arm, values in settings.items() if key in values}
+            if observed - allowed:
+                failures.append(
+                    f"{key} is set on {sorted(observed)}; the comparison permits "
+                    f"it only on {sorted(allowed)}, because {permission['reason']}"
+                )
+        for arm, values in settings.items():
+            if values.get("Format") != arm:
+                failures.append(
+                    f"arm directory mkosi.repart.{arm} sets Format="
+                    f"{values.get('Format')!r}, so its name does not describe "
+                    f"the artifact it builds"
+                )
+
+    return {
+        "declared_arms": sorted(DECLARED_ARMS),
+        "held_constant": sorted(
+            key
+            for arm in sorted(settings)[:1]
+            for key in settings[arm]
+            if key not in differing
+        ),
+        "permitted_asymmetry": dict(PERMITTED_ARM_ASYMMETRY),
+        "observed_asymmetry": {key: differing[key] for key in sorted(differing)},
+    }
 
 
 def declared_repository_nevras(retained: Path) -> tuple[set[str], str]:

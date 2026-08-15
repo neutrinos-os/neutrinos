@@ -112,6 +112,15 @@ class Test:
     fixtures: tuple[str, ...]
     cleanup_owner: str
     function: str
+    # A deferred test is registered and not run. The contract admits `deferred`
+    # "only when already justified in the governing requirements-to-test
+    # trace", so the justification is the declaration: it must name the trace
+    # that carries the deferral, and it is what the manifest reports as the
+    # reason. Deferral is enforced by selection, not by the test body -- a
+    # deferred test is never selected, so it can never produce a passing
+    # result, and naming its ID to `check:run` is a selection error rather than
+    # a quiet execution.
+    deferred: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -311,6 +320,23 @@ TESTS = (
         function="check_slice_signing_material",
     ),
     Test(
+        id="T3-SLICE-004",
+        level="T3",
+        profiles=("complete",),
+        timeout_seconds=300,
+        # SYS-049 for the half of it this can reach offline: an exact identity
+        # carried by the selected boot artifact. The read-only half is
+        # T4-SLICE-002's, and neither claims SYS-049 satisfied.
+        traces=("PLN-0002/PLN-0002-11", "SYS-049", "SYS-002", "SYS-045"),
+        capabilities=("declared slice artifact", "openssl"),
+        fixtures=(
+            "composed disk image and UKI",
+            "verity certificate published beside the artifact",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_usr_verity_binding",
+    ),
+    Test(
         id="T4-SLICE-001",
         level="T4",
         profiles=("complete",),
@@ -329,6 +355,95 @@ TESTS = (
         ),
         cleanup_owner="validation runner",
         function="check_slice_boot",
+    ),
+    Test(
+        id="T4-SLICE-002",
+        level="T4",
+        # One boot, and the probe powers the guest off rather than waiting for
+        # a login prompt. Sized for TCG like its neighbours.
+        timeout_seconds=900,
+        profiles=("complete",),
+        # SYS-049's read-only half. T3-SLICE-004 covers the identity half;
+        # neither claims the requirement satisfied, which stays Partial.
+        traces=("PLN-0002/PLN-0002-11", "SYS-049", "SYS-002", "SYS-017"),
+        capabilities=("declared slice artifact", "user-owned disposable VM"),
+        fixtures=(
+            "composed disk image",
+            "disposable firmware variable store",
+            "harness-supplied probe unit",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_runtime_boundaries",
+    ),
+    # The two registrations below are deferred, and both exist for the same
+    # reason: PLN-0002-10 measured that the `/usr` verity signature is verified
+    # and gates nothing, and nothing in this registry asserted otherwise. The
+    # measurement lives in `src/slice/measure-substitution.py`, which is not
+    # registered, so without these the obligation stops being carried when
+    # PLN-0002 closes and the fail-open becomes invisible rather than known.
+    #
+    # Asserting the *observed* behaviour was rejected: a check that encodes a
+    # fail-open passes because the mechanism is broken and goes red when it is
+    # fixed. What is registered is what SYS-049 requires, which fails today and
+    # correctly so -- hence deferral rather than a failing profile.
+    Test(
+        id="T4-SLICE-003",
+        level="T4",
+        timeout_seconds=1800,
+        profiles=("complete",),
+        traces=("PLN-0002/PLN-0002-10", "SYS-049", "SYS-002"),
+        capabilities=(
+            "declared slice artifact",
+            "user-owned disposable VM",
+            "Secure Boot firmware",
+        ),
+        fixtures=(
+            "composed disk image",
+            "donor artifact of the same format",
+            "enrolled verity signer in db",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_signature_root_hash_binding",
+        deferred=(
+            "SYS-049 is accepted Partial with the unenforced /usr verity "
+            "signature recorded as an open sub-question under S-005, and "
+            "PLN-0002-10's sig-foreign cell measured the gap: a signature by "
+            "the enrolled signer over a root hash this image does not carry "
+            "boots to running with zero failed units, on both arms and under "
+            "both firmware states. Deferred until the mechanism that would "
+            "make this refusable is decided under S-005; the assertion is not "
+            "implemented, so lifting the deferral fails the profile until the "
+            "task that closes S-005 writes it."
+        ),
+    ),
+    Test(
+        id="T4-SLICE-004",
+        level="T4",
+        timeout_seconds=1800,
+        profiles=("complete",),
+        traces=("PLN-0002/PLN-0002-10", "SYS-049", "SYS-002"),
+        capabilities=(
+            "declared slice artifact",
+            "user-owned disposable VM",
+            "Secure Boot firmware",
+        ),
+        fixtures=(
+            "composed disk image",
+            "signature by an unenrolled authority",
+            "enrolled verity signer in db",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_signature_authority",
+        deferred=(
+            "The same S-005 sub-question, in its authority dimension. "
+            "PLN-0002-10's sig-wrong-key cell measured a valid signature by an "
+            "authority the firmware does not trust booting to running with "
+            "zero failed units, under firmware whose db carries the verity "
+            "signer. Registered separately from T4-SLICE-003 because it is a "
+            "distinct substitution with a distinct diagnostic, and a single "
+            "check would hide whichever half was fixed first. Not implemented, "
+            "on the same terms."
+        ),
     ),
     Test(
         id="T4-CONFEXT-001",
@@ -1143,12 +1258,44 @@ def check_slice_signing_material() -> int:
     return check_signing_material_current()
 
 
+def check_slice_usr_verity_binding() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_artifact import check_usr_verity_binding
+
+    return check_usr_verity_binding()
+
+
 def check_slice_boot() -> int:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
     from tools.validation.slice_boot import check_boot
 
     return check_boot()
+
+
+def check_slice_runtime_boundaries() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_runtime import check_runtime_boundaries
+
+    return check_runtime_boundaries()
+
+
+def check_slice_signature_root_hash_binding() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_signature import check_signature_root_hash_binding
+
+    return check_signature_root_hash_binding()
+
+
+def check_slice_signature_authority() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.slice_signature import check_signature_authority
+
+    return check_signature_authority()
 
 
 def check_confext_signature_policy() -> int:
@@ -1165,7 +1312,11 @@ CHECKS: dict[str, Callable[[], int]] = {
     "check_slice_repository_attribution": check_slice_repository_attribution,
     "check_slice_artifact": check_slice_artifact,
     "check_slice_signing_material": check_slice_signing_material,
+    "check_slice_usr_verity_binding": check_slice_usr_verity_binding,
     "check_slice_boot": check_slice_boot,
+    "check_slice_runtime_boundaries": check_slice_runtime_boundaries,
+    "check_slice_signature_root_hash_binding": check_slice_signature_root_hash_binding,
+    "check_slice_signature_authority": check_slice_signature_authority,
     "check_confext_signature_policy": check_confext_signature_policy,
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
@@ -1263,6 +1414,18 @@ def capability_virtualization() -> str | None:
     return None
 
 
+def capability_openssl() -> str | None:
+    """CMS verification and DER conversion for the verity signature.
+
+    Declared rather than assumed. Python's standard library cannot verify a
+    detached CMS signature, and the alternative is a cryptography dependency
+    where the host already ships the tool that produced the signature.
+    """
+    if shutil.which("openssl") is None:
+        return "openssl unavailable on PATH"
+    return None
+
+
 def capability_fat_reader() -> str | None:
     """Unprivileged read access to the ESP inside the image.
 
@@ -1329,6 +1492,7 @@ CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
     "zstd reader": capability_zstd_reader,
     "user-owned disposable VM": capability_virtualization,
     "FAT reader": capability_fat_reader,
+    "openssl": capability_openssl,
     "confext signature fixture": capability_confext_fixture,
     "Secure Boot firmware": capability_secure_boot_firmware,
 }
@@ -1660,13 +1824,26 @@ def select_tests(mode: str, values: Sequence[str]) -> tuple[str, list[Test]]:
         if len(values) != 1 or values[0] not in {"fast", "complete"}:
             raise ValueError("unknown validation profile")
         profile = values[0]
-        return profile, [test for test in TESTS if profile in test.profiles]
+        # Contract: "complete" never silently includes a deferred test. The
+        # exclusion is here rather than in the test body so that a deferred
+        # test cannot produce a result of any kind, passing least of all.
+        return profile, [
+            test
+            for test in TESTS
+            if profile in test.profiles and test.deferred is None
+        ]
     unknown = sorted(set(values) - TEST_BY_ID.keys())
     if unknown:
         safe = [value for value in unknown if re.fullmatch(r"[A-Z][A-Z0-9-]{0,63}", value)]
         if len(safe) == len(unknown):
             raise ValueError(f"unknown test ID(s): {', '.join(safe)}")
         raise ValueError(f"invalid test ID syntax ({len(unknown)} value(s))")
+    # A deferred ID named explicitly is a selection error, not a quiet run. The
+    # ID is registered, so reporting it unknown would be a lie; running it would
+    # defeat the deferral.
+    deferred = [value for value in values if TEST_BY_ID[value].deferred is not None]
+    if deferred:
+        raise ValueError(f"deferred test ID(s) cannot be run: {', '.join(deferred)}")
     return "selected", [TEST_BY_ID[value] for value in values]
 
 
@@ -1807,6 +1984,16 @@ def run(
     }
     for result in results:
         counts[result["result"]] += 1
+    # Deferred tests never execute, so their count comes from the registry
+    # rather than from results: the tests this profile would have selected had
+    # they not been deferred. `check:run` cannot name one, so a selected run
+    # reports zero, which is true of it.
+    deferred_tests = [
+        test
+        for test in TESTS
+        if test.deferred is not None and profile in test.profiles
+    ]
+    counts["deferred"] = len(deferred_tests)
     success = (
         runner_error is None
         and len(results) == len(selected)
@@ -1839,8 +2026,21 @@ def run(
         "error": runner_error,
         "failure_stage": failure_stage,
         "final_result": "passing" if success else "failing",
+        # Contract: the manifest lists every registered test as selected, not
+        # applicable, deferred, blocked, or excluded, with its reason. A
+        # deferred test is excluded for a reason of its own, and that reason is
+        # the justification its registration declares, so the manifest carries
+        # it rather than a generic string.
         "omissions": [
-            {"id": test.id, "reason": "not selected by invocation"}
+            {
+                "id": test.id,
+                "reason": (
+                    test.deferred
+                    if test.deferred is not None
+                    else "not selected by invocation"
+                ),
+                "state": "deferred" if test.deferred is not None else "excluded",
+            }
             for test in TESTS
             if test not in selected
         ],
@@ -1905,7 +2105,10 @@ def run(
 
 
 def list_tests() -> int:
-    print("ID\tLEVEL\tPROFILES\tTIMEOUT\tTRACES\tCAPABILITIES")
+    # STATE is beyond the contract's listed columns and is not optional in
+    # practice: a deferred test that listed identically to a running one would
+    # read as coverage the profile does not have.
+    print("ID\tLEVEL\tPROFILES\tTIMEOUT\tTRACES\tCAPABILITIES\tSTATE")
     for test in TESTS:
         print(
             "\t".join(
@@ -1916,6 +2119,7 @@ def list_tests() -> int:
                     f"{test.timeout_seconds}s",
                     ",".join(test.traces),
                     ",".join(test.capabilities) or "none",
+                    "deferred" if test.deferred is not None else "registered",
                 )
             )
         )
@@ -1953,6 +2157,12 @@ def main() -> int:
     if arguments.command == "run":
         return run("run", arguments.ids)
     test = TEST_BY_ID[arguments.id]
+    # The runner-private path, closed for the same reason selection is: a
+    # deferred test must not be reachable by any route that could report it
+    # passing.
+    if test.deferred is not None:
+        print(f"{test.id} is deferred and does not execute", file=sys.stderr)
+        return 2
     return CHECKS[test.function]()
 
 

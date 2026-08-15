@@ -90,7 +90,8 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | 07 offline measurements | **complete and accepted 2026-08-15**: five of C-007's eight criteria measured over the six artifacts ([measurements](artifact-format-measurements.md)). No recommendation; the five do not agree |
 | 08 boot records | **complete and accepted 2026-08-15**: three boots per arm, both primaries. Boot behaviour and memory are a **tie** ([boot records](artifact-boot-records.md)) |
 | 09 corruption behaviour | **complete and accepted 2026-08-15**: four injections, two targets per arm. The **first criterion to separate the arms** ([corruption records](artifact-corruption-records.md)) |
-| 11-14 | pending |
+| 11 slice tests | **complete, accepted 2026-08-15**: the five hold on both arms; two checks added and one widened, each verified failure-sensitive, plus `T4-SLICE-003`/`T4-SLICE-004` registered **deferred** for task 10's signature fail-open ([check updates](slice-check-updates.md)). Both questions it raised are ruled 2026-08-15 -- registration belongs to the task that first needs the assertion enforced, and the fail-open owes a deferred registration rather than a check asserting the observed behaviour |
+| 12-14 | pending |
 | 10 negative evidence | **complete and accepted 2026-08-15**: seven cells per arm, 32 boots, both firmware states ([substitution records](artifact-substitution-records.md)). Image substitution fails **closed**; signature substitution fails **open**, enrolled or not. Identical on both arms |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
@@ -116,7 +117,15 @@ labels were an agent decomposition and are retracted.
   substitution measured, and the *signature* fails open on every one -- an
   eighth instance, and the first where the mechanism is configured, runs, and
   still gates nothing. A valid signature by the enrolled signer over a root hash
-  the image does not carry boots to `running` with zero failed units.
+  the image does not carry boots to `running` with zero failed units. **The
+  pattern is not confined to the artifact's mechanisms**: PLN-0002-11's
+  injections caught two fail-opens in its own first drafts -- a signature check
+  blind to the certificate embedded in the CMS blob, and an arm-symmetry check
+  that would have permitted a compressing ext4 arm. Both were closed before the
+  checks were registered, and neither is an instance of the count above; see the
+  [check updates](slice-check-updates.md). The eighth instance is now carried by
+  `T4-SLICE-003` and `T4-SLICE-004`, registered **deferred** against SYS-049's
+  open sub-question under `S-005`, so it survives PLN-0002 closing.
 - **`systemd.image_policy=usr=signed` is a structural predicate, not an
   enforcement mechanism.** It is satisfied by both enrollment arms, evaluated
   after the initrd already mounted `/usr`, and non-fatal. The declaration
@@ -195,9 +204,14 @@ labels were an agent decomposition and are retracted.
 ## Validation state
 
 - `mise run check:fast` runs **8 checks**; `mise run check:complete` runs
-  **14**. Both were run green on 2026-08-14 against the PLN-0002-06 artifact
-  set, including through the new `out` compatibility symlink, so `complete`
-  can act as a gate. The counts are authoritative from `mise run check:list`.
+  **16** as of PLN-0002-11, which registered `T3-SLICE-004` and `T4-SLICE-002`.
+  `complete` ran green at 16 of 16 on 2026-08-15 against the EROFS primary of
+  the PLN-0002-06 set, so it can still act as a gate. The counts are
+  authoritative from `mise run check:list`.
+- **18 tests are registered and 16 run.** `T4-SLICE-003` and `T4-SLICE-004` are
+  registered `deferred` and are never selected, so they neither pass nor fail;
+  `complete` reports them as `deferred=2` with their justification in the
+  manifest's `omissions`. See [validation](validation.md#deferred-checks).
 - `check:complete` needs a composed artifact and the declared fixture
   directories. `mise run --allow-env=` passes those declarations through
   `sandbox.deny_env`; the three required variables are named in
@@ -252,28 +266,26 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-10 is complete and accepted 2026-08-15.** It was the last
-measurement task and it **does not move C-007**: every cell behaved
-identically on both arms, so four of the eight criteria now separate the formats
-not at all. See the [substitution records](artifact-substitution-records.md).
+**PLN-0002-12: the recovery-behaviour disposition, and it is the owner's.**
+Measured, or deferred with a rationale naming where it goes; a deferral is a
+proposed amendment to plan item 2. Two things it now has to rule against that it
+did not before: **emergency mode is the measured terminal state** of every image
+substitution, and the `crypttab` element of item 2's early-boot clause still has
+to be addressed against the encryption non-goal.
 
-Its finding is the one the plan half-predicted and half-missed. **Image
-substitution fails closed** -- eight cells, both firmware states, three distinct
-diagnostics naming device resolution, the data hash and the tree hash, all
-terminating in emergency mode. **Signature substitution fails open** -- six
-cells boot to `running` with zero failed units, including a valid signature by
-the *enrolled* signer over a root hash the image does not carry. Enrolment is
-not the missing ingredient: it loads the certificate and removes `Root hash
-verification failed`, and changes no outcome. The enrolled fixture is also
-stronger than the artifact's own auto-enrolment, whose `db` carries the image
-signer alone.
+Then 13 (the C-007 recommendation) and 14 (evidence bundle and DES-0006
+disposition).
 
-Then 11 (slice tests), 12 (recovery disposition, the owner's -- and emergency
-mode is now the measured terminal state it has to rule on), 13 (the C-007
-recommendation), 14 (evidence bundle and DES-0006 disposition).
+Tasks 07 through 11 are complete and **accepted 2026-08-15**. No measurement
+task remains and **C-007 is not moved by any of them**: four of its eight
+criteria separate the formats not at all, corruption blast radius is the one
+that does, and the recommendation is 13's to draft. The two findings that
+outlive this plan are the [substitution records](artifact-substitution-records.md)'
+fail-open -- signature substitution boots to `running` on every cell, enrolment
+changing which code path runs and no outcome -- and the [check
+updates](slice-check-updates.md)' two deferred registrations, which are what
+keeps that fail-open in the registry once PLN-0002 closes.
 
-Tasks 07, 08, 09 and 10 are complete and **accepted 2026-08-15**, so no
-measurement task remains and the next work is 11 through 14.
 **PLN-0002-03b remains deferred**, not sequenced ahead of the measurement tasks,
 and no task depends on it.
 

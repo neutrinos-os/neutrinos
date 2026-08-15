@@ -1516,8 +1516,20 @@ systemd snapshot `g827144298` of the same day.** The old pin was the v26 tag of
 the OBS `system:systemd` project. The pin did not cause the determinism defect;
 that was ruled out by building the pair at both pins.
 
-**Next action: PLN-0002-06c and 06d** -- build the six declared artifacts, then
-retain their digests and retire the `out`/`out-ext4` asymmetry.
+**Next action: the remainder of PLN-0002-06** -- build the artifacts and retain
+their digests, then retire the `out`/`out-ext4` output asymmetry.
+
+Two things must be settled first, and neither is an agent's to settle. **The
+plan authorizes four artifacts**: two arms, each with a second same-format
+artifact existing only as a task-10 substitution source. A ruling given in
+session on 2026-08-13 asked for *two* substitution sources per arm, which would
+be six, and that ruling is recorded nowhere in this repository. It is not in
+force until it is, and the plan's four stands. **The `06a`/`06b`/`06c`/`06d`
+labels used in this session's commits are an agent decomposition, not plan
+structure**; PLN-0002-06 is undivided. What those commits landed is real and
+measured -- the signature partition, the signed UKI, and the image policy -- but
+the completion criterion the plan states, "build all four; retain digests", is
+not met by any of them.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not

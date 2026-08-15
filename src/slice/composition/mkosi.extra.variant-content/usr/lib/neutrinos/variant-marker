@@ -1,0 +1,19 @@
+PLN-0002-10 content-variant marker.
+
+This file exists in the content variant of a PLN-0002-06 artifact and in no
+other. It is the whole of the difference between the content variant and the
+primary: one file under /usr, so the /usr filesystem image differs, so the
+dm-verity root hash differs, so the UKI's usrhash= names a root hash this
+artifact does not have.
+
+That is what PLN-0002-10 substitutes with. The point of a marker file rather
+than a package or a configuration change is that the difference has to be
+inert: it must move the root hash and nothing else, or a boot failure cannot be
+attributed to the substitution rather than to what was substituted.
+
+The variant is signed by the enrolled verity key, exactly as the primary is.
+A substitution that boots therefore says integrity did not bind the contents --
+not that a signature was missing.
+
+This file is release content in the variant it belongs to. It is not
+configuration, it is read by nothing, and no NeutrinOS mechanism depends on it.

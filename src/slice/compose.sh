@@ -37,16 +37,65 @@ if [ ! -d "$root/composition/mkosi.repart.$arm" ]; then
     exit 1
 fi
 
-# The EROFS arm keeps the historic output path and the ext4 arm gets its own,
-# and that asymmetry is deliberate and temporary. `out` is what every registered
-# check reads through NEUTRINOS_SLICE_ARTIFACT and what the recorded artifact
-# digests refer to; renaming it to `out-erofs` now would invalidate those
-# records to buy a symmetry that nothing yet consumes. PLN-0002-06 builds all
-# four artifacts as first-class peers and is where the naming should become
-# symmetric.
-out_dir="$build_root/out"
-if [ "$arm" != erofs ]; then
-    out_dir="$build_root/out-$arm"
+# The variant. PLN-0002 amendment 5, accepted 2026-08-14.
+#
+# `primary` is the artifact everything measures. The other two exist only as
+# PLN-0002-10 substitution sources, and they exist because the build became
+# bit-reproducible: rebuilding the same tree yields a byte-identical artifact,
+# so a substitution with it is vacuous -- it boots, and the boot says nothing.
+# Task 10 needs a substitute that is validly signed by the ENROLLED key and
+# carries a root hash the UKI does not name, and the two variants reach that
+# state by different routes:
+#
+#   content  the tree differs by one declared marker file under /usr, so the
+#            filesystem image differs and the root hash with it.
+#   seed     the tree is identical and Seed= differs, so partition UUIDs, the
+#            filesystem UUID and the verity salt all move, and the root hash
+#            with them.
+#
+# Two routes rather than one because they fail differently: a content variant
+# that boots means integrity did not bind the contents, while a seed variant
+# that boots means it did not bind the identity. One artifact cannot show both.
+#
+# Selected by environment, like the arm and for the same reason: a variant that
+# lives in an edited working tree is a variant no artifact can be traced back to.
+variant=${NEUTRINOS_SLICE_VARIANT:-primary}
+
+case "$variant" in
+    primary|content|seed) ;;
+    *)
+        echo "compose: no variant '$variant'; expected primary, content or seed" >&2
+        exit 1
+        ;;
+esac
+
+# Output naming is symmetric across arms and variants, which is PLN-0002-06's
+# to do and is done here: six peer directories, out-<arm> and
+# out-<arm>-<variant>, with no arm holding a privileged name.
+#
+# `out` survives as a symlink to out-erofs rather than as a directory. Every
+# recorded artifact digest in the PLN-0001 records names `out`, and an operator
+# may have NEUTRINOS_SLICE_ARTIFACT_DIR pointing at it; renaming outright would
+# invalidate those records to buy a symmetry, while a symlink keeps them
+# resolving and true. It is a compatibility path with an end: PLN-0002-11
+# updates the registered checks, and the symlink goes with the update.
+out_dir="$build_root/out-$arm"
+if [ "$variant" != primary ]; then
+    out_dir="$out_dir-$variant"
+fi
+
+# One-time migration of the historic layout, and it moves rather than copies so
+# that no build root ends up with two EROFS primaries disagreeing about which is
+# current. A build root that has already been migrated has a symlink here and
+# takes neither branch.
+if [ -d "$build_root/out" ] && [ ! -L "$build_root/out" ]; then
+    if [ -e "$build_root/out-erofs" ]; then
+        echo "compose: $build_root/out is a directory and $build_root/out-erofs" \
+             "already exists, so the migration to symmetric output names cannot" \
+             "tell which is current. Remove whichever is stale and re-run." >&2
+        exit 1
+    fi
+    mv "$build_root/out" "$build_root/out-erofs"
 fi
 
 # Declared inputs. These duplicate input-set.toml deliberately: a shell script
@@ -88,7 +137,13 @@ overlay_dir="$build_root/inputs/overlay"
 # hypothesised.
 keys_dir="$build_root/keys"
 
-mkdir -p "$build_root" "$keys_dir"
+mkdir -p "$build_root" "$keys_dir" "$out_dir"
+
+# The compatibility symlink, created once the build root exists. See the output
+# naming comment above for why `out` survives at all and when it goes.
+if [ ! -e "$build_root/out" ]; then
+    ln -s out-erofs "$build_root/out"
+fi
 
 # One subject for the verity signer across every build root: PLN-0002
 # amendment 4, declared in docs/project/artifact-parameter-declaration.md. The
@@ -255,6 +310,25 @@ if [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
             --force build
     )
 fi
+
+# The variant's one difference, prepended to the caller's own arguments so a
+# `--force` or a `summary` still reaches mkosi. Each variant moves exactly one
+# thing; anything else that differed would make a task 10 failure unattributable.
+#
+# The seed literal is declared here rather than derived, and it is deliberately
+# NOT the composition's Seed=. Deriving it -- flipping a byte, hashing the
+# original -- would make the relationship between the two artifacts an algorithm
+# nobody wrote down. A second literal is a second declared value.
+variant_seed=8c1e5b47-2d93-4f60-a1e8-7d4c2f0b93a5
+
+case "$variant" in
+    content)
+        set -- --extra-tree="$root/composition/mkosi.extra.variant-content" "$@"
+        ;;
+    seed)
+        set -- --seed="$variant_seed" "$@"
+        ;;
+esac
 
 cd "$root/composition"
 # --initrd points at the `initrd` subimage's output, and it is passed here

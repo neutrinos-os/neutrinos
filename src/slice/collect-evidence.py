@@ -149,9 +149,34 @@ def main() -> int:
         if source.is_file():
             shutil.copy2(source, bundle / "composition" / name)
 
+    # PLN-0002-06 retains a digest for every artifact it builds, and amendment 5
+    # makes that six: a primary, a content variant and a seed variant per arm.
+    # Discovered by scanning rather than listed, because a hardcoded pair is
+    # what this function already was and it silently stopped describing the
+    # build root the moment a second arm existed.
+    #
+    # `out` is skipped: it is the compatibility symlink to out-erofs that
+    # compose.sh maintains, and following it would record the EROFS primary
+    # twice under two names. `out-offline` is skipped because it is PLN-0001's
+    # offline rebuild, already recorded above under its own key, and it is not
+    # one of the six.
+    spike_artifacts = {
+        directory.name: artifact_digests(directory)
+        for directory in sorted(build_root.glob("out-*"))
+        if directory.is_dir()
+        and not directory.is_symlink()
+        and directory.name != "out-offline"
+    }
+
     identity = {
         "networked_build": artifact_digests(build_root / "out"),
         "offline_rebuild": artifact_digests(build_root / "out-offline"),
+        "pln0002_artifacts": spike_artifacts,
+        "pln0002_artifact_count": len(spike_artifacts),
+        "pln0002_esp_uki": {
+            name: esp_uki_digest(build_root / name / "neutrinos-slice.raw")
+            for name in sorted(spike_artifacts)
+        },
         "esp_uki": {
             "networked_build": esp_uki_digest(build_root / "out" / "neutrinos-slice.raw"),
             "offline_rebuild": esp_uki_digest(

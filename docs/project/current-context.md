@@ -18,8 +18,8 @@ active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
 > This file is a summary and never the sole home of a decision, ruling,
 > measurement, or next action. Anything recorded only here is a defect: the
 > remedy is to write it where it belongs -- plan, design, backlog, record, or
-> code -- and leave a pointer here. Two such items are open and named under
-> [Awaiting the owner](#awaiting-the-owner).
+> code -- and leave a pointer here. One such item remains open and is named
+> under [Awaiting the owner](#awaiting-the-owner).
 
 ## Gate and authority
 
@@ -85,8 +85,8 @@ Authority is the plan's task table. Summary as of 2026-08-14:
 | 03a confext build and `/etc` carve | **partial** in the plan text; its last owed item, signature enforcement, is closed by measurement ([carve record](etc-path-carve.md) question 7). The plan row is not yet updated |
 | 03b confext delivery | pending; **sequenced after 06, before 07** (owner ruling 2026-08-12) |
 | 04 disposable layout | **partial**; the confext partition is deliberately not placed, pending 03b |
-| 05 parameter declaration | **accepted 2026-08-12** of a stated incomplete state; **fully implemented as of 2026-08-14** ([declaration](artifact-parameter-declaration.md)) |
-| 06 four authenticated artifacts | **in progress**. The verity signature partition, a UKI signed by `CN=NeutrinOS image, synthetic`, and `systemd.image_policy=usr=signed` in the UKI have landed. The stated completion criterion -- build all artifacts, retain digests -- is **not met** |
+| 05 parameter declaration | **accepted 2026-08-12** of a stated incomplete state; implemented in the composition and **audited against the built artifacts 2026-08-14**, which took three corrections; both of its open parameters were ruled the same day ([declaration](artifact-parameter-declaration.md)) |
+| 06 six authenticated artifacts | **complete**, accepted 2026-08-14: six artifacts from one tree state, digests retained, command line uniform across the set, determinism re-measured with the confext rebuilt ([artifact set](usr-artifact-set.md)). The verity signature partition, a UKI signed by `CN=NeutrinOS image, synthetic`, and `systemd.image_policy=usr=signed` in the UKI landed earlier the same day |
 | 07-09, 11-14 | pending |
 | 10 negative evidence | **started out of order** on an owner ruling; one cell covered by `T4-CONFEXT-001` (confext substitution, signature dimension only) |
 
@@ -132,6 +132,17 @@ labels were an agent decomposition and are retracted.
   travels in the check's own `masked_units` field. **Task 08's record must read
   "no failed units except the two masked"**, and whether the mask belongs in
   the PLN-0002-05 declaration is an owner question.
+- **A declared parameter can be wrong rather than merely missing.** The
+  2026-08-14 audit of PLN-0002-05 read the built artifacts instead of the
+  configuration. Most of the declaration held: the ext4 superblock, the ESP
+  volume ID, the four signing subjects and the initrd unit digests all verify.
+  Three claims did not -- a superseded mkosi pin, an `orphan_file` feature that
+  the journal removal precludes, and the initrd module list, which **ships 130
+  modules against 21 declared** while eight of its entries select kernel
+  builtins and three prefix-match whole subsystems. All are corrected in the
+  [declaration](artifact-parameter-declaration.md). The pattern is this plan's
+  usual one in a new place: a configuration that looks authoritative, produces
+  no error, and does not describe the artifact.
 - **Retention is what has repeatedly made work possible**: the declared Fedora
   repository returned 403 for a day, and the slice composed offline from
   retained inputs rather than a declared URL being repointed. The repository is
@@ -188,16 +199,18 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-Both items are owner rulings that this file was, until now, the only record of.
-They are written into their authoritative homes; neither is settled.
+**Three of the four are settled as of 2026-08-14.** Items 1, 3 and 4 were ruled
+that day and are struck through below with their outcomes; the reasoning lives
+in the plan's amendment 5 and in the
+[declaration](artifact-parameter-declaration.md), not here. **Item 2, the
+ParticleOS command line, is the only one still open** and is the owner's.
 
-1. **Six artifacts, not the plan's four.** Owner ruling 2026-08-12, reaffirmed
-   2026-08-14: task 10's substitution source must differ from the primary,
-   because the build is bit-reproducible and rebuilding the same tree yields an
-   identical artifact, which would make the substitution vacuous. Ruled: build
-   both a content variant and a seed variant per arm. Drafted as **PLN-0002
-   amendment 5**, which changes accepted plan text and is not in force until
-   accepted.
+1. ~~Six artifacts, not the plan's four.~~ **Accepted 2026-08-14 as PLN-0002
+   amendment 5 and in force.** Task 10's substitution source must differ from
+   the primary, because the build is bit-reproducible and rebuilding the same
+   tree yields an identical artifact, which would make the substitution vacuous.
+   Per arm: a content variant and a seed variant. **Task 06's completion
+   criterion is six artifacts and their retained digests.**
 2. **The ruled command line is not the implemented one.** Owner ruling
    2026-08-12: adopt the ParticleOS shape -- `root=dissect`, `mount.usr=dissect`,
    a fully-enumerated `systemd.image_policy=`, `systemd.image_filter=`, and no
@@ -211,14 +224,40 @@ They are written into their authoritative homes; neither is settled.
    settled, the composition is in a state neither the ruling nor the
    declaration fully describes.
 
+3. ~~`systemd.image_filter=`.~~ **Ruled absent 2026-08-14 by Jason Tarasovic.**
+   The premise that made it load-bearing -- that 06's same-format substitution
+   sources make partition selection matter -- assumes two artifacts visible to
+   one boot, and task 10 substitutes the disk. Discrimination in 10 comes from
+   the verity signature and the root hash. Second designator in this plan
+   assumed to do work the boot path never asks of it. If 10 proves otherwise the
+   artifacts are rebuilt, and that risk is accepted. **No parameter inside the
+   UKI is now open.**
+**Item 4 is closed.** Whether the initrd module list is tightened before the
+freeze was **ruled 2026-08-14 by Jason Tarasovic: accepted as measured, not
+tightened.** No C-007 criterion needs the trim -- an untrimmed initrd identical
+across arms is as much a held constant as a trimmed one -- and "measure the arm
+as it would ship" does not transfer to a fixture whose kernel specialization is
+`W-004`, deferred past this gate. The general form governs beyond this row: **a
+decision that nothing is waiting on is not a decision to be made.**
+
 Also open and not taken by any agent: whether G1's approval should be revisited
 against the corrected requirement trace.
 
 ## Next action
 
-The remainder of **PLN-0002-06**: build the artifacts and retain their digests,
-then retire the `out`/`out-ext4` output asymmetry. The artifact count depends on
-item 1 above.
+**PLN-0002-06 is complete and accepted 2026-08-14** ([artifact set](usr-artifact-set.md)).
+Next is **PLN-0002-03b, confext delivery**, which the owner ruling of 2026-08-12
+sequenced after 06 and before 07, so that question 5b's live fail-open is
+confined to 06 rather than carried through every measurement task. Task 07 then
+measures, and must measure filesystem bytes in use rather than partition size.
+
+Two things to carry into 07 and 08: the six artifacts have **not** been booted
+-- the 2026-08-12 confirmation boots were of earlier artifacts -- and the
+synthetic signing material expires **2026-09-11**, after which these artifacts
+are measured against expired enrollment material. **Every artifact must come from one tree state**: the
+ext4 arm currently in the build root predates `systemd.image_policy=`, its UKI
+does not carry it, and it is therefore not a member of the declared set and must
+not be measured or retained as one.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not

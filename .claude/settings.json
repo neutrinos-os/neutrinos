@@ -13,6 +13,7 @@
       "Bash(pnpm lint)",
       "Bash(pnpm knip)",
       "Bash(pnpm osv)",
+      "Bash(command -v)",
       "mcp__claude_ai_DeepWiki__ask_question",
       "mcp__claude_ai_DeepWiki__read_wiki_contents",
       "mcp__claude_ai_DeepWiki__read_wiki_structure"

@@ -114,7 +114,7 @@ Ordered so the plan's most likely falsification runs first (PR-0030 C-007).
 | PLN-0002-03b | pending, **scheduled after 06 and before 07** | 03a | **Confext delivery**: where a separately delivered confext lives and when it is merged, with [RES-0015](../research/comparisons/stateless-etc-configuration-delivery.md) as its evidence | Draft for owner ruling; the drafter does not accept it. Blocks the confext partition PLN-0002-04 left out and finding 2's option B. **No task in this plan depends on it.** Depends on `S-004` and touches `C-009` and `L-003`; if it cannot be answered without one of them, stop and return to review. **Sequenced 2026-08-12 by Jason Tarasovic: after 05 and 06, before 07 through 10.** Still on no task's critical path, so this is a scheduling ruling and not a dependency. Its reason is what 03b accumulated: the delivery design, the general `L`/`C` exception list, the credstore sub-question, and question 5b's live fail-open. Running it before 07 confines that fail-open to task 06 rather than carrying it through every measurement task |
 | PLN-0002-04 | **partial** | 01 | Disposable layout: ESP, one `/usr` slot, one Verity slot, **tmpfs root partition**, one confext. Fixture status recorded in the work register at creation | Build `systemd-repart` definitions. **Owner ruling 2026-08-11: tmpfs, which is the preferred direction and avoids the first draft's contradiction of the accepted C-008 ruling.** `/var` is tmpfs-backed and nothing persists; no machine-state volume is built, so C-008 is respected by not implementing the thing it governs. **Partial, 2026-08-11**: ESP, `/usr`, and the verity partition are promoted from the spike into `src/slice/composition/mkosi.repart/` and recorded as fixtures ([composition record](../project/usr-artifact-composition.md)); the tmpfs root is expressed as `root=tmpfs` on a reintroduced kernel command line, which is structural rather than a reversal of PLN-0001's reverted first-boot amendments. The verity-signature partition is deferred to task 06 with the signing material it needs. **The confext partition is not placed**: doing so decides where a separately delivered confext lives, which is finding 1 of task 01 and is not ruled. See the [drafted findings](../project/early-boot-findings-for-decision.md) |
 | PLN-0002-05 | **accepted 2026-08-12** | 02, 04 | **Declared parameter set for both arms** and the pairing rule that justifies it. Filesystem: `mkfs.erofs` compression algorithm and level, EROFS cluster size, ext4 block size, inode ratio, reserved-block percentage and feature set, dm-verity hash block size and salt, and the initrd contents per arm with the asymmetry stated and its direction of advantage named. **Kernel command line** (amended 2026-08-11): `root=tmpfs` against `systemd.volatile=yes`, `systemd.image_policy=`, `systemd.image_filter=`, `systemd.confext=`, and the `usrhash=` mkosi injects. **Signing-material identity** (amended 2026-08-12): one subject for the verity signer across every build root, since the subject is what lands in the enrolled `db` and in `/usr/lib/verity.d` | Declare before building. An undeclared parameter invalidates the comparison. The command line is inside the signed UKI, so it is part of the artifact and not a setting applied to one; it affects boot behavior and memory, two of the eight criteria |
-| PLN-0002-06 | pending | 05 | Two authenticated artifacts per arm: EROFS+dm-verity and ext4+dm-verity, each with Verity pair and synthetically signed UKI. Second same-format artifact per arm exists only as a task 10 substitution source. Signing key lifetime stated across the task graph | Build all four; retain digests |
+| PLN-0002-06 | **in progress** | 05 | Two authenticated artifacts per arm: EROFS+dm-verity and ext4+dm-verity, each with Verity pair and synthetically signed UKI. Second same-format artifact per arm exists only as a task 10 substitution source. Signing key lifetime stated across the task graph | Build all four; retain digests. **In progress 2026-08-14**: the detached `usr-verity-sig` partition, a UKI signed by a third synthetic subject (`CN=NeutrinOS image, synthetic`, kept distinct from the two verity signers because `T4-CONFEXT-001`'s content is which signer `db` holds), and `systemd.image_policy=usr=signed` embedded in the UKI have landed, and both enrollment arms boot from `/dev/mapper/usr` with no policy complaint. **The completion criterion is not met**: no artifact set is built and no digests are retained. The count is under amendment 5 and is not four until that is ruled |
 | PLN-0002-07 | pending | 06 | Offline measurements: image size, build wall time, **build determinism**, update transfer size, inspectability. Repetition count and accelerator state recorded for every timed measurement | Measure both arms identically |
 | PLN-0002-08 | pending | 06 | Boot records both arms: `/usr` read-only and verity-authenticated, `/etc` regenerated, no failed units, boot behavior and memory with repetition count and accelerator state | Boot each; PLN-0001 measured the same boot at 72s TCG and 18s KVM, so accelerator state is recorded per run |
 | PLN-0002-09 | pending | 06 | **Corruption behavior**: single-bit corruption injected into an authenticated region of each artifact, recording detection point, diagnostic, and blast radius per format. Compressed EROFS clusters versus ext4 blocks is where the formats are expected to diverge | Inject and record verbatim |
@@ -124,12 +124,15 @@ Ordered so the plan's most likely falsification runs first (PR-0030 C-007).
 | PLN-0002-13 | pending | 11, 12 | C-007 recommendation with its evidence, stating which criteria decided it and which were inconclusive. **If task 08 produced no values, this task says so and recommends nothing** | Draft; **the drafter does not accept it** |
 | PLN-0002-14 | pending | 13 | Retained evidence bundle, updated requirement trace, work register, and DES-0006 disposition | Assemble as PLN-0001-08 did |
 
-## Amendments (drafted and **accepted by Jason Tarasovic on 2026-08-11**)
+## Amendments
 
-Two amendments, independent of each other: splitting PLN-0002-03, and widening
-PLN-0002-05's declared parameter set to cover the kernel command line. Both are
-applied to the task table above. The reasoning is kept here because a table row
-records what a task is, not why the plan changed.
+Each amendment carries its own status. Amendments 1 and 2 -- splitting
+PLN-0002-03, and widening PLN-0002-05's declared parameter set to cover the
+kernel command line -- were drafted and **accepted by Jason Tarasovic on
+2026-08-11**; amendment 3 on 2026-08-11 and amendment 4 on 2026-08-12.
+**Amendment 5 is drafted and not accepted.** Accepted amendments are applied to
+the task table above. The reasoning is kept here because a table row records
+what a task is, not why the plan changed.
 
 ## Amendment 1: split PLN-0002-03
 
@@ -333,6 +336,42 @@ divergence rather than papering over it: one build root implies one key set.
   measurement unreadable, since its whole content is which signer `db` holds.
 - **That all of it is synthetic**, generated into the build root and destroyed
   with it, per this plan's boundary.
+
+## Amendment 5: two substitution sources per arm, so six artifacts rather than four
+
+**Drafted 2026-08-14, recording an owner ruling of 2026-08-12 reaffirmed on
+2026-08-14. Not accepted; it changes accepted plan text and is not in force
+until Jason Tarasovic accepts it.** It is written here because the ruling had
+until now no home outside the running context summary, which is not a record.
+
+### Why
+
+Task 06 builds a second same-format artifact per arm purely as task 10's
+substitution source. That was drafted before the build became bit-reproducible.
+It now is, so rebuilding the same tree yields a byte-identical artifact and the
+substitution is vacuous: it would boot fine, and a passing boot would read as a
+fail-open rather than as the artifact being the one the UKI names.
+
+Task 10 needs a substitute that is **validly signed by the enrolled key and
+carries a root hash the UKI does not name**. One variant cannot supply both
+shapes of that.
+
+### What changes
+
+- Per arm, build **two** substitution sources rather than one: a **content
+  variant** (the tree differs) and a **seed variant** (the tree is identical and
+  the repart seed differs, so UUIDs and the verity salt move). Six artifacts
+  total.
+- Task 06's completion criterion becomes "build all six; retain digests".
+- Nothing else moves. The substitution sources remain substitution sources: no
+  selection, staging, or finalization is exercised or claimed, and the non-goal
+  above is unchanged.
+
+### Cost
+
+Two more builds per arm and two more digests to retain. The alternative is a
+task 10 whose `/usr`-substitution cell cannot discriminate, which is the cell
+the plan's negative evidence rests on.
 
 ## Failure, interruption, and cleanup
 

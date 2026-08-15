@@ -107,7 +107,9 @@ PLN-0000 complete 2026-08-10 (PRE-001 through PRE-018 satisfied)
   -> PLN-0002-07 accepted 2026-08-15: five of C-007's eight criteria measured
   -> PLN-0002-08 accepted 2026-08-15: boot and memory measured, both a tie
   -> PLN-0002-09 accepted 2026-08-15: corruption measured, the arms separate
-  -> NOW: PLN-0002-10, negative evidence, the last measurement task
+  -> PLN-0002-10 accepted 2026-08-15: substitution measured; the image binding
+     holds and the signature binding is not a gate. The arms do not differ
+  -> NOW: PLN-0002-11 through 14; every measurement task is done
   -> collect substrate, package, storage, and identity evidence
   -> select mechanisms through ADRs
   -> G2: qualify the reference VM

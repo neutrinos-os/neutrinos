@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-15
-source_snapshot_revision: a4496e0
+source_snapshot_revision: 5b7e818
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
@@ -91,7 +91,7 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | 08 boot records | **complete and accepted 2026-08-15**: three boots per arm, both primaries. Boot behaviour and memory are a **tie** ([boot records](artifact-boot-records.md)) |
 | 09 corruption behaviour | **complete and accepted 2026-08-15**: four injections, two targets per arm. The **first criterion to separate the arms** ([corruption records](artifact-corruption-records.md)) |
 | 11-14 | pending |
-| 10 negative evidence | **started out of order** on an owner ruling; one cell covered by `T4-CONFEXT-001` (confext substitution, signature dimension only) |
+| 10 negative evidence | **complete and accepted 2026-08-15**: seven cells per arm, 32 boots, both firmware states ([substitution records](artifact-substitution-records.md)). Image substitution fails **closed**; signature substitution fails **open**, enrolled or not. Identical on both arms |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
 labels were an agent decomposition and are retracted.
@@ -111,8 +111,12 @@ labels were an agent decomposition and are retracted.
   plan's weight rather than the positive boots. **Task 09 reproduced instance
   one on the accepted artifacts and on both arms**: four corrupted copies each
   booted to `running` with no failed units, and detection came at first read of
-  the damaged block. That is a reproduction, not an eighth instance. Task 10 now
-  carries the remaining weight alone.
+  the damaged block. That is a reproduction, not an eighth instance. **Task 10 carried the
+  remaining weight and split it in two**: the *image* fails closed on every
+  substitution measured, and the *signature* fails open on every one -- an
+  eighth instance, and the first where the mechanism is configured, runs, and
+  still gates nothing. A valid signature by the enrolled signer over a root hash
+  the image does not carry boots to `running` with zero failed units.
 - **`systemd.image_policy=usr=signed` is a structural predicate, not an
   enforcement mechanism.** It is satisfied by both enrollment arms, evaluated
   after the initrd already mounted `/usr`, and non-fatal. The declaration
@@ -223,8 +227,9 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-**One item is open.** PLN-0002-07, PLN-0002-08 and PLN-0002-09 were all
-accepted 2026-08-15; three further items were ruled on 2026-08-14 and are recorded
+**One item is open.** PLN-0002-07, PLN-0002-08, PLN-0002-09 and PLN-0002-10
+were all accepted 2026-08-15, which completes every measurement task in the
+plan; three further items were ruled on 2026-08-14 and are recorded
 where they belong -- the six-artifact count as PLN-0002 amendment 5, and
 `systemd.image_filter=` and the initrd module list in the
 [declaration](artifact-parameter-declaration.md). They are not repeated here.
@@ -247,26 +252,28 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-10**, negative evidence, and the **last measurement task**: it is the
-only remaining one that can move C-007. Started out of order on an owner ruling
-and one cell is covered -- `T4-CONFEXT-001`, confext substitution on the
-signature dimension. Still owed: `/usr` substitution, Verity substitution,
-manifest substitution, the wrong-but-valid key against the *artifact* rather
-than the confext, and the C-001 cross-product enumeration. All five now have
-what they waited for, which is task 06's substitution sources.
+**PLN-0002-10 is complete and accepted 2026-08-15.** It was the last
+measurement task and it **does not move C-007**: every cell behaved
+identically on both arms, so four of the eight criteria now separate the formats
+not at all. See the [substitution records](artifact-substitution-records.md).
 
-Two things are already recorded about it and neither is new. The plan **predicts
-it fails open**, because `systemd.image_policy=usr=signed` is a structural
-predicate evaluated after the initrd has mounted `/usr`; measuring an absence of
-enforcement is a real result and the reason the task exists. And it injects
-against a *configuration* rather than a missing mechanism, so which state is
-under test is a question the task must settle rather than inherit.
+Its finding is the one the plan half-predicted and half-missed. **Image
+substitution fails closed** -- eight cells, both firmware states, three distinct
+diagnostics naming device resolution, the data hash and the tree hash, all
+terminating in emergency mode. **Signature substitution fails open** -- six
+cells boot to `running` with zero failed units, including a valid signature by
+the *enrolled* signer over a root hash the image does not carry. Enrolment is
+not the missing ingredient: it loads the certificate and removes `Root hash
+verification failed`, and changes no outcome. The enrolled fixture is also
+stronger than the artifact's own auto-enrolment, whose `db` carries the image
+signer alone.
 
-Then 11 (slice tests), 12 (recovery disposition, the owner's), 13 (the C-007
-recommendation, drafted and not accepted by its drafter), 14 (evidence bundle
-and DES-0006 disposition).
+Then 11 (slice tests), 12 (recovery disposition, the owner's -- and emergency
+mode is now the measured terminal state it has to rule on), 13 (the C-007
+recommendation), 14 (evidence bundle and DES-0006 disposition).
 
-Tasks 07, 08 and 09 are complete and **accepted 2026-08-15**.
+Tasks 07, 08, 09 and 10 are complete and **accepted 2026-08-15**, so no
+measurement task remains and the next work is 11 through 14.
 **PLN-0002-03b remains deferred**, not sequenced ahead of the measurement tasks,
 and no task depends on it.
 

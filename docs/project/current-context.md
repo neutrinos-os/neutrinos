@@ -1519,17 +1519,29 @@ that was ruled out by building the pair at both pins.
 **Next action: the remainder of PLN-0002-06** -- build the artifacts and retain
 their digests, then retire the `out`/`out-ext4` output asymmetry.
 
-Two things must be settled first, and neither is an agent's to settle. **The
-plan authorizes four artifacts**: two arms, each with a second same-format
-artifact existing only as a task-10 substitution source. A ruling given in
-session on 2026-08-13 asked for *two* substitution sources per arm, which would
-be six, and that ruling is recorded nowhere in this repository. It is not in
-force until it is, and the plan's four stands. **The `06a`/`06b`/`06c`/`06d`
-labels used in this session's commits are an agent decomposition, not plan
-structure**; PLN-0002-06 is undivided. What those commits landed is real and
-measured -- the signature partition, the signed UKI, and the image policy -- but
-the completion criterion the plan states, "build all four; retain digests", is
-not met by any of them.
+**Six artifacts, not the plan's four.** Owner ruling of 2026-08-12: task 10's
+substitution source must differ from the primary, because the build became
+bit-reproducible that morning and rebuilding the same tree yields an identical
+artifact, which would make the substitution vacuous -- it would boot fine and
+read as a fail-open. Task 10 needs a substitute validly signed by the enrolled
+key but carrying a root hash the UKI does not name. Ruled: build **both** a
+content variant and a seed variant, as two substitution sources, per arm. The
+plan text still says four and needs an amendment to match. Reaffirmed by the
+owner on 2026-08-14 after an agent wrongly retracted it as unrecorded.
+
+**A standing ruling is unimplemented, and the composition currently contradicts
+it.** Owner ruling of 2026-08-12: adopt the ParticleOS shape -- `root=dissect`,
+`mount.usr=dissect`, a fully-enumerated `systemd.image_policy=`,
+`systemd.image_filter=`, and no `usrhash=`. What is implemented instead is
+`usr=signed` alone with `usrhash=` retained, and the parameter declaration now
+argues that enumerating `usr-verity=`/`usr-verity-sig=` is harmful, which is the
+opposite of the ruled configuration. That argument is measured and correct on
+its own terms; it was written without the ruling in view. **The ruling was taken
+on the premise that the enumerated policy would enforce `/usr`'s signature, and
+the 2026-08-14 measurements show it cannot** -- the policy is structural, and
+upstream's enforcement point is the TPM unseal. Whether that voids the ruling is
+the owner's call and nobody else's. Until it is settled, the composition is in a
+state neither the ruling nor the declaration fully describes.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not

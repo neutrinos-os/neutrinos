@@ -1,6 +1,6 @@
 ---
 status: accepted
-last_updated: 2026-08-12
+last_updated: 2026-08-14
 accepted_by: Jason Tarasovic
 accepted_date: 2026-08-12
 governing_plan: PLN-0002
@@ -138,7 +138,19 @@ anyone reading mkosi's source for the name will get it wrong.
 
 mkosi's dead workaround is `-O ^orphan_file`, and its guard also evaluates false
 for a Fedora image built with a Fedora tools tree, so nothing is being masked by
-the wrong name. Confirmed on the built ext4 arm: `orphan_file` is present.
+the wrong name.
+
+**The corroborating measurement recorded here was wrong and is corrected
+2026-08-14.** It said "confirmed on the built ext4 arm: `orphan_file` is
+present". It is not: `dumpe2fs -h` on the built arm lists no `orphan_file`
+feature. `orphan_file` requires a journal, and the journal is removed by the
+`-O ^has_journal` declared below, so `mke2fs` cannot set it. The conclusion is
+unchanged -- mkosi's workaround is dead at this pin either way, by the wrong
+variable name and by the false guard -- but the feature was reported present
+from a build that predated the journal ruling, and the claim was never re-taken
+against the arm that exists. Third instance in this document of a value written
+from reasoning or a stale build rather than from the artifact; see `-O verity`
+below and the module list further down.
 
 ## The EROFS arm
 
@@ -296,6 +308,21 @@ Inside the signed UKI, therefore part of the artifact. Current value, read from
 `src/slice/composition/mkosi.conf` on 2026-08-14, is `root=tmpfs rw
 systemd.image_policy=usr=signed`, plus the `usrhash=` mkosi injects.
 
+**The two artifacts on disk do not carry the same command line, measured
+2026-08-14 from the UKIs themselves.** The EROFS arm's `.cmdline` section reads
+`usrhash=… root=tmpfs rw systemd.image_policy=usr=signed`; the ext4 arm's reads
+`usrhash=… root=tmpfs rw`, with **no image policy**. The ext4 arm was built at
+16:40 and the policy landed in the composition before the EROFS arm was rebuilt
+at 18:14, so the ext4 artifact simply predates the parameter. Two consequences,
+neither of them harmless. The command line is declared as a **held constant**
+across arms and currently is not one, so any criterion measured against the
+pair today measures the policy as well as the filesystem. And "measured across
+both enrollment arms" in the `systemd.image_policy=` row below is a statement
+about the EROFS artifact under two firmware states, not about both format arms.
+**PLN-0002-06 must build every artifact from one tree state**, which it was
+always going to do; what this adds is that the ext4 arm now on disk is not a
+member of the declared set and must not be measured or retained as one.
+
 **A standing owner ruling describes a different command line, and it is
 unimplemented.** Owner ruling of 2026-08-12: adopt the ParticleOS shape --
 `root=dissect`, `mount.usr=dissect`, a fully-enumerated
@@ -318,7 +345,7 @@ artifacts PLN-0002-06 freezes carry the implemented value.
 | `rw` | **keep** | `ro` | The tmpfs root is writable; `/usr` is read-only by its own mount. `ro` here would describe the wrong thing |
 | `usrhash=` | **injected by mkosi, declared** | Suppress and set manually | Already the mechanism that makes the `/usr` mount verity-authenticated rather than merely successful. Declared so the root-hash-to-UKI binding PLN-0002-11 registers a check for is a stated property, not an observed one |
 | `systemd.image_policy=` | **`usr=signed`** | Absent, as today, or `usr=verity` | Ruled 2026-08-12; landed in the UKI 2026-08-14 and measured there across both enrollment arms. **What it does is narrower than this row originally claimed, and the correction is recorded because the original claim was load-bearing.** It was described as the mechanism that makes task 09's and task 10's negative evidence fail closed. It does not. `usr=signed` is a *structural* predicate: `dissect-image.c` sets the SIGNED flag when the signature partition is **found**, with no verification and no keyring, so both the enrolled and unenrolled arms satisfy it. It is evaluated by `systemd-gpt-auto-generator` at ~5.25s in the real root, after the initrd mounted `/usr` at ~2.4s, and a generator's non-zero exit is non-fatal -- a mismatch logs and boots. `usr=verity` remains rejected on the original measurement. Naming `usr-verity=`/`usr-verity-sig=` is rejected as actively harmful: `signed` is a flag of the data partition, sets no flags on a verity partition, and no flags implies `open`, which permits absent. The value stands as declared; what changes is that it must not be cited as the integrity mechanism |
-| `systemd.image_filter=` | **absent** *(recommended, needs ruling)* | Set by label | Becomes load-bearing at task 06, which builds a second same-format artifact per arm as task 10's substitution source. Recommended absent **now** and revisited at 06, because setting it before the second artifact exists would be declaring against a shape nobody has built |
+| `systemd.image_filter=` | **absent. Ruled 2026-08-14** | Set by label | **The premise that made this load-bearing does not hold.** It was carried as *needs ruling* because task 06 builds same-format substitution sources, which was read as making partition selection matter. That assumes two artifacts visible to one boot. Task 10 substitutes the **disk**: one VM, one disk, one `/usr` partition in scope, and nothing to filter between. Discrimination in task 10 comes from the verity signature and the root hash -- which is what amendment 5 exists to keep non-vacuous -- not from partition selection. This is the second designator in this document assumed to do work the boot path never asks of it; `systemd.image_policy=` was the first. **Ruled absent, and the residual risk is accepted**: if task 10 shows a filter is needed, the artifacts are rebuilt. That is the cost of being wrong, and it is smaller than ruling a parameter nothing has asked for |
 | `systemd.confext=` | **absent** | Set explicitly | Whether the merge happens is currently decided by unit presence. Relevant to the finding-1 fixture and to whatever 03b decides; setting it now would harden a fixture into an assertion |
 
 ## The initrd
@@ -339,7 +366,7 @@ declared parameter, and amendment 3 made it one.
 
 | Item | Declared value | Reason |
 | --- | --- | --- |
-| Base | `mkosi-initrd` at pinned mkosi `84af2089` | It *is* mkosi's default initrd -- `finalize_default_initrd()` parses `resources/mkosi-initrd` in place -- so this is the same initrd, invoked explicitly |
+| Base | `mkosi-initrd` at pinned mkosi **`d5ff0d0d`** | It *is* mkosi's default initrd -- `finalize_default_initrd()` parses `resources/mkosi-initrd` in place -- so this is the same initrd, invoked explicitly. **Corrected 2026-08-14**: this row cited `84af2089`, which [`src/slice/input-set.toml`](../../src/slice/input-set.toml) records as the **superseded** pin -- the dereferenced v26 tag of 2025-12-17, replaced because it put an eight-month-old mkosi in charge of building a current-main systemd. The declared and installed pin is `d5ff0d0d`, 2026-08-11, paired with the systemd-261 snapshot. The wrong pin was cited for a parameter inside the signed UKI |
 | Packages | `systemd`, `udev`, `bash`, `less`, `gzip` | Upstream's set, unchanged. Trimming it is a build-time saving against an emergency-login capability the plan may need when a boot fails |
 | `RemoveFiles=` | upstream's set, unchanged | Catalogs, hwdb, kernel images, `/var/cache`, `/var/log` |
 | NeutrinOS units | 2 files, below | PLN-0002-03a's replay unit and its drop-in, inside the UKI's signature and therefore release content |
@@ -370,7 +397,7 @@ modules**, while the composed initrd was 113.5M against the subimage's 35.9M.
 The missing 77.6M was every module the kernel ships, arriving through the
 setting nobody had named.
 
-Two consequences beyond the correction. **Upstream's 98-module list never
+Two consequences beyond the correction. **Upstream's 92-module list never
 governed the artifact either** -- it has the same shape, `KernelModules=` on an
 initrd image -- so PR-0030 C-003's "both drivers ship in both arms" was true and
 understated: every driver shipped in both arms. And this is the same failure
@@ -384,7 +411,11 @@ sit there looking authoritative.
 
 ### `KernelModulesInitrdInclude=`
 
-Upstream's list is **98 modules** and is a general-purpose list for arbitrary
+Upstream's list is **92 modules** at the declared pin `d5ff0d0d`, counted
+2026-08-14 from `mkosi/resources/mkosi-initrd/mkosi.conf` in the installed tree.
+This section previously said 98, which was the count at the superseded
+`84af2089` pin; the two errors are the same error. The list is a general-purpose
+one for arbitrary
 hardware: it carries `btrfs`, `squashfs` and `xfs` into an artifact that mounts
 none of them, and it carries **both `erofs` and `ext4`**, which is PR-0030
 C-003's named outcome -- "both drivers ship in both arms and neither artifact is
@@ -404,15 +435,17 @@ initrd* through `systemd-confext-sysroot.service`. So:
 
 - **`erofs` is required by both arms** -- by the EROFS arm for its `/usr`, and
   by **both** arms for the confext. The ext4 arm cannot mount its configuration
-  without it.
-- **`ext4` is required by one arm**, and is genuinely surplus in the other.
+  without it. It is shipped as a **module** and is genuinely selected by the
+  list below.
+- **`ext4` is not selected by anything and cannot be trimmed.** It is **built
+  into** `kernel-core 6.19.10-300.fc44`; see the correction below.
 
-The held-constant argument therefore carries `ext4` only. `erofs` needs no such
-justification and would be in both lists under any ruling. This is worth stating
-because "both drivers in both arms" reads as a symmetry and is not one, and
-because a later trim that reasoned from the arm alone would remove `erofs` from
-the ext4 initrd and break the confext merge rather than the boot -- the silent
-direction.
+`erofs` therefore needs no held-constant justification and would be in both
+lists under any ruling. `ext4` needs none either, but for the opposite reason:
+no ruling can remove it. What survives of this paragraph is the asymmetry's
+direction and the warning -- a later trim reasoning from the arm alone would
+remove `erofs` from the ext4 initrd and break the confext merge rather than the
+boot, which is the silent direction.
 
 Two related things confirmed while drawing the list, so neither is carried as an
 assumption. Verity signature validation needs **no module**:
@@ -422,7 +455,9 @@ offline against `kernel-core 6.19.10-300.fc44`. And `loop` is required for the
 DDI attach, which is why it appears under the confext role rather than as
 general-purpose slack.
 
-Recommended list, by role:
+Recommended list, by role. **This is the declared include list, not the shipped
+module set**; the two differ and the section after the table is the measurement
+of how.
 
 | Role | Modules |
 | --- | --- |
@@ -433,6 +468,66 @@ Recommended list, by role:
 | ESP | `vfat`, `/fs/nls/` |
 | Confext merge | `overlay`, `loop` |
 | Firmware access | `efivarfs` |
+
+### What the artifact actually carries
+
+Added 2026-08-14, from the built artifact rather than from the configuration.
+The modules segment of `out/neutrinos-slice.initrd` was extracted and every
+entry enumerated. **The declared list above is not a description of the shipped
+module set, in both directions**, and this table is what an undeclared parameter
+looks like after it has been declared wrong rather than not at all.
+
+**Eight of the twenty-one entries select nothing.** Seven are **built into**
+`kernel-core 6.19.10-300.fc44` and appear in its `modules.builtin`, so no
+include list can add or remove them: `ext4`, `dm-mod`, `virtio_pci`,
+`virtio_blk`, `virtio_console`, `virtio-rng`, `efivarfs`. The eighth is the
+`/fs/nls/` glob, which matches zero modules because `nls_base`, `nls_cp437` and
+`nls_ascii` are builtin too. Every one of them is present in both arms
+regardless of any ruling, and the entries are kept in the list as a statement of
+what the artifact requires -- but they must not be read as things this
+declaration chose.
+
+**The shipped set is 130 modules, not 21**, because three entries are prefix
+matches that pull in far more than their role: `crypto/` matches 46 modules
+under `kernel/crypto`, 18 under `drivers/crypto` including nine `qat_*`, four
+under `lib/crypto` and 17 architecture variants under `arch/x86`; `loop` also
+matches `zloop`, `nvme-loop`, `tcm_loop`, `target_core_mod` and
+`vsock_loopback`; `vsock` also matches `vsockmon`, `vsock_diag`, `hv_sock`,
+`hv_vmbus` and the VMCI transports. `nvme-*` (9), `vhost*` (3), `vdpa` (2) and
+`iio*` (4) reach the artifact this way and no role asks for any of them.
+
+Two things this does **not** overturn. The size measurement below stands -- the
+segment is 6.34 MiB against 77.6 MiB, so the trim did the work claimed of it --
+and both arms boot, which is what the acceptance evidence measured. What it
+overturns is the claim that the list *describes* the initrd. It does not; it is
+an over-matching filter whose output nobody had enumerated until now.
+
+It also narrows **PR-0030 C-003**. "Both drivers ship in both arms" is true, but
+not for the reason recorded: `ext4` ships in both arms because it is builtin,
+not because a shared include list carries it, and no per-arm list could have
+made it otherwise.
+
+**Ruled 2026-08-14 by Jason Tarasovic: accepted as measured. The list is not
+tightened before the freeze.** It stays exactly as it is -- identical across
+arms, booting on both, and now enumerated rather than assumed. The measurement
+above is the declaration; the 21-entry table is the filter that produced it.
+
+The reason is that no criterion needs the trim. C-007 needs the initrd to be a
+**held constant**, and an untrimmed initrd identical across both arms is exactly
+as constant as a trimmed one. What argued for trimming was "measure the arm as
+it would ship" -- the principle that correctly turned on EROFS compression --
+and it does not transfer: this artifact is a disposable VM fixture whose role
+contracts are open and whose kernel specialization is `W-004`, deferred past
+this gate. There is no shipping shape to measure against yet, so tightening the
+list would be declaring against a shape nobody has decided. That is the same
+objection this document raises against setting `systemd.image_filter=` early,
+and it applies here for the same reason.
+
+**The general form of the ruling, which governs beyond this row:** a decision
+that nothing is waiting on is not a decision to be made. The over-match is
+recorded, bounded, and costs 74 MiB in a UKI nothing transfers over a network.
+Kernel content becomes a real question at `W-004`, with a role to answer it
+for.
 
 **Confirmed on both arms, 2026-08-12.** Each composed artifact boots to
 readiness with the trimmed list: `/usr` mounts verity-authenticated, the boot
@@ -518,6 +613,25 @@ it.
 The three remain distinct because `T4-CONFEXT-001`'s entire content is which
 signer `db` holds; collapsing them would make the measurement unreadable.
 
+**Verified 2026-08-14 against the build root and the artifacts**: all four
+subjects are exactly as declared, the published `neutrinos-slice.verity.crt`
+beside both arms carries `CN=NeutrinOS verity, synthetic`, and `sbverify`
+reports the UKI signed by `CN=NeutrinOS image, synthetic`.
+
+**Certificate validity was undeclared and is now named.** `compose.sh` and
+`spike.sh` both generate with `-days 30`. The material in the current build root
+was generated 2026-08-12 and has `notAfter=2026-09-11`. This is a real parameter
+of the fixture rather than an implementation detail: PLN-0002-06 freezes
+artifacts that tasks 07 through 10 measure afterwards, and a Secure Boot
+enrollment fixture whose `db` certificate has expired is a different experiment
+from one whose has not. It is recorded rather than changed -- 30 days is a
+defensible bound for synthetic material destroyed with the build root, and
+lengthening it would regenerate keys and invalidate the artifacts already
+measured, which the amendment 4 guard exists to prevent. **What is owed is that
+06 states which certificates its retained digests were signed by and when they
+expire**, so a later measurement against expired material is visible rather than
+silent.
+
 ## What this declaration does not cover
 
 Named so nothing here is read as wider than it is.
@@ -531,11 +645,16 @@ Named so nothing here is read as wider than it is.
 - **Whether mkosi is the mechanism.** It is a candidate fixture. bootc remains
   the deployment-substrate challenger and nothing in this document selects
   anything.
+- ~~**`systemd.image_filter=`.**~~ **Ruled absent 2026-08-14**; see the kernel
+  command line table. No parameter inside the UKI is open.
+- **Kernel content as a design question.** The module list is ruled accepted as
+  measured (see "What the artifact actually carries") and is a fixture, not a
+  position on what a NeutrinOS initrd should contain. That is `W-004`.
 
 ## Implementation this declaration obliges
 
 Listed because a declaration whose implementation is missing is a document
-rather than a parameter set. Status as of 2026-08-12.
+rather than a parameter set. Status as of 2026-08-14.
 
 1. **Done.** `mkosi.images/initrd/` subimage with `Include=mkosi-initrd`, the
    trimmed module list, and the two NeutrinOS units as a plain `mkosi.extra`
@@ -558,7 +677,26 @@ rather than a parameter set. Status as of 2026-08-12.
    Both parameters exist only in the environment repart is run with, so neither
    is expressible in a `repart.d` file.
 
-**Every parameter this declaration obliges is implemented and measured as of
-2026-08-14.** That is the state in which the artifacts are ready to be frozen --
-with the unresolved command-line ruling above named as the one thing a freeze
-would lock in without a decision.
+**Every parameter this declaration obliges is implemented in the composition as
+of 2026-08-14.** That sentence stood alone until an audit on the same date read
+the built artifacts rather than the configuration, and it was doing more work
+than it could carry. Four things stood between this state and a freeze. **Two
+were ruled on 2026-08-14, one is 06's own work, and one remains open:**
+
+1. **The ext4 arm on disk is not built to this declaration** -- its UKI carries
+   no `systemd.image_policy=`. 06 rebuilds from one tree state and resolves it.
+   No ruling needed; it is named so the stale artifact is not measured.
+2. ~~`systemd.image_filter=`.~~ **Ruled absent 2026-08-14**, on the finding that
+   the premise making it load-bearing assumed two artifacts visible to one boot
+   and task 10 substitutes the disk. No longer open.
+3. ~~The declared module list.~~ **Ruled 2026-08-14: accepted as measured, not
+   tightened.** No longer open.
+4. **The ParticleOS command-line ruling remains unimplemented and contradicted**
+   by this document's own measured argument, as stated at the top of the kernel
+   command line section. **This is the only one of the four still open**, and it
+   is the owner's.
+
+Three corrections were also taken on this document on 2026-08-14 -- the mkosi
+pin and upstream module count, the `orphan_file` claim, and the module-list
+description. None changes a declared value; all three were statements about the
+artifact that the artifact did not support.

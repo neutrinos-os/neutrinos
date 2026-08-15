@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-15
-source_snapshot_revision: ddcfe89
+source_snapshot_revision: f59719e
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
@@ -92,7 +92,8 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | 09 corruption behaviour | **complete and accepted 2026-08-15**: four injections, two targets per arm. The **first criterion to separate the arms** ([corruption records](artifact-corruption-records.md)) |
 | 11 slice tests | **complete, accepted 2026-08-15**: the five hold on both arms; two checks added and one widened, each verified failure-sensitive, plus `T4-SLICE-003`/`T4-SLICE-004` registered **deferred** for task 10's signature fail-open ([check updates](slice-check-updates.md)). Both questions it raised are ruled 2026-08-15 -- registration belongs to the task that first needs the assertion enforced, and the fail-open owes a deferred registration rather than a check asserting the observed behaviour |
 | 12 recovery disposition | **complete and accepted 2026-08-15**: format layer measured over eight injection sites -- a tie on file data, **ext4 ahead on metadata diagnosis**; system layer deferred to items 3 and 5; `crypttab` unsatisfiable because none exists in the artifact ([disposition](artifact-recovery-disposition.md)) |
-| 13-14 | pending |
+| 13 C-007 recommendation | **complete and accepted 2026-08-15**, recommendation and weighing rule both: **EROFS, conditional on the update mechanism not being whole-image-only**, on image size as the one deciding criterion ([recommendation](artifact-format-recommendation.md)). **This does not accept EROFS** -- an ADR does that, and C-007 stays open |
+| 14 evidence bundle and DES-0006 disposition | pending |
 | 10 negative evidence | **complete and accepted 2026-08-15**: seven cells per arm, 32 boots, both firmware states ([substitution records](artifact-substitution-records.md)). Image substitution fails **closed**; signature substitution fails **open**, enrolled or not. Identical on both arms |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
@@ -250,7 +251,11 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-**Two items are open.** PLN-0002-12 was accepted 2026-08-15 -- the deferral of
+**Two items are open.** PLN-0002-13's recommendation and its weighing rule were
+**accepted 2026-08-15** and are not among them; that acceptance did not accept
+EROFS, and C-007 stays open for an ADR.
+
+PLN-0002-12 was accepted 2026-08-15 -- the deferral of
 the system layer is now an accepted amendment to verification item 2, and the
 `crypttab` disposition stands -- but **one item was deliberately excluded from
 that acceptance and is still the owner's**:
@@ -290,41 +295,48 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-13: the C-007 recommendation.** PLN-0002-12 was **accepted
-2026-08-15** ([disposition](artifact-recovery-disposition.md)) and split the
-recovery criterion: the format layer is **measured over eight injection sites,
-four per arm**, and ties on file data while **separating on metadata**. Neither
-checker sees a flipped data bit, but `e2fsck` names both metadata injections
-and exits 4 while
-`fsck.erofs` sees only the superblock, **exits 0 while printing the error**, and
-cannot see inode damage at all, EROFS having no checksum below its superblock.
-`e2fsck -fy` writes to a *pristine* image and voids its verity while finding
-nothing wrong, EROFS has no repairer at all, and salvage on both arms returns a
-full-length silently wrong file. The system layer is **deferred** to
-verification items 3 and 5, which need the A/B slots
-this plan excludes and a second deployment the fixture does not have. Emergency
-mode is terminal rather than a loop, and identical on both arms, so it decides
-nothing for C-007. `crypttab` is **unsatisfiable rather than skipped**: no
-`crypttab`, `fstab` or `veritytab` exists anywhere in the artifact while the
-generators that would read them ship in both arms, so it goes to verification
-item 6 and `S-004`.
+**PLN-0002-14: evidence bundle, requirement trace, work register, and DES-0006
+disposition.** It is the plan's last task, and PLN-0001-08 is the shape.
 
-So 13 draws on four criteria that separate the formats not at all, corruption
-blast radius, and 12's metadata-diagnosis separation. Then 14 (evidence bundle
-and DES-0006 disposition).
+**PLN-0002-13 is complete and accepted 2026-08-15**, recommendation and weighing
+rule both ([recommendation](artifact-format-recommendation.md)): **EROFS,
+conditional on the update mechanism not being whole-image-only**. Deciding
+criterion: **image size, 1.65x and 111.4 MiB per slot**, paid per machine for the
+life of the deployment. Supporting: differential update transfer, 3.2x. The
+condition is criterion 6's other half -- a whole-image updater ships **8% fewer
+ext4 bytes on every update** -- so the recommendation is a trade of update
+bandwidth for storage, and a fleet bound by bandwidth rather than storage decides
+C-007 the other way on the same evidence. ext4 won four criteria and all are
+low-weight under the accepted rule: three describe what an operator learns
+*after* dm-verity has already refused the read. The raw tally is one criterion to
+EROFS, four to ext4, three ties and one split; **the rule is what turns that into
+the answer**, which is why it was accepted as a separate object.
 
-Tasks 07 through 11 are complete and **accepted 2026-08-15**. No measurement
-task remains and **C-007 is not moved by any of them**: four of its eight
-criteria separate the formats not at all, corruption blast radius is the one
-that does, and PLN-0002-12's recovery draft adds a second and smaller
-separation -- metadata diagnosability, to ext4 -- which 13 weighs against the
-fact that dm-verity refuses the read either way. The recommendation is 13's to
-draft. The two findings that
-outlive this plan are the [substitution records](artifact-substitution-records.md)'
-fail-open -- signature substitution boots to `running` on every cell, enrolment
-changing which code path runs and no outcome -- and the [check
-updates](slice-check-updates.md)' two deferred registrations, which are what
-keeps that fail-open in the registry once PLN-0002 closes.
+**The acceptance does not accept EROFS**, and 14's DES-0006 disposition must not
+record it as if it did. C-007 stays open until an ADR records a format; EROFS and
+ext4 both remain candidate fixtures, and PR-0029 C-005's standing risk is
+unchanged. What such an ADR would still need is listed in the recommendation:
+the workload comparison, a selected updater, the command-line ruling, and a C-002
+capacity budget.
+
+**The strongest argument against the recommendation is an absence**, and the
+acceptance does not discharge it. No workload was applied;
+memory is a tie measured on an idle guest, and a wide read across `/usr` is
+exactly where EROFS's decompression cost would land. That belongs to DES-0006
+verification item 9 and should be measured before an ADR accepts EROFS. The
+"selected by having been tried first" risk (PR-0029 C-005, PR-0030 C-006) is
+answered on the record rather than noted: ext4 won or tied seven of nine rows,
+including two results that contradict the naive prior -- the compressed format
+ships more bytes on a whole-image update, and the uncompressed one builds
+faster.
+
+The two findings that outlive this plan are unchanged by 13, which counts
+neither as C-007 evidence: the [substitution
+records](artifact-substitution-records.md)' fail-open -- signature substitution
+boots to `running` on every cell, enrolment changing which code path runs and no
+outcome -- and the [check updates](slice-check-updates.md)' two deferred
+registrations, which are what keeps that fail-open in the registry once PLN-0002
+closes. Both are identical on the two arms.
 
 **PLN-0002-03b remains deferred**, not sequenced ahead of the measurement tasks,
 and no task depends on it.

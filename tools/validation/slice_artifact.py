@@ -308,30 +308,30 @@ def check_usr_verity_binding() -> int:
     1. The UKI's signed `.cmdline` carries exactly one `usrhash=`.
     2. Its two halves are the `/usr` and `/usr`-verity partition UUIDs, which is
        how the Discovered Partition Specification binds a root hash to the
-       partitions it covers. This is what lets the initrd find the right pair
-       without being told; PLN-0002-10 measured every substitution that breaks
-       it failing closed with a device-resolution diagnostic.
+       partitions it covers, and how the initrd finds the pair. PLN-0002-10
+       measured every substitution breaking it failing closed with a
+       device-resolution diagnostic.
     3. The verity signature partition's payload names the same root hash.
     4. Its `certificateFingerprint` is the certificate published beside the
        artifact.
     5. The detached CMS signature over that root hash verifies against that
        certificate.
 
-    What this establishes: these bytes were signed, by the key whose certificate
-    ships with them, over the root hash this UKI will ask the kernel for. That
-    is strictly more than `T3-SLICE-003`, which finds certificate bytes inside
-    the image and says so.
+    Establishes: these bytes were signed, by the key whose certificate ships
+    with them, over the root hash this UKI will ask the kernel for. Strictly
+    more than `T3-SLICE-003`, which finds certificate bytes inside the image.
 
-    What it does not establish, stated because this plan's mechanisms have
-    repeatedly failed open in exactly the gap between a check and its reading.
-    First, it does not verify the hash tree against the data: an image whose
-    `/usr` was replaced and whose UUIDs, root hash and signature were all
-    reissued consistently passes here. `veritysetup verify` is that assertion
-    and is measured under `src/slice/measure-corruption.py`. Second, trust is
-    anchored on the certificate published beside the artifact, so this says the
-    signature is *by that certificate*, never that any machine trusts it --
-    PLN-0002-10 measured that an untrusted `/usr` verity signer does not stop
-    the boot at all.
+    Does not establish -- stated because this plan's mechanisms keep failing
+    open in the gap between a check and its reading:
+
+    - the hash tree against the data. An image whose `/usr` was replaced with
+      UUIDs, root hash and signature all reissued consistently passes here.
+      `veritysetup verify` is that assertion, under
+      `src/slice/measure-corruption.py`.
+    - trust. The anchor is the certificate published beside the artifact, so
+      this says *signed by that certificate*, never trusted by any machine.
+      PLN-0002-10 measured that an untrusted `/usr` verity signer does not stop
+      the boot.
     """
     from tools.validation.check import SLICE_ARTIFACT_ENV
 
@@ -517,24 +517,22 @@ def check_signing_material_current() -> int:
     """Assert the artifact was built with the signing material published beside it.
 
     The failure this exists for is an artifact that outlived its own signing
-    key. Both build scripts guard key generation on the certificate existing, and
-    mkosi declines to rebuild when the output exists, so regenerating the verity
-    key and re-running the composition leaves a new certificate beside an image
-    still carrying the old signature. Measured on 2026-08-12 while implementing
-    PLN-0002 amendment 4: it read as success, because every check then available
-    looked at the build root's certificate rather than at the image.
+    key. Key generation is guarded on the certificate existing and mkosi
+    declines to rebuild when the output exists, so regenerating the verity key
+    and re-running the composition leaves a new certificate beside an image
+    still carrying the old signature. Measured 2026-08-12 under PLN-0002
+    amendment 4, where it read as success because every check then available
+    looked at the build root rather than at the image.
 
-    The assertion is by content and needs no filesystem driver. compose.sh
-    stages the verity certificate into `/usr/lib/verity.d` inside `/usr`, and
-    EROFS stores a file that small contiguously and uncompressed, so the
-    certificate's exact bytes appear in the image. Measured: the current
-    certificate appears once and the superseded one does not appear at all.
+    By content, needing no filesystem driver: compose.sh stages the certificate
+    into `/usr/lib/verity.d`, and EROFS stores a file that small contiguously
+    and uncompressed, so its exact bytes appear in the image. Measured -- the
+    current certificate appears once, the superseded one not at all.
 
-    What this does and does not establish. It establishes that these image bytes
-    were produced with this certificate, which is what makes a stale artifact
-    visible. It is not a signature verification: it finds bytes, it does not
-    check that anything was signed by the corresponding key, and it cannot until
-    task 06 adds a verity signature partition to verify against.
+    Establishes that these image bytes were produced with this certificate,
+    which is what makes a stale artifact visible. Not a signature verification:
+    it finds bytes, and never checks that anything was signed by the
+    corresponding key. `T3-SLICE-004` is that assertion.
     """
     from tools.validation.check import SLICE_ARTIFACT_ENV
 

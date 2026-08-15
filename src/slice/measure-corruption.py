@@ -3,41 +3,32 @@
 
 What task 09 owes: **single-bit corruption injected into an authenticated
 region of each artifact, recording detection point, diagnostic, and blast
-radius per format.** The plan says where the formats are expected to diverge --
-"compressed EROFS clusters versus ext4 blocks" -- and that expectation is the
-thing under test rather than the thing assumed.
+radius per format.** The plan expects the formats to diverge at "compressed
+EROFS clusters versus ext4 blocks", which is under test rather than assumed.
+Results: docs/project/artifact-corruption-records.md.
 
-Four choices here are deliberate.
+Four choices are deliberate.
 
-**The corruption goes into the `/usr` data partition, which is the
-authenticated region.** Not the hash tree, not the signature partition, not the
-ESP. The root hash in the signed UKI is unchanged and still correct for the
-*original* bytes, which is precisely the condition dm-verity exists to detect.
+**The corruption goes into the `/usr` data partition**, the authenticated
+region -- not the hash tree, the signature partition or the ESP. The signed
+root hash stays correct for the original bytes, which is the condition
+dm-verity exists to detect.
 
-**Two targets per arm, not one, because blast radius is data-dependent.** A
-single flipped bit costs ext4 exactly one 4 KiB block whatever the file holds.
-It costs EROFS one *physical cluster*, which covers as much logical data as that
-cluster's contents happened to compress into. Measuring only a compressible file
-would report a property of that file as a property of the format, so both are
-measured: `System.map` compresses to 25.43% and `vmlinuz` is already-compressed
-data at 98.77%. They are byte-identical across the arms, in the same directory,
-and neither is read during boot -- the kernel that boots is the copy inside the
-UKI, not this one -- so the read is the deliberate probe and not a side effect.
+**Two targets per arm, because blast radius is data-dependent.** A flipped bit
+costs ext4 one 4 KiB block; it costs EROFS one physical cluster, covering as
+much logical data as that cluster compressed. So both `System.map` at 25.43%
+and already-compressed `vmlinuz` at 98.77% -- byte-identical across arms, same
+directory, neither read during boot, so the read is the probe.
 
-**The blast radius is measured in the guest, not computed from the extent map.**
-The extent map says which logical bytes share a physical cluster; it does not
-say what the kernel does when that cluster fails, and `cache_strategy=readaround`
-is in the EROFS mount options. Whether the loss stops at the cluster is a
-measurement.
+**Blast radius is measured in the guest, not computed from the extent map**,
+which says what shares a cluster and not what the kernel does when it fails.
 
-**A boot that succeeds is the expected result and not a pass.** dm-verity
-verifies lazily, per block: PLN-0002-01 already booted a corrupt `/usr`
-normally, and that is the first of this plan's seven fail-open findings. The
-detection point is where the corrupt block is *read*, and this task records that
-rather than asserting it.
+**A successful boot is the expected result and not a pass.** dm-verity verifies
+lazily, per block: PLN-0002-01 booted a corrupt `/usr` normally, the first of
+this plan's seven fail-opens. Detection is where the corrupt block is read.
 
 The originals are never written to. Each run injects into a copy and the
-retained artifact's digest is checked before and after.
+retained digest is checked before and after.
 """
 
 from __future__ import annotations
@@ -132,12 +123,11 @@ PROBE_TIMER = (
 def probe_script(target: str, first: int, last: int) -> str:
     """What the guest is asked, for one corrupted target.
 
-    The order matters. Caches are dropped first, because a block already in page
-    cache from the boot would be served without ever reaching dm-verity and the
-    run would record a clean read of a corrupt block. The whole-file read comes
-    before the window scan so that `records in` reports how far a naive consumer
-    -- `cat`, `cp`, a checksum -- gets before the first failure, which is the
-    operationally meaningful number. The window scan then bounds the damage.
+    The order matters. Caches are dropped first: a block already in page cache
+    from the boot is served without reaching dm-verity, recording a clean read
+    of a corrupt block. The whole-file read comes before the window scan so
+    `records in` reports how far a naive consumer -- `cat`, `cp`, a checksum --
+    gets before the first failure. The window scan then bounds the damage.
 
     **The window is scanned twice, and the second pass is the format
     measurement.** The first run of this task found the two arms losing 45 KiB
@@ -149,15 +139,13 @@ def probe_script(target: str, first: int, last: int) -> str:
     reader on a default-configured system actually loses. Reporting only one of
     them would answer a different question than the plan asks.
 
-    No single quotes and no backslash escapes: `vm.probe_unit` wraps this in
-    `sh -c '...'` and systemd unescapes C-style sequences in `ExecStart` before
-    `sh` sees it. Both faults were measured in PLN-0002-08 and both look
-    identical from outside -- a boot that produced no evidence.
-
-    No `%` either, which is the same lesson in a third place: systemd expands
-    its own specifiers in `ExecStart` first, so `stat -c %s` reached the guest as
-    `stat -c /bin/bash` and the first run recorded the root shell as the target's
-    size. `wc -c` needs no format string.
+    No single quotes, no backslash escapes, no `%`. `vm.probe_unit` wraps this
+    in `sh -c '...'`; systemd unescapes C-style sequences in `ExecStart` before
+    `sh` sees it; and systemd expands its own specifiers first, so `stat -c %s`
+    reached the guest as `stat -c /bin/bash` and the first run recorded the root
+    shell as the target's size. `wc -c` needs no format string. All three
+    measured, and all three look identical from outside -- a boot that produced
+    no evidence.
     """
     script = f"""echo "{MARKER_BEGIN}"; \\
 echo "target={target}"; \\

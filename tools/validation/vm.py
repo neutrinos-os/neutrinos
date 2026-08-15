@@ -1,42 +1,24 @@
 """One place that knows how to boot a disposable guest.
 
-`slice_boot.py` and `confext_policy.py` are migrated onto this module and no
-longer carry their own copies. `src/spike/pln0002-01/boot.sh` deliberately is
-not: it is the recorded apparatus of a completed spike, and rewriting it would
-change the thing that produced RES-0013's evidence rather than the thing that
-will produce the next result. It is left as it stands, and this note is the
-reason.
+`slice_boot.py` and `confext_policy.py` are migrated onto this module.
+`src/spike/pln0002-01/boot.sh` deliberately is not: rewriting it would change
+the apparatus that produced RES-0013's evidence.
 
-## Why it exists
+A merge, not a design. Three boot paths grew here, each learning different
+things the hard way and propagating none of them -- two OVMF builds whose names
+differ by one word, only one with Secure Boot support; a probe unit without a
+poweroff sitting at a login prompt; a fresh variable store making every boot a
+first boot; notify-vsock readiness. A fourth probe, 2026-08-12, inherited the
+scars of whichever file its author opened and rediscovered three of them.
 
-Three independent boot paths grew in this repository, each learning different
-things the hard way, and **nothing propagated a lesson from one to the others**.
-`boot.sh` learned that Fedora ships two OVMF builds whose names differ by one
-word and that the obvious one has no Secure Boot support at all.
-`confext_policy.py` learned that a probe unit without a poweroff leaves the
-guest at a login prompt until something kills it, and that a fresh variable
-store makes every boot a first boot. `slice_boot.py` learned notify-vsock
-readiness. A fourth probe written on 2026-08-12 inherited only the scars of
-whichever file its author happened to open, and rediscovered three lessons that
-were already recorded and already fixed elsewhere -- at a cost in wall clock and
-in real money.
+So the rules are **guards and defaults, not comments**: a comment saying
+"remember the poweroff" is the class of control that already failed, while a
+function that appends it cannot be called without it. Mechanically impossible
+rather than reviewed for, as the `/etc` carve argues for collision 1.
 
-So this is a merge, not a design. Every rule below is something this project
-already paid for once.
-
-## The shape of the fix
-
-The rules are **guards and defaults, not comments**. A comment saying "remember
-the poweroff" is the same class of control that already failed; a function that
-appends the poweroff cannot be called without it. This is the project's own
-stated preference, argued in the `/etc` carve for collision 1: mechanically
-impossible rather than reviewed for.
-
-Each guard names the failure it prevents, because a guard whose message does not
-identify the fault sends the next reader after the wrong thing. Measured: swtpm
-failing to bind an over-long socket path reports only "did not create its
-control socket", which reads as a TPM fault, and cost two wrong diagnoses before
-anyone counted the bytes.
+Each guard names the failure it prevents. Measured: swtpm failing to bind an
+over-long socket path reports only "did not create its control socket", which
+reads as a TPM fault and cost two wrong diagnoses.
 """
 
 from __future__ import annotations
@@ -257,21 +239,18 @@ def boot(
     keys from the ESP and reboots -- a per-boot store makes every boot a first
     boot, and a probe unit never runs.
 
-    It is also attached copy-on-write unless `persist_store=True`, so a boot
-    reads the enrolled state and its writes are discarded into an overlay QEMU
-    throws away. That is what makes concurrent boots off one store safe, and it
-    is a guarantee rather than a convention: without it the cells of a matrix
-    share a writable pflash and can contaminate each other's firmware state, or
-    the baseline, in ways that would surface as an unrelated assertion failing.
+    Copy-on-write unless `persist_store=True`, so writes land in an overlay QEMU
+    throws away. That is what makes concurrent boots off one store safe: without
+    it the cells of a matrix share a writable pflash and contaminate each
+    other's firmware state, surfacing as an unrelated assertion failing.
     `persist_store=True` is for the one boot whose *product* is the enrolled
-    store, and is named so that keeping the writes is the deliberate act.
+    store, named so that keeping the writes is deliberate.
 
-    The console pin comes from `smbios_args`, which is where that rule lives.
-    `cmdline_extra` rides the same mechanism and carries the same caveat: it is
-    supplied by the host and appended by systemd-stub, so it changes no byte of
-    the artifact and is **not** covered by the UKI's signature. That makes it the
-    right tool for measuring what a command-line option does and the wrong one
-    for shipping a declared value, which has to be built into the UKI.
+    The console pin comes from `smbios_args`. `cmdline_extra` rides the same
+    mechanism with the same caveat: host-supplied, appended by systemd-stub, so
+    it changes no byte of the artifact and is **not** covered by the UKI's
+    signature -- right for measuring what an option does, wrong for shipping a
+    declared value, which has to be built into the UKI.
     """
     code, _ = firmware_pair(secure_boot=secure_boot)
     work.mkdir(parents=True, exist_ok=True)

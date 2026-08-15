@@ -1,37 +1,29 @@
 #!/bin/sh
 # Build the signature-enforcement fixture for T4-CONFEXT-001.
 #
-# The check needs a machine whose firmware trusts the confext signer, and it
-# needs the composed artifact to stay byte-identical, because T3-SLICE-001 and
-# T4-SLICE-001 assert exactly that. So this never touches the artifact: it
-# copies it and enrolls into the copy.
+# Needs firmware that trusts the confext signer, and needs the artifact to stay
+# byte-identical because T3-SLICE-001 and T4-SLICE-001 assert that. So it never
+# touches the artifact: it copies and enrolls into the copy.
 #
-# Enrollment happens through the ESP rather than from inside the guest. A guest
-# cannot do it -- efivarfs marks existing variables immutable, and the artifact
-# carries neither chattr nor a Python to clear the flag with. What does work is
-# systemd-boot's auto-enrollment: PK.auth, KEK.auth and db.auth under
-# \loader\keys\auto are enrolled on a firmware in setup mode, which a fresh
-# variable store always is.
+# Through the ESP rather than from inside the guest, which cannot do it --
+# efivarfs marks existing variables immutable and the artifact carries no
+# chattr. systemd-boot auto-enrolls PK.auth, KEK.auth and db.auth from
+# \loader\keys\auto on firmware in setup mode, which a fresh store always is.
 #
-# All three keys are synthetic, generated into the build root, enrolled nowhere
-# but in a disposable VM's variable store, and destroyed with the build root.
-# PLN-0002's boundary forbids production signing material and this needs none:
-# what is measured is whether an unenrolled signer is refused, not whose key
-# does the enrolling.
+# All three keys synthetic, enrolled nowhere but a disposable VM's variable
+# store, destroyed with the build root. What is measured is whether an
+# unenrolled signer is refused, not whose key does the enrolling.
 set -eu
 
 build_root=${NEUTRINOS_SLICE_BUILD_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/neutrinos/slice}
 keys_dir="$build_root/keys"
-# Both overridable, so the same enrollment can be exercised against the
-# PLN-0002-01 spike artifact without a slice composition. The step is the same
-# either way -- it is the artifact's own ESP that is written -- and being able
-# to run it against whatever artifact exists is what let it be measured rather
-# than reviewed.
+# Overridable, so the same enrollment runs against the PLN-0002-01 spike
+# artifact without a slice composition. Same step either way: the artifact's
+# own ESP is what gets written.
 artifact=${NEUTRINOS_ENROLL_ARTIFACT:-$build_root/out/neutrinos-slice.raw}
 fixture_dir=${NEUTRINOS_ENROLL_FIXTURE_DIR:-$build_root/fixture}
-# A fixed name, because T4-CONFEXT-001 consumes this directory as a declared
-# capability and a name that varied with the artifact would make the check
-# guess at what it was given.
+# Fixed name: T4-CONFEXT-001 consumes this directory as a declared capability,
+# and a name varying with the artifact would make it guess.
 fixture="$fixture_dir/enrolled-artifact.raw"
 
 [ -f "$artifact" ] || { echo "enroll-fixture: no artifact at $artifact" >&2; exit 1; }
@@ -39,11 +31,9 @@ image_cert=${NEUTRINOS_ENROLL_IMAGE_CERT:-$keys_dir/secureboot.crt}
 [ -f "$image_cert" ] || {
     echo "enroll-fixture: no image-signing certificate at $image_cert;" \
          "db without it produces an unbootable machine" >&2; exit 1; }
-# Which verity signer db carries. Overridable so the same enrollment can build
-# the negative fixture -- a machine whose db trusts a *different* verity
-# authority -- without a second script that would drift from this one. The
-# default is the enrolled signer; PLN-0002-06's image-policy matrix passes
-# verity-wrong.crt to get the other arm.
+# Which verity signer db carries. Overridable so the negative fixture -- db
+# trusting a different authority -- needs no second script to drift from this
+# one. PLN-0002-06's image-policy matrix passes verity-wrong.crt.
 verity_cert=${NEUTRINOS_ENROLL_VERITY_CERT:-$keys_dir/verity.crt}
 [ -f "$verity_cert" ] || {
     echo "enroll-fixture: no verity certificate at $verity_cert;" \
@@ -58,11 +48,10 @@ mkdir -p "$fixture_dir" "$keys_dir"
 
 owner=$(uuidgen 2>/dev/null || echo 00000000-0000-0000-0000-000000000000)
 
-# The platform key. It signs the variable updates and is enrolled as PK, which
-# takes the firmware out of setup mode -- so it must exist before anything else
-# is signed. It is not the verity signer: keeping them separate is what makes
-# "the signer is trusted" a statement about db rather than about who built the
-# image.
+# The platform key signs the variable updates and is enrolled as PK, taking the
+# firmware out of setup mode, so it must exist first. Kept distinct from the
+# verity signer, which is what makes "the signer is trusted" a statement about
+# db rather than about who built the image.
 if [ ! -f "$keys_dir/platform.crt" ]; then
     openssl req -x509 -newkey rsa:2048 -nodes -days 30 \
         -subj "/CN=NeutrinOS slice platform key, synthetic/" \
@@ -71,24 +60,18 @@ fi
 [ -f "$keys_dir/platform.der" ] || openssl x509 -outform DER \
     -in "$keys_dir/platform.crt" -out "$keys_dir/platform.der"
 
-# db carries two certificates: the image signer and the verity signer.
+# db carries the image signer and the verity signer. The image signer is not
+# optional: db with the verity certificate alone is a machine whose firmware
+# refuses its own UKI and times out with no console -- measured, by the first
+# fixture built here.
 #
-# The image signer is not optional, and leaving it out is not a smaller
-# fixture -- it is a machine that cannot boot. Replacing db with the verity
-# certificate alone means Secure Boot no longer trusts the UKI the artifact
-# boots, the firmware refuses it, and the run times out with no console. That
-# was measured, not reasoned: the first fixture built here did exactly that.
+# The second verity key is absent from db, and that absence is the measurement:
+# a confext signed with it carries a valid signature by an untrusted authority.
 #
-# The second verity key is deliberately absent from db, and that absence is the
-# whole measurement: a confext signed with it has a valid signature by an
-# authority the machine does not trust, which is what a substitution produces.
-# The verity signer's DER form. compose.sh emits it, but this derives it when
-# absent rather than depending on the order the two scripts ran in: a fixture
-# that silently skips enrollment because one file was missing would produce a
-# machine that trusts nothing and a check that fails for the wrong reason.
-# Derived beside the fixture rather than in the keys directory, because the
-# certificate is now a parameter: writing verity-wrong's DER to verity.der would
-# corrupt the shared keys directory for every later run.
+# Derived here rather than taken from compose.sh, so the two scripts' order
+# cannot matter, and written beside the fixture rather than into the keys
+# directory, since verity-wrong's DER landing on verity.der would corrupt the
+# shared directory for every later run.
 openssl x509 -outform DER -in "$verity_cert" -out "$fixture_dir/verity.der"
 
 [ -f "$keys_dir/secureboot.der" ] || openssl x509 -outform DER \
@@ -104,10 +87,9 @@ cat "$fixture_dir/image.esl" "$fixture_dir/verity.esl" >"$fixture_dir/db.esl"
 sbsiglist --owner "$owner" --type x509 \
     --output "$fixture_dir/pk.esl" "$keys_dir/platform.der"
 
-# Each variable is signed with the platform key. In setup mode the firmware
-# accepts the update without verifying the signature, but the structure is
-# still required: an unsigned payload is rejected as malformed rather than
-# accepted as trusted.
+# Signed with the platform key. Setup mode accepts the update without verifying
+# the signature, but the structure is still required -- an unsigned payload is
+# rejected as malformed.
 for var in PK KEK db; do
     case $var in
         db) esl="$fixture_dir/db.esl" ;;
@@ -139,9 +121,8 @@ for var in PK KEK db; do
     mcopy -o -i "$fixture@@$offset" "$fixture_dir/$var.auth" "::/loader/keys/auto/$var.auth"
 done
 
-# Proof the copy differs from the artifact only as intended, and that the
-# artifact itself was not touched. The check re-verifies the artifact digest
-# too; this is the build-side half.
+# Build-side proof that the copy differs only as intended and the artifact was
+# not touched. The check re-verifies the digest.
 mdir -i "$fixture@@$offset" ::/loader/keys/auto
 sha256sum "$artifact" >"$fixture_dir/artifact.sha256"
 echo "enroll-fixture: wrote $fixture"

@@ -6,34 +6,30 @@ regenerated, no failed units, and boot behaviour and memory with the
 **repetition count and accelerator state recorded per run**. Both arms, the
 same way, from the artifacts PLN-0002-06 built and PLN-0002-07 measured.
 
-Three things are deliberate and none of them is a default.
+Three things are deliberate, none a default.
 
-**The accelerator is measured, not requested.** `-machine accel=kvm:tcg` means
-"KVM if you can, emulation otherwise", and a fallback is invisible in a passing
-boot. PLN-0001 measured the same boot at 72s under TCG and 18s under KVM, so an
-arm that quietly emulated would produce a 4x difference that reads as a format
-result. Every run asks the running VM through QMP, and a run that cannot be
-asked, or that answers differently from the others, fails the comparison rather
-than being averaged into it.
+**The accelerator is measured, not requested.** `-machine accel=kvm:tcg` falls
+back invisibly in a passing boot, and PLN-0001 measured the same boot at 72s
+under TCG against 18s under KVM -- a 4x difference that would read as a format
+result. Every run asks the VM through QMP; a run that cannot be asked, or that
+answers differently from the others, fails the comparison rather than being
+averaged into it.
 
-**Nothing is added to the artifacts.** The probe unit, the credentials, and the
-unit masks all arrive from the host as SMBIOS Type 11 credentials and stub
-command line, and the disk is attached `snapshot=on`. The artifact digest is
-checked before and after each boot; the six of PLN-0002-06 are the accepted set
-and this task does not rebuild them.
+**Nothing is added to the artifacts.** Probe unit, credentials and unit masks
+arrive from the host as SMBIOS Type 11 credentials and stub command line, the
+disk is `snapshot=on`, and the digest is checked before and after each boot.
+PLN-0002-06's six are the accepted set and this does not rebuild them.
 
-**A successful boot is not a statement about the artifact.** That is this
-plan's standing finding, and it applies here more than anywhere: dm-verity
-verifies lazily, per block, so booting proves the blocks the boot touched.
-Tasks 09 and 10 carry the negative evidence. What this task measures is that
-the intended configuration is the one that actually obtains, which is a
-different and smaller claim.
+**A successful boot is not a statement about the artifact** -- the standing
+finding, and it applies here most: dm-verity verifies lazily, per block, so
+booting proves the blocks the boot touched. Tasks 09 and 10 carry the negative
+evidence. This measures that the intended configuration is the one that
+obtains, which is a smaller claim.
 
-The plain OVMF build is used, stated rather than defaulted. Every assertion
-here is about mount state, unit health, and timing, and none is a signature
-claim; the Secure Boot build would require enrolling keys into a *copy* of each
-artifact, which measures a different set of bytes than the one PLN-0002-07
-measured. `T4-CONFEXT-001` is where the signature arm lives.
+Plain OVMF, stated rather than defaulted: every assertion here is mount state,
+unit health and timing, none a signature claim, and the Secure Boot build would
+mean enrolling keys into a *copy*, measuring different bytes than PLN-0002-07
+did. `T4-CONFEXT-001` is the signature arm.
 """
 
 from __future__ import annotations
@@ -84,16 +80,14 @@ HARNESS_HOSTNAME = "slice-pln0002-08"
 BOOT_TIMEOUT_SECONDS = 600
 NOTIFY_POLL_SECONDS = 0.25
 
-# What the guest is asked. Every line is a fact read out of the running system
-# rather than out of the configuration that was supposed to produce it, which is
-# the same rule PLN-0002-07 measured under and the same rule that caught three
-# wrong claims in the PLN-0002-05 audit.
+# What the guest is asked. Every line is read out of the running system rather
+# than out of the configuration meant to produce it -- PLN-0002-07's rule, and
+# what caught three wrong claims in the PLN-0002-05 audit.
 #
-# The remount attempt is the reason this is a probe and not a `findmnt` parse:
-# `ro` in the options is the flag the mount was asked for, and an attempt that
-# is refused is the property itself. The two have disagreed in this project
-# before -- `systemd.image_policy=` is satisfied by both enrollment arms and
-# enforces neither -- so the stronger measurement is the one taken.
+# A probe rather than a `findmnt` parse because a refused remount is the
+# property itself, where `ro` in the options is only the flag the mount asked
+# for. The two have disagreed here: `systemd.image_policy=` is satisfied by
+# both enrollment arms and enforces neither.
 PROBE_SCRIPT = f"""echo "{MARKER_BEGIN}"; \\
 echo "usr-source=$(findmnt -no SOURCE /usr)"; \\
 echo "usr-fstype=$(findmnt -no FSTYPE /usr)"; \\
@@ -127,16 +121,12 @@ echo "mem-anon-kb=$(sed -n "s/^AnonPages: *//p" /proc/meminfo)"; \\
 echo "mem-shmem-kb=$(sed -n "s/^Shmem: *//p" /proc/meminfo)"; \\
 echo "{MARKER_END}\""""
 
-# `vm.probe_unit` wraps the script in `sh -c '...'`, so a single quote anywhere
-# in it silently truncates the command: the guest ran a syntactically broken
-# probe, reported nothing, and powered off looking like a boot that produced no
-# evidence. Measured here on the first run. Asserted rather than commented, for
-# the reason vm.py gives for every other guard in this path.
-# The backslash is the second half of the same lesson. systemd unescapes C-style
-# sequences in ExecStart before sh ever sees them, so a `tr "\\n" ","` in the
-# probe arrives as a literal newline mid-command and the guest echoes the rest of
-# the script back instead of running it. Both faults look identical from the
-# outside -- a boot that produced no evidence -- which is why both are guarded.
+# Two faults that look identical from outside -- a boot that produced no
+# evidence -- so both are asserted rather than commented. `vm.probe_unit` wraps
+# the script in `sh -c '...'`, where one single quote silently truncates the
+# command; and systemd unescapes C-style sequences in ExecStart before sh sees
+# them, so `tr "\\n" ","` arrives as a literal newline mid-command. Both
+# measured here, on the first run.
 if "'" in PROBE_SCRIPT or "\\" in PROBE_SCRIPT.replace("\\\n", ""):
     raise SystemExit(
         "measure-boot: the probe script contains a single quote or a "
@@ -145,15 +135,13 @@ if "'" in PROBE_SCRIPT or "\\" in PROBE_SCRIPT.replace("\\\n", ""):
         "ExecStart unescaping before sh sees it"
     )
 
-# System credentials are handed to the initrd's systemd as well as the host's,
-# so without this the probe runs in the initrd -- where `/usr` is rootfs, a
-# read-write remount **succeeds**, and `/etc` has 93 entries. Measured, not
-# predicted: the first timer-driven run reported exactly that and then powered
-# the machine off in the middle of switch-root. Every assertion this task makes
-# would have been made about the wrong filesystem, and each one would have
-# looked like a defect in the artifact.
+# System credentials reach the initrd's systemd as well as the host's, so
+# without this the probe runs in the initrd -- `/usr` is rootfs, a read-write
+# remount **succeeds**, `/etc` has 93 entries, and the machine powers off
+# mid-switch-root. Measured: every assertion would have been made about the
+# wrong filesystem and read as a defect in the artifact.
 #
-# `/etc/initrd-release` is the discriminator systemd itself uses for this.
+# `/etc/initrd-release` is the discriminator systemd itself uses.
 NOT_IN_INITRD = "ConditionPathExists=!/etc/initrd-release\n"
 
 
@@ -171,24 +159,17 @@ PROBE_UNIT = host_only(
     )
 )
 
-# The probe is started by a timer rather than pulled into multi-user.target, and
-# that is the whole reason it can ask `is-system-running --wait`. Wanted by the
-# target, it is part of the initial transaction: the boot does not finish until
-# the probe finishes, the probe is waiting for the boot to finish, and the run
-# sits in `starting` until the guest-side timeout expires. Measured here at 120s
-# of deadlock, and it also swallowed pid 1's READY=1, because that is emitted
-# when the same transaction completes.
+# Timer-driven rather than wanted by multi-user.target, which is what lets it
+# ask `is-system-running --wait`. Inside the initial transaction the boot waits
+# for the probe while the probe waits for the boot: measured here as 120s of
+# deadlock that also swallowed pid 1's READY=1. A timer is in the transaction;
+# the service it triggers is a transaction of its own, so the probe observes a
+# settled system instead of blocking what it observes.
 #
-# A timer unit is in the transaction; the service it triggers is a transaction of
-# its own. So the probe observes a settled system instead of blocking the thing
-# it is trying to observe.
-#
-# `OnBootSec=20s` and not 1s, which was the second version of the same mistake.
-# The host manager only starts after switch-root, around five seconds in, so a
-# one-second offset has already elapsed when timers.target is reached and the
-# probe is queued immediately -- back inside the initial transaction, with
-# `list-jobs` naming the probe itself as the only thing the boot was waiting
-# for. The offset has to clear startup, not merely the initrd.
+# `OnBootSec=20s`, not 1s -- the same mistake's second version. The host manager
+# starts around five seconds in, so a one-second offset has already elapsed at
+# timers.target and the probe is queued straight back into the initial
+# transaction. The offset has to clear startup, not merely the initrd.
 PROBE_TIMER = (
     "[Unit]\n"
     + NOT_IN_INITRD
@@ -276,10 +257,9 @@ def report_fields(text: str) -> dict[str, str]:
     body = text.split(MARKER_BEGIN, 1)[1].split(MARKER_END, 1)[0]
     fields: dict[str, str] = {}
     for line in body.splitlines():
-        # Every probe line arrives through the serial console wearing a kernel
-        # timestamp and a journal prefix -- "[ 6.21] sh[467]: usr-fstype=erofs".
-        # Stripped here rather than in the probe, because the prefix is added
-        # after the guest has spoken and the guest cannot suppress it.
+        # Probe lines arrive wearing a kernel timestamp and journal prefix --
+        # "[ 6.21] sh[467]: usr-fstype=erofs". Stripped here because the prefix
+        # is added after the guest has spoken.
         key, separator, value = CONSOLE_PREFIX.sub("", line.strip()).partition("=")
         if separator:
             fields[key] = value.strip()
@@ -293,12 +273,11 @@ def report_fields(text: str) -> dict[str, str]:
     return fields
 
 
-# Lines about the verity device itself, kept because of what one of them says.
-# `Root hash verification failed (-ENOKEY)` appears before the mount succeeds:
-# the kernel declines the *signature* and the boot proceeds on unsigned verity.
-# That is this plan's fail-open pattern, and a record that did not retain the
-# line would be asserting the boot was verity-authenticated while discarding the
-# evidence of what verity did not do.
+# Kept for what one of them says: `Root hash verification failed (-ENOKEY)`
+# appears *before* the mount succeeds -- the kernel declines the signature and
+# the boot proceeds on unsigned verity. Dropping the line would assert a
+# verity-authenticated boot while discarding the evidence of what verity did
+# not do.
 VERITY_CONSOLE = re.compile(
     r"(device-mapper|verity|dm-\d+|veritysetup).*", re.IGNORECASE
 )

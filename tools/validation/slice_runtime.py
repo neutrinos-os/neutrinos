@@ -266,21 +266,16 @@ def evaluate(
         failures.append("/usr accepted a remount read-write")
 
     # Nothing durable in /etc, asserted against what the machine does rather
-    # than against what it is made of. Two drafts of this were wrong before the
-    # boot corrected them, and both errors are worth keeping visible:
+    # than what it is made of. Two drafts were wrong before the boot corrected
+    # them, and the errors stay visible: /etc is not tmpfs but an `overlay`,
+    # because a confext merge is an overlay mount; and that overlay has no
+    # upperdir at all -- measured 2026-08-15, mounted **ro** with lowerdirs
+    # only, so writes are refused outright.
     #
-    #   1. "/etc is tmpfs" -- false. It is an `overlay`, because a confext merge
-    #      is an overlay mount. DES-0005's mechanism, working.
-    #   2. "the overlay's upperdir is on tmpfs" -- also false. Measured
-    #      2026-08-15: the /etc overlay is mounted **ro** with lowerdirs only --
-    #      the sysext metadata, the confext's own /etc, and /sysroot/etc from
-    #      the initrd's factory replay -- and no upperdir at all.
-    #
-    # So the property is stronger than either draft assumed, and the rule is
-    # the disjunction that covers both this machine and one that merges no
-    # confext: a write to /etc must be refused outright, or must land on a
-    # volatile filesystem. A machine that satisfies neither can carry
-    # configuration across a reboot, which is what C-013 says it must not.
+    # The rule is therefore the disjunction covering this machine and one that
+    # merges no confext: a write to /etc is refused, or lands on a volatile
+    # filesystem. Neither means configuration can cross a reboot, which C-013
+    # says it must not.
     etc_fstype = fields.get("etc-fstype", "")
     etc_writable = fields.get("etc-write-rc") == "0"
     etc_backing = "writes refused"

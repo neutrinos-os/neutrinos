@@ -5,35 +5,33 @@ signed by an authority the machine does not trust is **refused**, and that the
 refusal is visible as a unit failure rather than as a log line beside a
 successful merge.
 
-That distinction is the reason this exists. Four mechanisms in PLN-0002 have
-now been observed failing open while reporting success -- a corrupt /usr that
-booted because dm-verity is lazy, a refused confext whose unit reported
-`Finished`, an unvalidated signature that merged, and a firmware without Secure
-Boot support that produced signature evidence for a whole spike. Each was
-found by a boot and none by review.
+That distinction is why this exists. Four PLN-0002 mechanisms have been
+observed failing open while reporting success -- a corrupt /usr that booted
+because dm-verity is lazy, a refused confext whose unit reported `Finished`, an
+unvalidated signature that merged, and a firmware without Secure Boot support
+that produced signature evidence for a whole spike. Each was found by a boot,
+none by review.
 
-So the assertion is a 2x2 and three of its four cells are load-bearing:
+The assertion is a 2x2, three of whose cells are load-bearing:
 
     policy=root=signed  enrolled -> merged, unit success
     policy=root=signed  unenrolled -> NOT merged, unit failure   <- the point
     policy=default      enrolled -> merged
     policy=default      unenrolled -> merged                     <- asserted
 
-The last row asserts the fail-open. That looks perverse and is deliberate: the
-day systemd starts refusing an untrusted confext under the default policy is a
-fact this plan needs to learn, and a check that tolerated either outcome there
-would not tell anyone. If it changes, this fails and the finding gets recorded
-rather than absorbed.
+The last row asserts the fail-open, deliberately: the day systemd starts
+refusing an untrusted confext under the default policy is a fact this plan
+needs to learn, and a check tolerating either outcome would not tell anyone. If
+it changes, this fails and the finding gets recorded rather than absorbed.
 
-The policy is applied as a drop-in on `systemd-confext.service`, not on a
-command line, per the owner ruling of 2026-08-11. The unit form is what
-NeutrinOS would ship, and it is strictly stronger: the failure is a unit
-failure the rest of the transaction can order against.
+Applied as a drop-in on `systemd-confext.service` rather than a command line,
+per the owner ruling of 2026-08-11: the unit form is what NeutrinOS would ship
+and is strictly stronger, since the failure is one the rest of the transaction
+can order against.
 
-Nothing is baked into the artifact to make this pass. The confext arrives on a
-second disk, the policy and the probe unit arrive as SMBIOS Type 11
-credentials, and the fixture is opened `snapshot=on` with its digest checked
-before and after.
+Nothing is baked into the artifact. The confext arrives on a second disk, the
+policy and probe unit as SMBIOS Type 11 credentials, and the fixture is opened
+`snapshot=on` with its digest checked before and after.
 """
 
 from __future__ import annotations

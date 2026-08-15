@@ -13,16 +13,14 @@ determinism need rebuilds and live in measure-build-time.py.
                         with which tooling present
 
 **Filesystem bytes in use, not partition size.** Both arms hold
-`Minimize=guess`, and `Minimize=best` is unavailable on ext4, so a
+`Minimize=guess` and `Minimize=best` is unavailable on ext4, so a
 partition-table figure measures systemd-repart's estimator on one arm and the
-filesystem on the other. Measured here: the EROFS partition is exactly its
-filesystem, while the ext4 partition carries slack that belongs to the
-estimator. Reporting partition size as image size would charge ext4 for it.
+filesystem on the other: measured here, the EROFS partition is exactly its
+filesystem while the ext4 partition carries estimator slack. Reporting
+partition size as image size would charge ext4 for it.
 
 Every figure is read from the built artifact, never from the configuration that
-produced it -- the same rule retain-artifact-digests.py applies to the kernel
-command line, and for the same reason: configuration agrees with itself by
-construction.
+produced it, which agrees with itself by construction.
 
 This writes digests and figures, not bytes. The images stay in the build root.
 """

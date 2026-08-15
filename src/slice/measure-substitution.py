@@ -5,49 +5,33 @@ What task 10 owes: **substitution of a same-format valid `/usr`, its Verity
 tree, the confext, and the manifest, plus a wrong-but-valid signing key, each
 recorded with the mechanism that rejected it and the diagnostic that
 discriminates a root-hash mismatch from a signature failure from a mount
-failure.** SYS-049 is the requirement; C-001 binds it to a cross product rather
-than to a sample, so the cells this covers are enumerated and the ones it does
-not are named.
+failure.** SYS-049 is the requirement; C-001 binds it to a cross product, so
+covered cells are enumerated and uncovered ones named. Results and their
+reasoning: docs/project/artifact-substitution-records.md.
 
-Five choices here are deliberate.
+Four choices are deliberate.
 
-**Every donor is an independently valid, enrolled-signer-signed artifact.** The
-substitutes are PLN-0002-06's content and seed variants, not a foreign format
-and not a corrupted image. That is PR-0030 C-004's whole point: a substitute
-that fails to mount proves nothing about the binding, because it never reached
-it. A cell that boots here means integrity failed to bind; it can never mean a
-signature was missing.
+**Every donor is an independently valid, enrolled-signer-signed artifact** --
+PLN-0002-06's variants, not a foreign format and not a corrupt image. PR-0030
+C-004: a substitute that fails to mount never reached the binding. A cell that
+boots means integrity failed to bind, never that a signature was missing.
 
-**The identity being substituted lives in the GPT, not only in the bytes.**
-`systemd-repart` derives the `/usr` partition UUID from the first half of the
-root hash and the Verity partition UUID from the second half -- measured on all
-six artifacts, and visible in the table: root hash `d0f7f411…be732d4d…` against
-UUIDs `D0F7F411-…` and `BE732D4D-…`. So the pair cells are built by taking the
-**donor's disk** and splicing the **primary's ESP** into it, which substitutes a
-whole valid deployment underneath the original UKI without resizing anything.
-The alternative -- splicing donor partitions into the primary's table -- would
-have silently kept the primary's identity in the very field the binding uses.
+**The substituted identity lives in the GPT.** `systemd-repart` derives the
+`/usr` and Verity partition UUIDs from the two halves of the root hash, so the
+pair cells splice the primary's ESP into the donor's disk. Splicing the other
+way would keep the primary's identity in the field the binding uses.
 
-**Both configurations are measured, as a 2x2 with the firmware.** Owner ruling,
-2026-08-15. Plain OVMF is the artifact as PLN-0002-06 froze it; the enrolled
-firmware is `db` carrying the verity signer, which is the configuration that
-could make a signature mean something. This plan has now found seven mechanisms
-failing open, and the one distinction every one of them turned on is "no
-mechanism exists" against "the mechanism was not configured". A run that
-measured one firmware could not report which of those it had found.
+**Both firmware configurations, as a 2x2.** Owner ruling 2026-08-15. Every one
+of this plan's seven fail-opens turned on "no mechanism exists" against "the
+mechanism was not configured", and one firmware cannot tell those apart.
 
-**A passing boot is the predicted result and is not a pass.** The plan predicts
-this task fails open: `systemd.image_policy=usr=signed` is a structural
-predicate evaluated after the initrd has already mounted `/usr`, and
-`systemd-veritysetup` retries without a signature it cannot verify. Measuring an
-absence of enforcement is the result, so nothing here asserts a refusal. What is
+**A passing boot is the predicted result and is not a pass.** Measuring an
+absence of enforcement is the result, so nothing asserts a refusal. What is
 asserted is that the measurement can tell the difference -- hence the baseline
-cell, which is the unmodified primary, and which must boot for any negative to
-be attributable.
+cell, which must boot for any negative to be attributable.
 
-The six accepted artifacts are never written to. Every cell is a copy, every
-disk is attached `snapshot=on`, and each original's digest is checked before and
-after the whole run.
+The six accepted artifacts are never written to: every cell is a copy, every
+disk `snapshot=on`, each digest checked before and after.
 """
 
 from __future__ import annotations

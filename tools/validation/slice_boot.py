@@ -10,30 +10,25 @@ Three assertions, in order of what they cost to get wrong:
    copy, under QEMU's `snapshot=on`, so a mutation would be a real defect and
    not an artefact of the harness.
 
-Every technique here was measured against the literal pre-amendment artifact
-and recorded in RES-0013. Nothing is baked into the image to make this pass:
-the guest carries no notify client, no agent, and no extra package. The
-readiness channel is pid 1 reading the `vmm.notify_socket` credential this
-harness supplies, which is stock systemd behavior.
+Measured against the literal pre-amendment artifact, recorded in RES-0013.
+Nothing is baked into the image: no notify client, no agent, no extra package.
+Readiness is pid 1 reading the `vmm.notify_socket` credential this harness
+supplies, which is stock systemd.
 
-Readiness is guest-driven, over a vsock the guest connects back on. That
-replaces waiting for a `login:` string in a serial log, which measured 2.3
-seconds later and asserted something weaker: a prompt is a getty having
-started, while `READY=1` is pid 1 declaring the boot transaction complete.
-Each sd_notify is a separate connection, so the listener accepts in a loop --
-accepting once yields only systemd's early handshake and never the readiness
-message.
+Guest-driven readiness over vsock replaces waiting for `login:` in a serial
+log, which measured 2.3 seconds later and asserted something weaker -- a prompt
+is a getty having started, `READY=1` is pid 1 declaring the boot transaction
+complete. Each sd_notify is a separate connection, so the listener accepts in a
+loop; accepting once yields only the early handshake.
 
-The notify stream also carries `X_SYSTEMD_HOSTNAME`, which is checked instead
-of pattern-matching the login banner. It is structured, it is pid 1's own view
-of its identity, and it cannot be satisfied by an unrelated line that happens
-to contain the fixture name.
+The stream also carries `X_SYSTEMD_HOSTNAME`: structured, pid 1's own view of
+its identity, and not satisfiable by an unrelated line containing the fixture
+name.
 
-vsock needs `/dev/vhost-vsock`, which a container or a locked-down CI runner
-may not have. When it is unavailable this falls back to the serial marker and
-says so in `readiness_source`, because a degraded run that reported the same
-evidence as a full one would be the same defect as an accelerator that
-silently falls back to emulation.
+vsock needs `/dev/vhost-vsock`, which a container or locked-down CI runner may
+lack. Without it this falls back to the serial marker and says so in
+`readiness_source` -- a degraded run reporting the same evidence as a full one
+is the same defect as an accelerator silently falling back to emulation.
 """
 
 from __future__ import annotations
@@ -78,17 +73,14 @@ CID_ATTEMPTS = 64
 # is discarded when this function returns.
 HARNESS_HOSTNAME = "slice-t4-fixture"
 # Named individually, never as a pattern, so a third unit cannot fail behind
-# them. Both fail for one measured reason: the artifact ships no
-# `tpm2-pcr-public-key.pem`, because the composition never requests
-# expected-PCR signing and the UKI therefore carries no `.pcrpkey` section, so
-# every NvPCR initialization returns ENOENT. Supplying that key means signing
-# expected PCRs, which is TPM policy -- explicitly out of scope for PLN-0002.
-# So this is a harness accommodation of an out-of-scope mechanism, not a fix,
-# and it comes off when boot integrity is ruled.
+# them. Both fail for one measured reason: no `.pcrpkey` section in the UKI,
+# because the composition never requests expected-PCR signing, so every NvPCR
+# initialization returns ENOENT. Supplying the key means signing expected PCRs
+# -- TPM policy, out of scope for PLN-0002. A harness accommodation, not a fix;
+# it comes off when boot integrity is ruled.
 #
-# The cost is stated rather than hidden: PLN-0002-08's evidence is "no failed
-# units", and under this mask that claim is conditional. The report says so, in
-# `masked_units`, so the condition travels with the result.
+# The cost: PLN-0002-08's "no failed units" is conditional under this mask, so
+# `masked_units` carries the condition with the result.
 MASKED_UNITS = (
     "systemd-tpm2-setup-early.service",
     "systemd-pcrproduct.service",
@@ -213,10 +205,9 @@ def check_boot() -> int:
     from tools.validation.check import SLICE_ARTIFACT_ENV
 
     artifact = Path(os.environ[SLICE_ARTIFACT_ENV]).resolve() / "neutrinos-slice.raw"
-    # secure_boot=False, stated: this check asserts readiness, unit health and
-    # artifact immutability, none of which is a signature claim. The plain build
-    # is the honest firmware for it -- but the choice is now written down, so a
-    # future signature assertion added here cannot inherit it silently.
+    # secure_boot=False: this check asserts readiness, unit health and artifact
+    # immutability, none of them a signature claim. Written down so a future
+    # signature assertion cannot inherit the choice silently.
     code, variables = vm.firmware_pair(secure_boot=False)
     before = file_digest(artifact)
     failures: list[str] = []
@@ -366,9 +357,9 @@ def check_boot() -> int:
                     f"{BOOT_TIMEOUT_SECONDS}s{detail}"
                 )
             # The hostname assertion is the point of the test, so an absent
-            # notify hostname is a failure rather than a skipped check. Under
-            # the serial fallback the marker carries it instead, and reaching
-            # the marker is already that assertion.
+            # notify hostname fails rather than skips. Under the serial
+            # fallback the marker carries it, and reaching the marker is the
+            # assertion.
             if listener is not None and hostname_from_notify != HARNESS_HOSTNAME:
                 failures.append(
                     "guest did not report the harness hostname: expected "
@@ -381,29 +372,27 @@ def check_boot() -> int:
                 failures.append("units failed: " + "; ".join(unit_failures[:10]))
             report = {
                 "accelerator_requested": "kvm:tcg",
-                # What was requested is not what was obtained. Emulation is a
-                # permitted outcome, not a failure, so this is recorded rather
-                # than asserted -- but a result that names only the request
-                # cannot tell a KVM run from a fallback afterwards.
+                # Requested is not obtained. Emulation is permitted, so it is
+                # recorded rather than asserted -- but a result naming only the
+                # request cannot tell a KVM run from a fallback afterwards.
                 "accelerator_used": (
                     "unknown" if kvm_enabled is None else "kvm" if kvm_enabled else "tcg"
                 ),
                 "hostname_from_harness": HARNESS_HOSTNAME,
-                # Declared in the result, not only in the source. "No failed
-                # units" measured under a mask is a weaker claim than "no failed
-                # units", and a reader of the retained evidence has no other way
-                # to tell the two apart.
+                # Declared in the result, not only in the source: "no failed
+                # units" under a mask is the weaker claim, and a reader of the
+                # retained evidence has no other way to tell.
                 "masked_units": list(MASKED_UNITS),
                 "readiness_source": readiness_source,
                 "ready_seconds": ready_seconds if listener is not None else marker_seconds,
                 "serial_log_bytes": len(log),
                 "unit_failures": unit_failures,
             }
-            # Only the fields the declared source actually measured. Readiness
-            # arrives about two seconds before the login prompt is printed, so
-            # under vsock the run stops watching the serial log first -- and a
-            # `reached_login_prompt: false` recorded from that would read as a
-            # failed assertion rather than as a question no longer asked.
+            # Only the fields the declared source measured. Readiness arrives
+            # about two seconds before the login prompt, so under vsock the run
+            # stops watching serial first -- and `reached_login_prompt: false`
+            # from that would read as a failed assertion rather than a question
+            # no longer asked.
             if listener is not None:
                 report["hostname_from_notify"] = hostname_from_notify
             else:

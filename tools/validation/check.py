@@ -112,14 +112,11 @@ class Test:
     fixtures: tuple[str, ...]
     cleanup_owner: str
     function: str
-    # A deferred test is registered and not run. The contract admits `deferred`
-    # "only when already justified in the governing requirements-to-test
-    # trace", so the justification is the declaration: it must name the trace
-    # that carries the deferral, and it is what the manifest reports as the
-    # reason. Deferral is enforced by selection, not by the test body -- a
-    # deferred test is never selected, so it can never produce a passing
-    # result, and naming its ID to `check:run` is a selection error rather than
-    # a quiet execution.
+    # Registered and not run. The contract admits `deferred` "only when already
+    # justified in the governing requirements-to-test trace", so this text is
+    # the declaration: it names that trace and is what the manifest reports as
+    # the reason. Enforced by selection rather than by the test body, so a
+    # deferred test can never produce a passing result.
     deferred: str | None = None
 
 
@@ -375,17 +372,14 @@ TESTS = (
         cleanup_owner="validation runner",
         function="check_slice_runtime_boundaries",
     ),
-    # The two registrations below are deferred, and both exist for the same
-    # reason: PLN-0002-10 measured that the `/usr` verity signature is verified
-    # and gates nothing, and nothing in this registry asserted otherwise. The
-    # measurement lives in `src/slice/measure-substitution.py`, which is not
-    # registered, so without these the obligation stops being carried when
-    # PLN-0002 closes and the fail-open becomes invisible rather than known.
+    # Both deferred, for one reason: PLN-0002-10 measured that the `/usr` verity
+    # signature is verified and gates nothing, and the measurement lives in
+    # `src/slice/measure-substitution.py`, which is not registered. Without
+    # these the fail-open becomes invisible when PLN-0002 closes.
     #
-    # Asserting the *observed* behaviour was rejected: a check that encodes a
-    # fail-open passes because the mechanism is broken and goes red when it is
-    # fixed. What is registered is what SYS-049 requires, which fails today and
-    # correctly so -- hence deferral rather than a failing profile.
+    # They register what SYS-049 requires, not the observed behaviour, which
+    # would pass because the mechanism is broken and go red when it is fixed.
+    # That is why they are deferred rather than failing.
     Test(
         id="T4-SLICE-003",
         level="T4",
@@ -594,18 +588,16 @@ def git_environment() -> dict[str, str]:
 def repository_snapshot() -> dict[str, str]:
     """Identify both Git state and all worktree bytes, including ignored files.
 
-    Ignored files are hashed on purpose: a check that writes an image, a key, or
-    a run directory into the checkout is exactly what this catches, and every one
-    of those is in `.gitignore`. So the exclusion below is deliberately not
-    "whatever Git ignores".
+    Ignored files are hashed on purpose -- a check writing an image, a key or a
+    run directory into the checkout is what this catches, and all of those are
+    in `.gitignore`. The exclusion below is deliberately not "whatever Git
+    ignores".
 
-    Bytecode is the one exception, because it is not state this can learn
-    anything from: the interpreter derives it from source that is already hashed
-    here, and writing it is a side effect of *running* the checks. Hashing it
-    made the first `check:complete` after any edit under `tools/validation/`
-    report "validation changed repository state" -- against the tree the runner
-    itself had just compiled. Measured 2026-08-12, twice, and misattributed once
-    to an edit made during the run.
+    Bytecode is the exception: the interpreter derives it from source already
+    hashed here, and writing it is a side effect of running the checks. Hashing
+    it made the first `check:complete` after any edit under `tools/validation/`
+    report "validation changed repository state" against the tree the runner had
+    just compiled. Measured 2026-08-12, twice, misattributed once.
     """
     git_parts = []
     for args in (
@@ -690,19 +682,16 @@ def check_markdown_links() -> int:
 def check_tracked_artifacts() -> int:
     """Enforce the hygiene contract's two artifact bounds.
 
-    Both bounds were reviewer-applied policy with no check, which PR-0026
-    recorded as accepted limitation C-002. A tracked bytecode cache then
-    survived twenty-six commits and a gate review before anyone noticed it, so
-    the limitation is closed here rather than restated.
+    Both bounds were reviewer-applied policy with no check -- PR-0026's accepted
+    limitation C-002 -- and a tracked bytecode cache then survived twenty-six
+    commits and a gate review before anyone noticed.
 
-    The index is the subject, not `HEAD`: what a commit would contain is what
-    the bounds are about, and checking `HEAD` would report the breach only
-    after it had already landed.
+    The index is the subject, not `HEAD`: the bounds are about what a commit
+    would contain, and `HEAD` reports the breach only after it landed.
 
-    Binary classification is Git's own. `--numstat` prints `-` for both the
-    added and the deleted line count exactly when Git considers a blob binary,
-    which means this honors `.gitattributes` and Git's NUL heuristic instead of
-    re-deciding, differently, what "binary" means.
+    Binary classification is Git's own. `--numstat` prints `-` for both counts
+    exactly when Git considers a blob binary, so this honors `.gitattributes`
+    and the NUL heuristic instead of re-deciding what "binary" means.
     """
     failures: list[str] = []
 
@@ -1984,10 +1973,9 @@ def run(
     }
     for result in results:
         counts[result["result"]] += 1
-    # Deferred tests never execute, so their count comes from the registry
-    # rather than from results: the tests this profile would have selected had
-    # they not been deferred. `check:run` cannot name one, so a selected run
-    # reports zero, which is true of it.
+    # From the registry rather than from results, since deferred tests never
+    # execute: what this profile would have selected had they not been
+    # deferred. `check:run` cannot name one, so a selected run reports zero.
     deferred_tests = [
         test
         for test in TESTS
@@ -2026,11 +2014,10 @@ def run(
         "error": runner_error,
         "failure_stage": failure_stage,
         "final_result": "passing" if success else "failing",
-        # Contract: the manifest lists every registered test as selected, not
-        # applicable, deferred, blocked, or excluded, with its reason. A
-        # deferred test is excluded for a reason of its own, and that reason is
-        # the justification its registration declares, so the manifest carries
-        # it rather than a generic string.
+        # Contract: every registered test listed as selected, not applicable,
+        # deferred, blocked or excluded, with its reason. A deferred test's
+        # reason is the justification its registration declares, not a generic
+        # string.
         "omissions": [
             {
                 "id": test.id,

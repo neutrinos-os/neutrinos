@@ -1,17 +1,16 @@
 """SYS-049's signature clauses: registered, deferred, not implemented.
 
-`T4-SLICE-003` and `T4-SLICE-004` are registered with a deferral justification
-and are never selected, so neither of these functions is reached by
-`mise run check:fast` or `check:complete`. They exist so that the registration
-names a real callable and so that **lifting a deferral cannot produce a green
-profile by itself**: remove the `deferred=` declaration and the check runs, and
-what it does is fail, naming the assertion still owed.
+`T4-SLICE-003` and `T4-SLICE-004` are never selected, so neither function is
+reached by `check:fast` or `check:complete`. They exist so the registration
+names a real callable and so **lifting a deferral cannot produce a green
+profile by itself**: remove the `deferred=` declaration and the check runs and
+fails, naming the assertion still owed.
 
-That direction is deliberate. The defect this plan keeps finding is a mechanism
-that is configured, runs, reports success and gates nothing -- eight recorded
-instances. A deferred registration whose body returned zero would be the ninth,
-and the worst of them, because it would sit in the registry looking like
-coverage of the one requirement this artifact does not meet.
+The direction is deliberate. This plan's recurring defect is a mechanism that
+is configured, runs, reports success and gates nothing -- eight instances. A
+deferred registration whose body returned zero would be the ninth and the
+worst, sitting in the registry looking like coverage of the one requirement the
+artifact does not meet.
 
 What is owed, when S-005 decides the mechanism:
 
@@ -24,13 +23,12 @@ What is owed, when S-005 decides the mechanism:
   not trust must not reach a running system. `sig-wrong-key`, same measurement
   path, same recorded outcome.
 
-Neither is implementable as an assertion today, because there is no mechanism
-whose refusal could be asserted: the kernel refuses a signature it has no key
-for and `systemd-veritysetup` retries without it, and enrolling the signer
-changes which code path runs and changes no outcome. Writing the boot harness
-now would produce several hundred lines of never-executed code asserting a
-refusal nothing performs. The measurement that established this is retained;
-what these registrations carry is the obligation, not a second copy of it.
+Neither is implementable today: there is no mechanism whose refusal could be
+asserted, since the kernel refuses a signature it has no key for,
+`systemd-veritysetup` retries without it, and enrolling the signer changes the
+code path and no outcome. A boot harness written now would be several hundred
+lines of never-executed code asserting a refusal nothing performs. These
+registrations carry the obligation, not a second copy of the measurement.
 """
 
 from __future__ import annotations

@@ -171,34 +171,19 @@ labels were an agent decomposition and are retracted.
   guards and the reasons for each are in the module itself.
   `src/spike/pln0002-01/boot.sh` is deliberately not migrated, being the
   recorded apparatus of a completed spike.
-- **The CI `check:complete` job cannot pass on a hosted runner**, which has no
-  composed artifact, and **it is failing now**. Re-measured against the remote
-  2026-08-14: the `validation` workflow has run 44 times on `main` and passed
-  **once**, at `d0a2cc5` on 2026-08-10, before the first `complete`-only
-  artifact check was registered. Every run since is a failure -- **39
-  consecutive**, the newest being this session's push -- reporting `fast` green and `complete` `passing=9 failing=0
-  blocked=5`. Nothing is *failing*; the five artifact and VM checks are
-  `blocked`, and `mise` treats a blocked profile as a task failure.
-  **Explicitly punted 2026-08-12 by Jason Tarasovic** on the grounds that CI
-  needs a full answer including how qualification runs a VM at all, with the
-  constraint that it be answered before the `complete` job runs anywhere.
-  **That constraint was already violated when it was set**: the record it was
-  taken against said nothing had been pushed, and pushes to `main` had been
-  landing and going red since 2026-08-11. The three-way choice -- CI composes
-  the slice, `complete` becomes a local qualification profile, or a red
-  `complete` is accepted -- is therefore being made by default, and the default
-  being taken is the third. It belongs with `P-008` and is the owner's.
+- **CI is red on `main` and stays red.** `check:complete` needs a composed
+  artifact that a hosted runner does not have. This is expected until there is
+  something to continuously integrate; it is not tracked, re-measured, or
+  reported. `P-008` owns it.
 - `P-009` (VM harness selection) is open and blocks nothing under G1; see
   [RES-0013](../research/comparisons/vm-test-harness.md). ssh over vsock is
   not done and is a question rather than a task: it would add
   `openssh-server` to the closure, which is the shape of the PLN-0001-04
   amendment that was reverted.
-- `P-008` is open: the required `canonical profiles` check cannot report on an
-  unpushed commit, and owner bypass is enabled as a deliberate temporary state,
-  so pushes to `main` land with the remote recording `Bypassed rule
-  violations`. `main` is pushed and current as of 2026-08-14; pull request 7
-  was merged on 2026-08-10. Copilot remains unverified and must not be relied
-  on for autonomous repository work.
+- `P-008` is open: owner bypass is enabled as a deliberate temporary state, so
+  pushes to `main` land with the remote recording `Bypassed rule violations`.
+  Copilot remains unverified and must not be relied on for autonomous
+  repository work.
 - `P-010` (record-corpus maintenance) is **deliberately left open until after
   G2**. Its accepted cost is a continuing rate of referential and
   duplicated-state failures, including acceptances that no mechanism guards.

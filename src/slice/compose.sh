@@ -322,16 +322,16 @@ fi
 # possible at all -- silently did not happen. A step added for a new check must
 # not be able to take out an established one.
 #
-# It needs an image-signing certificate, and the slice composition has none:
-# there is no `SecureBoot=` in the composition fixture, so the UKI is unsigned
-# and there is nothing to keep in `db` alongside the verity signer. Enrolling
-# anyway produces a machine whose firmware refuses its own UKI. That is
-# PLN-0002-06's synthetically signed UKI arriving as a prerequisite, so this
-# says so and continues rather than failing the composition.
+# It needs an image-signing certificate to keep in `db` beside the verity
+# signer, because enrolling without one produces a machine whose firmware
+# refuses its own UKI. That prerequisite is satisfied as of PLN-0002-06: the
+# composition declares `SecureBoot=yes` and this script generates and passes the
+# certificate above, so the branch below is the broken-build-root case rather
+# than the waiting-on-06 case it was written as.
 #
-# Saying so loudly is the point. The fixture's absence is not swallowed: it
-# **blocks** T4-CONFEXT-001, which is the same signal in the place that reads
-# it.
+# It still says so and continues rather than failing the composition. The
+# fixture's absence is not swallowed: it **blocks** T4-CONFEXT-001, which is the
+# same signal in the place that reads it.
 if [ -f "$out_dir/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
     if [ -f "$keys_dir/secureboot.crt" ]; then
         sh "$root/enroll-fixture.sh"
@@ -340,7 +340,8 @@ if [ -f "$out_dir/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:
             "$build_root/fixture/confext-unenrolled.raw"
     else
         echo "compose: no image-signing certificate at $keys_dir/secureboot.crt," \
-             "so the T4-CONFEXT-001 fixture was not built. The slice composition" \
-             "declares no SecureBoot=; a signed UKI is PLN-0002-06's output." >&2
+             "so the T4-CONFEXT-001 fixture was not built. This script generates" \
+             "that certificate, so its absence means the build root is damaged" \
+             "rather than incomplete." >&2
     fi
 fi

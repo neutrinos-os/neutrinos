@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-14
-source_snapshot_revision: 1563152
+source_snapshot_revision: 4d38c73
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
@@ -82,8 +82,8 @@ Authority is the plan's task table. Summary as of 2026-08-14:
 | --- | --- |
 | 01 early-boot spike | **complete**, stop-gate not triggered ([record](spike-early-boot-record.md)) |
 | 02 `/usr`-only composition | **complete**, one defect found and fixed ([record](usr-artifact-composition.md)) |
-| 03a confext build and `/etc` carve | **partial** in the plan text; its last owed item, signature enforcement, is closed by measurement ([carve record](etc-path-carve.md) question 7). The plan row is not yet updated |
-| 03b confext delivery | pending; **sequenced after 06, before 07** (owner ruling 2026-08-12) |
+| 03a confext build and `/etc` carve | **partial, nothing owed**: signature enforcement, its last owed item, is closed by measurement ([carve record](etc-path-carve.md) question 7). Whether that is completion is the owner's; the carve and tooling stay candidate either way |
+| 03b confext delivery | pending and **deferred 2026-08-14**: the 2026-08-12 ruling sequencing it after 06 and before 07 is superseded, because the fail-open it was meant to keep out of the measurements is closed and registered. The plan's own text says no task depends on it |
 | 04 disposable layout | **partial**; the confext partition is deliberately not placed, pending 03b |
 | 05 parameter declaration | **accepted 2026-08-12** of a stated incomplete state; implemented in the composition and **audited against the built artifacts 2026-08-14**, which took three corrections; both of its open parameters were ruled the same day ([declaration](artifact-parameter-declaration.md)) |
 | 06 six authenticated artifacts | **complete**, accepted 2026-08-14: six artifacts from one tree state, digests retained, command line uniform across the set, determinism re-measured with the confext rebuilt ([artifact set](usr-artifact-set.md)). The verity signature partition, a UKI signed by `CN=NeutrinOS image, synthetic`, and `systemd.image_policy=usr=signed` in the UKI landed earlier the same day |
@@ -120,8 +120,12 @@ labels were an agent decomposition and are retracted.
   failure-sensitive.
 - **Build determinism is closed properly as of 2026-08-14**, after a
   2026-08-12 closure that claimed more than it measured. The confext now
-  reuses the composition's seed. **Any determinism evidence for this slice must
-  state whether the confext was rebuilt** (`NEUTRINOS_SKIP_CONFEXT` skips it).
+  reuses the composition's seed. Re-measured during PLN-0002-06: the EROFS
+  primary was rebuilt rather than carried forward and reproduced its prior
+  digest exactly, **with the confext rebuilt**. **Any determinism evidence for
+  this slice must state whether the confext was rebuilt**
+  (`NEUTRINOS_SKIP_CONFEXT` skips it); `retain-artifact-digests.py` records it
+  as a field.
 - **`Minimize=best` is unavailable on ext4**, so both arms hold
   `Minimize=guess` and **task 07 must measure filesystem bytes in use,
   reporting partition size separately**, or its size figure measures repart's
@@ -131,7 +135,8 @@ labels were an agent decomposition and are retracted.
   ships no `tpm2-pcr-public-key.pem` and supplying one is TPM policy. The mask
   travels in the check's own `masked_units` field. **Task 08's record must read
   "no failed units except the two masked"**, and whether the mask belongs in
-  the PLN-0002-05 declaration is an owner question.
+  the PLN-0002-05 declaration is an owner question. **Task 08 has not run**: the
+  six artifacts of PLN-0002-06 have never been booted.
 - **A declared parameter can be wrong rather than merely missing.** The
   2026-08-14 audit of PLN-0002-05 read the built artifacts instead of the
   configuration. Most of the declaration held: the ext4 superblock, the ESP
@@ -153,8 +158,9 @@ labels were an agent decomposition and are retracted.
 ## Validation state
 
 - `mise run check:fast` runs **8 checks**; `mise run check:complete` runs
-  **14** and is green, so `complete` can act as a gate. The counts are
-  authoritative from `mise run check:list`.
+  **14**. Both were run green on 2026-08-14 against the PLN-0002-06 artifact
+  set, including through the new `out` compatibility symlink, so `complete`
+  can act as a gate. The counts are authoritative from `mise run check:list`.
 - `check:complete` needs a composed artifact and the declared fixture
   directories. `mise run --allow-env=` passes those declarations through
   `sandbox.deny_env`; the three required variables are named in
@@ -166,11 +172,11 @@ labels were an agent decomposition and are retracted.
   `src/spike/pln0002-01/boot.sh` is deliberately not migrated, being the
   recorded apparatus of a completed spike.
 - **The CI `check:complete` job cannot pass on a hosted runner**, which has no
-  composed artifact, and **it is failing now**. Measured against the remote on
-  2026-08-15: the `validation` workflow has run 42 times on `main` and passed
+  composed artifact, and **it is failing now**. Re-measured against the remote
+  2026-08-14: the `validation` workflow has run 44 times on `main` and passed
   **once**, at `d0a2cc5` on 2026-08-10, before the first `complete`-only
-  artifact check was registered. Every run since is a failure -- **37
-  consecutive** -- reporting `fast` green and `complete` `passing=9 failing=0
+  artifact check was registered. Every run since is a failure -- **39
+  consecutive**, the newest being this session's push -- reporting `fast` green and `complete` `passing=9 failing=0
   blocked=5`. Nothing is *failing*; the five artifact and VM checks are
   `blocked`, and `mise` treats a blocked profile as a task failure.
   **Explicitly punted 2026-08-12 by Jason Tarasovic** on the grounds that CI
@@ -190,7 +196,7 @@ labels were an agent decomposition and are retracted.
 - `P-008` is open: the required `canonical profiles` check cannot report on an
   unpushed commit, and owner bypass is enabled as a deliberate temporary state,
   so pushes to `main` land with the remote recording `Bypassed rule
-  violations`. `main` is pushed and current as of 2026-08-15; pull request 7
+  violations`. `main` is pushed and current as of 2026-08-14; pull request 7
   was merged on 2026-08-10. Copilot remains unverified and must not be relied
   on for autonomous repository work.
 - `P-010` (record-corpus maintenance) is **deliberately left open until after
@@ -199,65 +205,46 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-**Three of the four are settled as of 2026-08-14.** Items 1, 3 and 4 were ruled
-that day and are struck through below with their outcomes; the reasoning lives
-in the plan's amendment 5 and in the
-[declaration](artifact-parameter-declaration.md), not here. **Item 2, the
-ParticleOS command line, is the only one still open** and is the owner's.
+**One item is open.** Three others were ruled on 2026-08-14 and are recorded
+where they belong -- the six-artifact count as PLN-0002 amendment 5, and
+`systemd.image_filter=` and the initrd module list in the
+[declaration](artifact-parameter-declaration.md). They are not repeated here.
 
-1. ~~Six artifacts, not the plan's four.~~ **Accepted 2026-08-14 as PLN-0002
-   amendment 5 and in force.** Task 10's substitution source must differ from
-   the primary, because the build is bit-reproducible and rebuilding the same
-   tree yields an identical artifact, which would make the substitution vacuous.
-   Per arm: a content variant and a seed variant. **Task 06's completion
-   criterion is six artifacts and their retained digests.**
-2. **The ruled command line is not the implemented one.** Owner ruling
-   2026-08-12: adopt the ParticleOS shape -- `root=dissect`, `mount.usr=dissect`,
-   a fully-enumerated `systemd.image_policy=`, `systemd.image_filter=`, and no
-   `usrhash=`. What is implemented is `usr=signed` alone with `usrhash=`
-   retained, and the parameter declaration argues that enumerating the verity
-   designators is harmful. That argument is measured and correct on its own
-   terms and was written without the ruling in view; the ruling was taken on
-   the premise that an enumerated policy would enforce `/usr`'s signature,
-   which the 2026-08-14 measurements show it cannot. Recorded as an open item
-   in the [declaration](artifact-parameter-declaration.md). Until it is
-   settled, the composition is in a state neither the ruling nor the
-   declaration fully describes.
-
-3. ~~`systemd.image_filter=`.~~ **Ruled absent 2026-08-14 by Jason Tarasovic.**
-   The premise that made it load-bearing -- that 06's same-format substitution
-   sources make partition selection matter -- assumes two artifacts visible to
-   one boot, and task 10 substitutes the disk. Discrimination in 10 comes from
-   the verity signature and the root hash. Second designator in this plan
-   assumed to do work the boot path never asks of it. If 10 proves otherwise the
-   artifacts are rebuilt, and that risk is accepted. **No parameter inside the
-   UKI is now open.**
-**Item 4 is closed.** Whether the initrd module list is tightened before the
-freeze was **ruled 2026-08-14 by Jason Tarasovic: accepted as measured, not
-tightened.** No C-007 criterion needs the trim -- an untrimmed initrd identical
-across arms is as much a held constant as a trimmed one -- and "measure the arm
-as it would ship" does not transfer to a fixture whose kernel specialization is
-`W-004`, deferred past this gate. The general form governs beyond this row: **a
-decision that nothing is waiting on is not a decision to be made.**
+**The ruled command line is not the implemented one.** Owner ruling 2026-08-12:
+adopt the ParticleOS shape -- `root=dissect`, `mount.usr=dissect`, a
+fully-enumerated `systemd.image_policy=`, `systemd.image_filter=`, and no
+`usrhash=`. What is implemented is `usr=signed` alone with `usrhash=` retained,
+and the parameter declaration argues that enumerating the verity designators is
+harmful. That argument is measured and correct on its own terms and was written
+without the ruling in view; the ruling was taken on the premise that an
+enumerated policy would enforce `/usr`'s signature, which the 2026-08-14
+measurements show it cannot. Recorded as an open item in the
+[declaration](artifact-parameter-declaration.md). **The six artifacts of
+PLN-0002-06 carry the implemented value**, so settling this in the ruling's
+favour would rebuild them and void anything measured against them first.
 
 Also open and not taken by any agent: whether G1's approval should be revisited
 against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-06 is complete and accepted 2026-08-14** ([artifact set](usr-artifact-set.md)).
-Next is **PLN-0002-03b, confext delivery**, which the owner ruling of 2026-08-12
-sequenced after 06 and before 07, so that question 5b's live fail-open is
-confined to 06 rather than carried through every measurement task. Task 07 then
-measures, and must measure filesystem bytes in use rather than partition size.
+**PLN-0002-07**, the measurement task: image size, build time, build
+determinism, and update transfer size across the six artifacts. Not started.
+It must measure **filesystem bytes in use** and report partition size
+separately, because `Minimize=guess` on both arms means a partition-table
+figure measures repart's estimator on one arm and the filesystem on the other.
 
-Two things to carry into 07 and 08: the six artifacts have **not** been booted
--- the 2026-08-12 confirmation boots were of earlier artifacts -- and the
-synthetic signing material expires **2026-09-11**, after which these artifacts
-are measured against expired enrollment material. **Every artifact must come from one tree state**: the
-ext4 arm currently in the build root predates `systemd.image_policy=`, its UKI
-does not carry it, and it is therefore not a member of the declared set and must
-not be measured or retained as one.
+PLN-0002-06 is complete and accepted 2026-08-14
+([artifact set](usr-artifact-set.md)). **PLN-0002-03b is deferred**, not
+sequenced ahead of 07: the 2026-08-12 ruling that put it there was taken to keep
+question 5b's fail-open out of the measurements, and that fail-open is now
+closed and registered. The plan's own text says no task depends on it.
+
+Two things 07 and 08 inherit: the six artifacts have **never been booted** -- the
+2026-08-12 confirmation boots were of earlier artifacts, so task 08 is a first
+boot rather than a repeat -- and the synthetic signing material expires
+**2026-09-11**, after which these artifacts are measured against expired
+enrollment material.
 
 `docs/project/work-register.md` is the aggregate view. Question state lives in
 `docs/project/decision-backlog.md`. Neither is architecture authority. Do not

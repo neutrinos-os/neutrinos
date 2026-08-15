@@ -580,7 +580,10 @@ measured 146.4s to readiness; there is no comparable prior number, because the
 previous artifact was overwritten by the rebuild and the 18s in the
 [boot record](slice-boot-record.md) is a different check's whole runtime, in a
 record that says its numbers are not a timing baseline. Owner ruling
-2026-08-12: measure it at PLN-0002-07 rather than now.
+2026-08-12: measure it at PLN-0002-07 rather than now. **Where the two criteria
+actually landed** (noted 2026-08-15, correcting the pointer and not the ruling):
+build time is PLN-0002-07, and boot behaviour is PLN-0002-08 by the plan's task
+table, which is the authority. Both were measured; nothing fell between them.
 
 **Ruled 2026-08-12: the list is confirmed by booting both arms before 06 freezes
 them.** An over-trimmed initrd fails as an unbootable artifact, which is a

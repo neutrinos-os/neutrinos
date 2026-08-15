@@ -241,7 +241,9 @@ unchanged.
 - **No recommendation.** PLN-0002-13 answers C-007, against these figures plus
   tasks 08, 09 and 10, which do not exist yet.
 - **No boot, memory, corruption or recovery figure.** Those are tasks 08, 09,
-  10 and 12. The six artifacts have still never been booted.
+  10 and 12. Task 08 has since booted the two primaries three times each
+  ([boot records](artifact-boot-records.md)); the four variants remain
+  unbooted.
 - **Nothing about compression tuning.** `lz4hc` level 12 is a declared
   parameter of this comparison, not a tuned one, and this plan's non-goals
   exclude performance tuning of either format.

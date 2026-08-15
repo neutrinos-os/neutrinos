@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-15
-source_snapshot_revision: 07a387f
+source_snapshot_revision: a256ede
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
@@ -88,7 +88,8 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | 05 parameter declaration | **accepted 2026-08-12** of a stated incomplete state; implemented in the composition and **audited against the built artifacts 2026-08-14**, which took three corrections; both of its open parameters were ruled the same day ([declaration](artifact-parameter-declaration.md)) |
 | 06 six authenticated artifacts | **complete**, accepted 2026-08-14: six artifacts from one tree state, digests retained, command line uniform across the set, determinism re-measured with the confext rebuilt ([artifact set](usr-artifact-set.md)). The verity signature partition, a UKI signed by `CN=NeutrinOS image, synthetic`, and `systemd.image_policy=usr=signed` in the UKI landed earlier the same day |
 | 07 offline measurements | **complete and accepted 2026-08-15**: five of C-007's eight criteria measured over the six artifacts ([measurements](artifact-format-measurements.md)). No recommendation; the five do not agree |
-| 08-09, 11-14 | pending |
+| 08 boot records | **complete and accepted 2026-08-15**: three boots per arm, both primaries. Boot behaviour and memory are a **tie** ([boot records](artifact-boot-records.md)) |
+| 09, 11-14 | pending |
 | 10 negative evidence | **started out of order** on an owner ruling; one cell covered by `T4-CONFEXT-001` (confext substitution, signature dimension only) |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
@@ -131,7 +132,10 @@ labels were an agent decomposition and are retracted.
   (`NEUTRINOS_SKIP_CONFEXT` skips it); `retain-artifact-digests.py` records it
   as a field. **Re-measured again in task 07: all six artifacts reproduced on
   all three rebuilds, 18 of 18, confext rebuilt on every run.** Determinism is
-  a tie between the arms and separates nothing.
+  a tie between the arms and separates nothing -- as are **boot time and
+  memory**, measured in task 08: 22ms apart on a 6.2s boot and 1 MiB apart in
+  page cache, both inside the run-to-run spread. Three of the eight criteria
+  now separate the arms not at all.
 - **`Minimize=best` is unavailable on ext4**, so both arms hold
   `Minimize=guess` and a partition-size figure measures repart's estimator on
   one arm and the filesystem on the other. Task 07 measured bytes in use
@@ -142,10 +146,11 @@ labels were an agent decomposition and are retracted.
 - **Two systemd TPM units are masked from the host** in `T4-SLICE-001`
   (`systemd-tpm2-setup-early`, `systemd-pcrproduct`), because the artifact
   ships no `tpm2-pcr-public-key.pem` and supplying one is TPM policy. The mask
-  travels in the check's own `masked_units` field. **Task 08's record must read
-  "no failed units except the two masked"**, and whether the mask belongs in
-  the PLN-0002-05 declaration is an owner question. **Task 08 has not run**: the
-  six artifacts of PLN-0002-06 have never been booted.
+  travels in the check's own `masked_units` field. **Task 08 ran under exactly
+  that condition** and its record says so: no failed units on either arm, with
+  the two masks named in the retained result. Whether the mask belongs in the
+  PLN-0002-05 declaration is still an owner question. The **two primaries have
+  now been booted** three times each; the four variants have not.
 - **A declared parameter can be wrong rather than merely missing.** The
   2026-08-14 audit of PLN-0002-05 read the built artifacts instead of the
   configuration. Most of the declaration held: the ext4 superblock, the ESP
@@ -199,8 +204,8 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-**One item is open.** PLN-0002-07 was accepted 2026-08-15. Three other items
-were ruled on 2026-08-14 and are recorded
+**One item is open.** PLN-0002-07 and PLN-0002-08 were both accepted
+2026-08-15; three further items were ruled on 2026-08-14 and are recorded
 where they belong -- the six-artifact count as PLN-0002 amendment 5, and
 `systemd.image_filter=` and the initrd module list in the
 [declaration](artifact-parameter-declaration.md). They are not repeated here.
@@ -223,18 +228,20 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-08**, boot records on both arms: `/usr` read-only and
-verity-authenticated, `/etc` regenerated, no failed units except the two masked
-TPM units, boot behaviour and memory with **repetition count and accelerator
-state recorded per run** -- PLN-0001 measured the same boot at 72s TCG and 18s
-KVM, so the accelerator is the figure's precondition, not a footnote. Not
-started. The six artifacts have **never been booted**: this is a first boot,
-not a repeat.
+**PLN-0002-09**, corruption behaviour: a single bit flipped in an authenticated
+region of each artifact, recording detection point, diagnostic and blast radius
+per format. Compressed EROFS clusters against ext4 blocks is where the formats
+are expected to diverge, and it is the first criterion where a difference is
+predicted rather than hoped for. Not started.
 
-Task 07 is complete and **accepted 2026-08-15**
-([measurements](artifact-format-measurements.md)). Its rebuilds overwrote the accepted set in place and all 18 reproduced their
-retained digests, so the set is unchanged. **PLN-0002-03b remains deferred**,
-not sequenced ahead of the measurement tasks.
+It also carries the plan's weight in a way the positive boots do not. Task 08
+measured that both arms boot correctly; the standing finding is that a
+successful boot is not a statement about the artifact, so 09 and 10 are where
+the mechanisms are actually tested.
+
+Tasks 07 and 08 are complete and **accepted 2026-08-15**.
+**PLN-0002-03b remains deferred**, not sequenced ahead of the measurement
+tasks.
 
 The synthetic signing material expires **2026-09-11**, after which these
 artifacts are measured against expired enrollment material.

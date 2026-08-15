@@ -1,7 +1,7 @@
 ---
 status: informative
 last_updated: 2026-08-15
-source_snapshot_revision: 5b7e818
+source_snapshot_revision: ddcfe89
 current_gate: G1
 target_gate: G2
 active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
@@ -91,7 +91,8 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | 08 boot records | **complete and accepted 2026-08-15**: three boots per arm, both primaries. Boot behaviour and memory are a **tie** ([boot records](artifact-boot-records.md)) |
 | 09 corruption behaviour | **complete and accepted 2026-08-15**: four injections, two targets per arm. The **first criterion to separate the arms** ([corruption records](artifact-corruption-records.md)) |
 | 11 slice tests | **complete, accepted 2026-08-15**: the five hold on both arms; two checks added and one widened, each verified failure-sensitive, plus `T4-SLICE-003`/`T4-SLICE-004` registered **deferred** for task 10's signature fail-open ([check updates](slice-check-updates.md)). Both questions it raised are ruled 2026-08-15 -- registration belongs to the task that first needs the assertion enforced, and the fail-open owes a deferred registration rather than a check asserting the observed behaviour |
-| 12-14 | pending |
+| 12 recovery disposition | **complete and accepted 2026-08-15**: format layer measured over eight injection sites -- a tie on file data, **ext4 ahead on metadata diagnosis**; system layer deferred to items 3 and 5; `crypttab` unsatisfiable because none exists in the artifact ([disposition](artifact-recovery-disposition.md)) |
+| 13-14 | pending |
 | 10 negative evidence | **complete and accepted 2026-08-15**: seven cells per arm, 32 boots, both firmware states ([substitution records](artifact-substitution-records.md)). Image substitution fails **closed**; signature substitution fails **open**, enrolled or not. Identical on both arms |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
@@ -106,7 +107,15 @@ labels were an agent decomposition and are retracted.
   only; a regenerated key sat beside an unrebuilt artifact; and an untrusted
   `/usr` verity signer does not stop the boot; and `fsck.erofs
   --extract=X --path=<file>` reports success and writes nothing, the first
-  instance that is a measurement hazard rather than a boot one. **A successful
+  instance that is a measurement hazard rather than a boot one -- and **that
+  last one is corrected in place as of 2026-08-15, not withdrawn**: PLN-0002-12
+  re-measured the probe and the tool writes the content to the destination path
+  itself, so that instance is a harness artifact; but the same tool fails open
+  for real one field over, printing `<E> erofs: failed to verify superblock
+  checksum` and **exiting 0**. Seven stands, with the seventh's evidence
+  replaced. The correction is drafted, not taken, because the records carrying
+  it are accepted; see the
+  [disposition](artifact-recovery-disposition.md). **A successful
   boot is therefore
   not a statement about the artifact**, which is why tasks 09 and 10 carry the
   plan's weight rather than the positive boots. **Task 09 reproduced instance
@@ -241,7 +250,22 @@ labels were an agent decomposition and are retracted.
 
 ## Awaiting the owner
 
-**One item is open.** PLN-0002-07, PLN-0002-08, PLN-0002-09 and PLN-0002-10
+**Two items are open.** PLN-0002-12 was accepted 2026-08-15 -- the deferral of
+the system layer is now an accepted amendment to verification item 2, and the
+`crypttab` disposition stands -- but **one item was deliberately excluded from
+that acceptance and is still the owner's**:
+
+- **A correction to two accepted records.** `fsck.erofs --extract=X
+  --path=<file>` writes to `X` itself and does not fail open; PLN-0002-07's
+  seventh instance is a harness artifact, and its inspectability finding
+  overstates the EROFS cost by describing a fallback that is not needed. The
+  tools-reach half of that finding is unaffected, and the same tool does fail
+  open one field over -- a corrupt superblock is detected, both CRCs printed,
+  and the exit status is 0. See the
+  [disposition](artifact-recovery-disposition.md). Correcting an accepted record
+  is not a task's to take.
+
+The second is the command-line item below. PLN-0002-07, PLN-0002-08, PLN-0002-09 and PLN-0002-10
 were all accepted 2026-08-15, which completes every measurement task in the
 plan; three further items were ruled on 2026-08-14 and are recorded
 where they belong -- the six-artifact count as PLN-0002 amendment 5, and
@@ -266,20 +290,36 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-12: the recovery-behaviour disposition, and it is the owner's.**
-Measured, or deferred with a rationale naming where it goes; a deferral is a
-proposed amendment to plan item 2. Two things it now has to rule against that it
-did not before: **emergency mode is the measured terminal state** of every image
-substitution, and the `crypttab` element of item 2's early-boot clause still has
-to be addressed against the encryption non-goal.
+**PLN-0002-13: the C-007 recommendation.** PLN-0002-12 was **accepted
+2026-08-15** ([disposition](artifact-recovery-disposition.md)) and split the
+recovery criterion: the format layer is **measured over eight injection sites,
+four per arm**, and ties on file data while **separating on metadata**. Neither
+checker sees a flipped data bit, but `e2fsck` names both metadata injections
+and exits 4 while
+`fsck.erofs` sees only the superblock, **exits 0 while printing the error**, and
+cannot see inode damage at all, EROFS having no checksum below its superblock.
+`e2fsck -fy` writes to a *pristine* image and voids its verity while finding
+nothing wrong, EROFS has no repairer at all, and salvage on both arms returns a
+full-length silently wrong file. The system layer is **deferred** to
+verification items 3 and 5, which need the A/B slots
+this plan excludes and a second deployment the fixture does not have. Emergency
+mode is terminal rather than a loop, and identical on both arms, so it decides
+nothing for C-007. `crypttab` is **unsatisfiable rather than skipped**: no
+`crypttab`, `fstab` or `veritytab` exists anywhere in the artifact while the
+generators that would read them ship in both arms, so it goes to verification
+item 6 and `S-004`.
 
-Then 13 (the C-007 recommendation) and 14 (evidence bundle and DES-0006
-disposition).
+So 13 draws on four criteria that separate the formats not at all, corruption
+blast radius, and 12's metadata-diagnosis separation. Then 14 (evidence bundle
+and DES-0006 disposition).
 
 Tasks 07 through 11 are complete and **accepted 2026-08-15**. No measurement
 task remains and **C-007 is not moved by any of them**: four of its eight
 criteria separate the formats not at all, corruption blast radius is the one
-that does, and the recommendation is 13's to draft. The two findings that
+that does, and PLN-0002-12's recovery draft adds a second and smaller
+separation -- metadata diagnosability, to ext4 -- which 13 weighs against the
+fact that dm-verity refuses the read either way. The recommendation is 13's to
+draft. The two findings that
 outlive this plan are the [substitution records](artifact-substitution-records.md)'
 fail-open -- signature substitution boots to `running` on every cell, enrolment
 changing which code path runs and no outcome -- and the [check

@@ -182,3 +182,18 @@ not revise any challenge or disposition above, which stand as accepted.
 - Pull request 7 remains open and green; nothing was merged. Local `main` at
   `6ec625a` is three commits ahead of the remote by owner decision to continue
   working locally.
+
+**Added 2026-08-15.** The bullet above is superseded as a statement of current
+state and kept as the 2026-08-10 observation. Pull request 7 was merged the same
+day, and `main` has been pushed directly and repeatedly since, each push
+recording `Bypassed rule violations` on the required check.
+
+**The green run this review accepted is still the only one.** Measured against
+the remote: 42 `validation` runs on `main`, one success -- `31418770417` at
+`d0a2cc5`, the run recorded above -- and 37 consecutive failures since, starting
+once PLN-0001-05 registered the first `complete`-only artifact check. Every
+failure is the same shape: `fast` green, `complete` `passing=9 failing=0
+blocked=5`. This does not revise C-001's disposition, which asked for
+repeatability of a green run and got it at `6ec625a` on a branch. It does mean
+the required status check on `main` has been red for four days, which no record
+stated. Carried to `P-008`.

@@ -292,8 +292,25 @@ filesystem on the other. Measured on the built arms: EROFS 170.9 MiB, ext4
 
 ## The kernel command line
 
-Inside the signed UKI, therefore part of the artifact. Current value is
-`root=tmpfs rw` and nothing else.
+Inside the signed UKI, therefore part of the artifact. Current value, read from
+`src/slice/composition/mkosi.conf` on 2026-08-14, is `root=tmpfs rw
+systemd.image_policy=usr=signed`, plus the `usrhash=` mkosi injects.
+
+**A standing owner ruling describes a different command line, and it is
+unimplemented.** Owner ruling of 2026-08-12: adopt the ParticleOS shape --
+`root=dissect`, `mount.usr=dissect`, a fully-enumerated
+`systemd.image_policy=`, `systemd.image_filter=`, and **no** `usrhash=`. What is
+implemented is `usr=signed` alone with `usrhash=` retained, and the
+`systemd.image_policy=` row below argues that enumerating `usr-verity=` and
+`usr-verity-sig=` is actively harmful -- the opposite of the ruled
+configuration. That argument is measured and correct on its own terms; it was
+written without the ruling in view. **The ruling was taken on the premise that
+an enumerated policy would enforce `/usr`'s signature, and the 2026-08-14
+measurements show it cannot**: the policy is structural, and upstream's
+enforcement point is the TPM unseal. Whether that voids the ruling is the
+owner's call and is taken by nobody else. Until it is settled, the composition
+is in a state neither the ruling nor this declaration fully describes, and the
+artifacts PLN-0002-06 freezes carry the implemented value.
 
 | Parameter | Declared value | Alternative not chosen | Reason |
 | --- | --- | --- | --- |
@@ -531,12 +548,8 @@ rather than a parameter set. Status as of 2026-08-12.
    `10-usr.conf`.
 4. **Done, 2026-08-14.** `systemd.image_policy=usr=signed`, embedded in the UKI
    rather than appended, so the loader cannot drop it. See the row above for
-   what it does and does not assert.
-   The one parameter still owed, and it cannot be satisfied before PLN-0002-06:
-   there is no signature partition for a policy to require, so setting it now
-   would declare against an artifact shape nobody has built. It **must be
-   measured**, not read off the manual -- the confext work found the broad
-   `=signed` spelling refuses everything including the correct artifact.
+   what it does and does not assert. It was measured rather than read off the
+   manual, across both enrollment arms, which is what produced that correction.
 5. **Done.** A boot of both arms confirming the trimmed module list, before 06
    freezes the artifacts. This is what required the arm switch, and the ext4 arm
    was built unsigned for it.
@@ -545,6 +558,7 @@ rather than a parameter set. Status as of 2026-08-12.
    Both parameters exist only in the environment repart is run with, so neither
    is expressible in a `repart.d` file.
 
-**One parameter is owed and it belongs to task 06.** Everything else this
-declaration obliges is implemented and measured. That is the state in which the
-artifacts are ready to be frozen.
+**Every parameter this declaration obliges is implemented and measured as of
+2026-08-14.** That is the state in which the artifacts are ready to be frozen --
+with the unresolved command-line ruling above named as the one thing a freeze
+would lock in without a decision.

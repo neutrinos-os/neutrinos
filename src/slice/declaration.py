@@ -2,8 +2,8 @@
 """Read `input-set.toml` and answer the questions more than one helper asks.
 
 Three helpers now resolve their inputs from the declaration rather than from
-copies restated in `compose.sh` -- `buildroot.py`, `acquire-overlay.py` and
-`retain-repository.py` -- and two of them need the one declared repository.
+copies restated in `compose.sh` -- `buildroot.py`, `acquire_overlay.py` and
+`retain_repository.py` -- and two of them need the one declared repository.
 
 "The one" is a rule, not a lookup. The declaration names exactly one repository
 and records why a second cannot be an exact input, so a helper that reached for

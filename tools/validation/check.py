@@ -325,7 +325,6 @@ TESTS = (
         traces=("ADR-0005", "C-009"),
         capabilities=(),
         fixtures=(
-            "src/slice/compose.sh",
             "tools/validation/slice_boot.py",
             "src/slice/composition/state-partitions/",
         ),
@@ -376,7 +375,7 @@ TESTS = (
             # resolved rather than recopied.
             "src/slice/declaration.py",
             "src/slice/buildroot.py",
-            "src/slice/retain-repository.py",
+            "src/slice/retain_repository.py",
         ),
         cleanup_owner="validation runner",
         function="check_slice_composition",

@@ -3,7 +3,7 @@
 
 Per artifact, which is what separates this from its neighbours. buildroot.py
 runs once per input set, fixtures.py once per set of test material, and
-retain-repository.py once per retained release set; this runs once per artifact
+retain_repository.py once per retained release set; this runs once per artifact
 and produces exactly one.
 
 Selection -- which arm, which variant, which role -- is decided by the caller
@@ -21,12 +21,10 @@ gone.
 
 from __future__ import annotations
 
-import argparse
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
+import role_packages
 from common import run_mkosi
 from declaration import load
 
@@ -137,14 +135,10 @@ def variant_arguments(variant: str, role: str) -> list[str]:
     # that follows once a session exists, and pulling it in now would make the
     # first graphical boot depend on twenty packages whose failures are
     # unrelated to whether a session comes up.
-    packages = subprocess.run(
-        [sys.executable, str(ROOT / "role-packages.py"), f"--role={role}", "--stage=session"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.split()
     arguments.append(f"--extra-tree={COMPOSITION / 'mkosi.extra.session'}")
-    arguments.extend(f"--package={package}" for package in packages)
+    arguments.extend(
+        f"--package={package}" for package in role_packages.packages(role, ("session",))
+    )
     return arguments
 
 
@@ -163,46 +157,39 @@ def overlay_arguments(declaration: dict, overlay_root: Path) -> list[str]:
     ]
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--input-set", type=Path, default=ROOT / "input-set.toml", help="declaration to read"
-    )
-    parser.add_argument("--build-root", required=True, type=Path)
-    parser.add_argument("--output", required=True, type=Path, help="output directory")
-    parser.add_argument("--overlay", required=True, type=Path, help="verified overlay root")
-    parser.add_argument("--arm", required=True, help="the /usr filesystem format under test")
-    parser.add_argument("--variant", required=True, choices=VARIANTS)
-    parser.add_argument("--role", required=True, help="role whose capabilities select packages")
-    parser.add_argument(
-        "--precheck",
-        action="store_true",
-        help=(
-            "validate the selection and refuse a silent no-op, then exit without "
-            "composing. compose.sh runs this before provisioning the build root and "
-            "rebuilding the extension fixtures, so a build that will be refused is "
-            "refused in a second rather than after a minute of work. The build path "
-            "runs the same two checks again: a guard a caller has to remember to ask "
-            "for is one a caller can forget."
-        ),
-    )
-    parser.add_argument("mkosi", nargs="*", help="arguments passed through to mkosi")
-    arguments = parser.parse_args()
+def precheck(arm: str, variant: str, output: Path, passthrough: list[str]) -> None:
+    """Validate the selection and refuse a silent no-op, without composing.
 
-    build_root: Path = arguments.build_root
-    output: Path = arguments.output
-
-    repart = COMPOSITION / f"mkosi.repart.{arguments.arm}"
+    Run before the build root is provisioned and the extensions rebuilt, so a
+    build that will be refused is refused in a second rather than after a
+    minute of work. `compose` runs both again: a guard a caller has to remember
+    to ask for is one a caller can forget.
+    """
+    if variant not in VARIANTS:
+        raise SystemExit(
+            f"compose: no variant {variant!r}; expected one of {', '.join(VARIANTS)}"
+        )
+    repart = COMPOSITION / f"mkosi.repart.{arm}"
     if not repart.is_dir():
         raise SystemExit(
-            f"compose: no arm {arguments.arm!r}; expected a partition definition "
-            f"directory at {repart}"
+            f"compose: no arm {arm!r}; expected a partition definition directory "
+            f"at {repart}"
         )
+    refuse_silent_noop(output, passthrough)
 
-    refuse_silent_noop(output, arguments.mkosi)
-    if arguments.precheck:
-        return 0
 
+def compose(
+    build_root: Path,
+    output: Path,
+    overlay: Path,
+    arm: str,
+    variant: str,
+    role: str,
+    passthrough: list[str],
+    input_set: Path | None = None,
+) -> None:
+    """Build exactly one artifact."""
+    precheck(arm, variant, output, passthrough)
     keys = build_root / "keys"
 
     # --initrd is passed rather than declared because mkosi has no specifier for
@@ -217,27 +204,31 @@ def main() -> int:
     # against `mkosi summary`. Passing both hands repart the same --definitions
     # twice.
     #
-    # The variant's arguments come first so the caller's `--force` or `summary`
-    # still reaches mkosi last.
-    arguments_to_mkosi = [
-        # Package cache inside this build root, not the user's shared mkosi cache: PLN-0001-07
-        # found 58 RPMs there that the declared repository does not contain, left
-        # by injected faults. A build resolving from a shared cache cannot say
-        # where its inputs came from.
-        f"--package-cache-directory={build_root / 'pkgcache'}",
-        *overlay_arguments(load(arguments.input_set), arguments.overlay),
-        f"--extra-tree={build_root / 'confext-staging'}",
-        f"--repart-directory={repart}",
-        f"--output-directory={output}",
-        f"--initrd={output / 'initrd'}",
-        f"--secure-boot-key={keys / 'secureboot.key'}",
-        f"--secure-boot-certificate={keys / 'secureboot.crt'}",
-        f"--verity-key={keys / 'verity.key'}",
-        f"--verity-certificate={keys / 'verity.crt'}",
-        *variant_arguments(arguments.variant, arguments.role),
-        *arguments.mkosi,
-    ]
-    run_mkosi(build_root, arguments_to_mkosi, cwd=COMPOSITION)
+    # The variant's arguments come before the caller's, so `--force` or
+    # `summary` still reaches mkosi last.
+    run_mkosi(
+        build_root,
+        [
+            # Package cache inside this build root, not the user's shared mkosi
+            # cache: PLN-0001-07 found 58 RPMs there that the declared
+            # repository does not contain, left by injected faults. A build
+            # resolving from a shared cache cannot say where its inputs came
+            # from.
+            f"--package-cache-directory={build_root / 'pkgcache'}",
+            *overlay_arguments(load(input_set), overlay),
+            f"--extra-tree={build_root / 'confext-staging'}",
+            f"--repart-directory={COMPOSITION / f'mkosi.repart.{arm}'}",
+            f"--output-directory={output}",
+            f"--initrd={output / 'initrd'}",
+            f"--secure-boot-key={keys / 'secureboot.key'}",
+            f"--secure-boot-certificate={keys / 'secureboot.crt'}",
+            f"--verity-key={keys / 'verity.key'}",
+            f"--verity-certificate={keys / 'verity.crt'}",
+            *variant_arguments(variant, role),
+            *passthrough,
+        ],
+        cwd=COMPOSITION,
+    )
 
     # Every run, whether or not mkosi rebuilt anything. Regenerating signing
     # material and re-running otherwise leaves a new key beside an artifact
@@ -247,9 +238,3 @@ def main() -> int:
     certificate = keys / "verity.crt"
     if certificate.is_file():
         shutil.copy2(certificate, output / "neutrinos-slice.verity.crt")
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -161,12 +161,15 @@ def main() -> int:
         # helper that owns them, and each reads input-set.toml through
         # declaration.py. A bundle carrying compose.sh alone would carry the
         # selection and none of the resolution.
+        SLICE / "slice.py",
         SLICE / "declaration.py",
+        SLICE / "common.py",
         SLICE / "compose.py",
+        SLICE / "role_packages.py",
         SLICE / "buildroot.py",
-        SLICE / "acquire-overlay.py",
+        SLICE / "acquire_overlay.py",
         SLICE / "fixtures.py",
-        SLICE / "retain-repository.py",
+        SLICE / "retain_repository.py",
         # The schema the declaration names, not a version written here. This
         # said v2 while the declaration had said version 3 since v3 landed, so
         # the bundle carried a schema the record was not validated against --

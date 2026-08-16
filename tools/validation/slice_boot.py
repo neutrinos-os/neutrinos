@@ -82,10 +82,13 @@ HARNESS_HOSTNAME = "slice-t4-fixture"
 # which is what stops a machine mounting another machine's state. So this value
 # decides whether the state variant's /var mounts at all.
 #
-# Duplicated from src/slice/compose.sh, which declares it, on the same terms as
-# that script's own duplication of input-set.toml: the two are held together by
-# T2-STATE-001 rather than by anyone remembering. Changing it in one place fails
-# that check.
+# Declared here, where it is delivered, and nowhere else. It used to be
+# duplicated from src/slice/compose.sh -- a harness value in a build script that
+# never read it -- on the stated grounds that the two were "held together by
+# T2-STATE-001 rather than by anyone remembering". That was the same rationale
+# compose.sh gave for restating input-set.toml, and both copies are now gone.
+# What T2-STATE-001 still holds together is this value and the /var partition
+# UUID derived from it, which cannot be one constant.
 HARNESS_MACHINE_ID = "6a5f2c8e4b3d47a19e7c0d5f8b62a134"
 # Named individually, never as a pattern, so a third unit cannot fail behind
 # them. Both fail for one measured reason: no `.pcrpkey` section in the UKI,

@@ -6,8 +6,9 @@ description. Composition reads the declaration and installs exactly what it
 names; a package that is not declared by some capability does not enter the
 image, and a capability whose packages change moves the artifact.
 
-One line per package on stdout, so `sh` can consume it without parsing TOML --
-the same reason compose.sh duplicates input-set.toml rather than reading it.
+Composition imports `packages()` directly. It used to run this as a subprocess
+and split stdout, because the caller was a shell script; the stdout form stays
+for operator use, and one function serves both.
 
 Nothing here resolves, validates or orders packages. Whether a name exists in
 the declared closure is composition's answer to give, and it gives it by
@@ -25,6 +26,29 @@ ROOT = Path(__file__).resolve().parents[2]
 STAGES = ("session", "workflow")
 
 
+def packages(role: str, stages: tuple[str, ...] = STAGES) -> list[str]:
+    declaration = ROOT / "src" / "roles" / role / "capabilities.toml"
+    if not declaration.is_file():
+        raise SystemExit(f"no capability declaration at {declaration}")
+
+    record = tomllib.loads(declaration.read_text(encoding="utf-8"))
+
+    # Sorted and de-duplicated. Two capabilities may legitimately want the same
+    # package, and the order a TOML table happens to iterate in is not something
+    # an artifact's contents should depend on.
+    selected = sorted(
+        {
+            package
+            for entry in record["capability"].values()
+            if entry["stage"] in stages
+            for package in entry["packages"]
+        }
+    )
+    if not selected:
+        raise SystemExit(f"no packages declared for stage(s) {', '.join(stages)}")
+    return selected
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--role", required=True)
@@ -35,30 +59,7 @@ def main() -> int:
         help="Stage to include; repeatable. Omitted means every stage.",
     )
     arguments = parser.parse_args()
-
-    declaration = ROOT / "src" / "roles" / arguments.role / "capabilities.toml"
-    if not declaration.is_file():
-        print(f"no capability declaration at {declaration}", file=sys.stderr)
-        return 1
-
-    record = tomllib.loads(declaration.read_text(encoding="utf-8"))
-    wanted = tuple(arguments.stage) if arguments.stage else STAGES
-
-    # Sorted and de-duplicated. Two capabilities may legitimately want the same
-    # package, and the order a TOML table happens to iterate in is not something
-    # an artifact's contents should depend on.
-    selected = sorted(
-        {
-            package
-            for entry in record["capability"].values()
-            if entry["stage"] in wanted
-            for package in entry["packages"]
-        }
-    )
-    if not selected:
-        print(f"no packages declared for stage(s) {', '.join(wanted)}", file=sys.stderr)
-        return 1
-    print("\n".join(selected))
+    print("\n".join(packages(arguments.role, tuple(arguments.stage or STAGES))))
     return 0
 
 

@@ -18,21 +18,20 @@ case where a URL is not an identity: upstream replaces the file in place, and
 without the digest a later build would resolve something else under the same
 name and say nothing. Here it stops the build.
 
-Retention is the same idea as `retain-repository.py`: a verified file already
+Retention is the same idea as `retain_repository.py`: a verified file already
 present is left alone and never re-fetched, so an offline rebuild resolves the
 bytes that were declared rather than whatever the URL serves today.
 """
 
 from __future__ import annotations
 
-import argparse
 import sys
-import tomllib
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 from common import digest
+from declaration import load
 
 ROOT = Path(__file__).resolve().parent
 
@@ -79,27 +78,15 @@ def acquire(overlay: dict, destination: Path) -> list[str]:
     return verified
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--input-set", type=Path, default=ROOT / "input-set.toml", help="declaration to read"
-    )
-    parser.add_argument("--destination", required=True, type=Path, help="overlay root")
-    arguments = parser.parse_args()
-
-    record = tomllib.loads(arguments.input_set.read_text(encoding="utf-8"))
-    overlays = record.get("packages", {}).get("overlays", [])
+def acquire_all(destination: Path, input_set: Path | None = None) -> None:
+    """Acquire and verify every overlay the declaration names."""
+    overlays = load(input_set).get("packages", {}).get("overlays", [])
     if not overlays:
         print("no package overlay declared")
-        return 0
+        return
 
     for overlay in overlays:
-        verified = acquire(overlay, arguments.destination / overlay["name"])
+        verified = acquire(overlay, destination / overlay["name"])
         print(
             f"overlay {overlay['name']}: {len(verified)} files verified against the declaration"
         )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

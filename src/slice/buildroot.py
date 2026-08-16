@@ -8,7 +8,7 @@ lets each be rebuilt when its own declaration moves rather than when someone
 remembers.
 
 Both are read from `input-set.toml` rather than restated here, for the reason
-`acquire-overlay.py` already gives: verifying against a copy of a declaration
+`acquire_overlay.py` already gives: verifying against a copy of a declaration
 checks that the copy is self-consistent, which is not the property anyone
 wants. `compose.sh` carried a second copy of the base image, the repository
 URL, the tools package list and the mkosi commit, and said so -- "sh cannot
@@ -26,17 +26,15 @@ the declaration names.
 
 The digest deliberately covers only what the tree is built from. mkosi's commit
 is not in it -- the checkout below is unconditional, so it already matches -- and
-neither is the package overlay, which `acquire-overlay.py` verifies file by
+neither is the package overlay, which `acquire_overlay.py` verifies file by
 file against its own declared digests.
 """
 
 from __future__ import annotations
 
-import argparse
 import hashlib
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 from common import remove_tree
@@ -282,16 +280,9 @@ def provision_signing_material(build_root: Path) -> list[str]:
     return generated
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--input-set", type=Path, default=ROOT / "input-set.toml", help="declaration to read"
-    )
-    parser.add_argument("--build-root", required=True, type=Path, help="build root to provision")
-    arguments = parser.parse_args()
-
-    declaration = load(arguments.input_set)
-    build_root = arguments.build_root
+def provision(build_root: Path, input_set: Path | None = None) -> None:
+    """Bring the build root to what the declaration names."""
+    declaration = load(input_set)
     build_root.mkdir(parents=True, exist_ok=True)
 
     generated = provision_signing_material(build_root)
@@ -307,9 +298,3 @@ def main() -> int:
 
     if not provision_tools_tree(build_root, declaration):
         print(f"tools tree: matches the declaration ({tools_tree_identity(declaration)[:12]})")
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

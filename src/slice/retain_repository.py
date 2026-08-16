@@ -34,7 +34,6 @@ repository rather than merely a repository.
 
 from __future__ import annotations
 
-import argparse
 import json
 import os
 import subprocess
@@ -119,7 +118,7 @@ def retain_metadata(url: str, declared_digest: str, destination: Path) -> Path:
 
     # Verified before anything it names is fetched, so a repository that is not
     # the declared one costs one request rather than a full retention. Left in
-    # place rather than deleted, as acquire-overlay.py leaves a mismatched
+    # place rather than deleted, as acquire_overlay.py leaves a mismatched
     # overlay file: what arrived is evidence about what the URL is serving, and
     # the next run must fail on it again rather than quietly re-fetch.
     found = digest(repomd)
@@ -147,37 +146,28 @@ def retain_metadata(url: str, declared_digest: str, destination: Path) -> Path:
     return primary
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--input-set", type=Path, default=ROOT / "input-set.toml", help="declaration to read"
-    )
-    parser.add_argument("--cache", required=True, type=Path, help="package cache to retain from")
-    parser.add_argument(
-        "--overlay",
-        type=Path,
-        help=(
-            "root of the verified package overlays. Their files are declared inputs, "
-            "so a copy of one appearing in the build cache is expected rather than a "
-            "fault -- but only a file the overlay actually contains, matched by name "
-            "against what acquire-overlay.py has already verified by digest."
-        ),
-    )
-    parser.add_argument("--destination", required=True, type=Path, help="retention root")
-    arguments = parser.parse_args()
+def retain(
+    *, cache: Path, destination: Path, overlay: Path | None = None,
+    input_set: Path | None = None,
+) -> None:
+    """Retain the declared repository subset this build resolved against.
 
+    `overlay` is the root of the verified package overlays. Their files are
+    declared inputs, so a copy of one appearing in the build cache is expected
+    rather than a fault -- but only a file the overlay actually contains,
+    matched by name against what acquire_overlay has already verified by digest.
+    """
     # Read here rather than passed in. compose.sh restated the URL because a
     # shell script cannot parse TOML without a dependency this slice has not
     # declared, which left the last copy of a declared value outside the
     # declaration; and the digest below has no argument at all, so a caller
     # supplying the URL could not have supplied the identity that goes with it.
-    declared = repository(load(arguments.input_set))
+    declared = repository(load(input_set))
 
     overlay_files: set[str] = set()
-    if arguments.overlay is not None and arguments.overlay.is_dir():
-        overlay_files = {path.name for path in arguments.overlay.rglob("*.rpm")}
+    if overlay is not None and overlay.is_dir():
+        overlay_files = {path.name for path in overlay.rglob("*.rpm")}
 
-    destination: Path = arguments.destination
     destination.mkdir(parents=True, exist_ok=True)
 
     primary = retain_metadata(declared["url"], declared["metadata_digest"], destination)
@@ -193,10 +183,10 @@ def main() -> int:
     retained: list[str] = []
     undeclared: list[str] = []
     from_overlay: list[str] = []
-    for rpm in sorted(Path(arguments.cache).rglob("*.rpm")):
+    for rpm in sorted(Path(cache).rglob("*.rpm")):
         href = locations.get(rpm.name)
         if href is None:
-            # The overlay is retained by acquire-overlay.py, at its own path and
+            # The overlay is retained by acquire_overlay.py, at its own path and
             # against its own declaration. It is not copied in here: the
             # repository retention is a copy of one repository, and mixing a
             # second source into it would make the retained tree say the
@@ -224,7 +214,9 @@ def main() -> int:
             + "\n  ".join(sorted(undeclared)),
             file=sys.stderr,
         )
-        return 1
+        raise SystemExit(
+            "retention refuses to launder an undeclared input into a declared one"
+        )
 
     record = {
         "overlay_package_count": len(from_overlay),
@@ -242,8 +234,3 @@ def main() -> int:
         f"{destination}; {len(from_overlay)} came from the declared overlay and are "
         "retained with it"
     )
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

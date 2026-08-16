@@ -31,9 +31,7 @@ part of the composition that an ecosystem change would leave alone.
 
 from __future__ import annotations
 
-import argparse
 import shutil
-import sys
 from pathlib import Path
 
 from common import run_mkosi
@@ -99,29 +97,20 @@ def stage(build_root: Path, image: Path) -> Path:
     return staging
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--build-root", required=True, type=Path, help="build root to use")
-    parser.add_argument(
-        "--source",
-        type=Path,
-        default=ROOT / "confext" / CONFEXT,
-        help="extension source tree",
-    )
-    arguments = parser.parse_args()
-
-    build_root = arguments.build_root
+def build_all(build_root: Path, source: Path | None = None) -> None:
+    """Both signings, the staging tree, and delivery to T4-CONFEXT-001."""
+    source = source or ROOT / "confext" / CONFEXT
 
     # Signed by the key enrolled in the fixture's db. This is the one the
     # artifact carries.
-    enrolled = build(build_root, arguments.source, build_root / "confext", "verity")
+    enrolled = build(build_root, source, build_root / "confext", "verity")
     staging = stage(build_root, enrolled)
     print(f"confext: staged {enrolled.name} signed by the enrolled key into {staging}")
 
     # Valid material, wrong signer, and enrolled in nothing. Generated from the
     # same source tree so the signature is the only difference.
     unenrolled = build(
-        build_root, arguments.source, build_root / "confext-unenrolled", "verity-wrong"
+        build_root, source, build_root / "confext-unenrolled", "verity-wrong"
     )
     print(f"confext: built {unenrolled.name} signed by the unenrolled key")
 
@@ -135,9 +124,3 @@ def main() -> int:
     for image, name in ((enrolled, "confext-enrolled.raw"), (unenrolled, "confext-unenrolled.raw")):
         shutil.copy2(image, fixture / name)
     print(f"confext: delivered both images to {fixture}")
-
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

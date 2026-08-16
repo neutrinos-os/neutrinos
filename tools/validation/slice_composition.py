@@ -35,7 +35,7 @@ INPUT_SET = ROOT / "src" / "slice" / "input-set.toml"
 COMPOSITION = ROOT / "src" / "slice" / "composition" / "mkosi.conf"
 COMPOSE = ROOT / "src" / "slice" / "compose.sh"
 BUILDROOT = ROOT / "src" / "slice" / "buildroot.py"
-RETAIN_REPOSITORY = ROOT / "src" / "slice" / "retain-repository.py"
+RETAIN_REPOSITORY = ROOT / "src" / "slice" / "retain_repository.py"
 DECLARATION = ROOT / "src" / "slice" / "declaration.py"
 COMMON_NS = "{http://linux.duke.edu/metadata/common}"
 SETTING = re.compile(r"^([A-Za-z][A-Za-z0-9]*)=(.*)$")
@@ -163,7 +163,7 @@ def check_composition_fixture() -> int:
     # correctly; having no second copy is the stronger property, and this is
     # where it is held.
     for variable, resolver in (
-        ("repository_url", "retain-repository.py"),
+        ("repository_url", "retain_repository.py"),
         ("mkosi_commit", "buildroot.py"),
         ("tools_image", "buildroot.py"),
         ("tools_packages", "buildroot.py"),

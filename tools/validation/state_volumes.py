@@ -1,11 +1,16 @@
 """T2 conformance check for the state variant's declared machine identity.
 
-The machine-id is declared in two places and derived into a third, and none of
-the three can be validated by looking at itself:
+The machine-id is declared in one place and derived into another, and neither
+can be validated by looking at itself:
 
-  compose.sh                      declares it, and delivers nothing
-  slice_boot.py                   delivers it as an SMBIOS credential
+  slice_boot.py                   declares it and delivers it as an SMBIOS
+                                  credential
   state-partitions/20-var.conf    carries a UUID derived from it
+
+It used to be declared a third time, in compose.sh, which delivered nothing and
+never read it -- a harness value living in a build script because that script
+was once the only place to put one. The copy is gone with the script; the
+deliverer declares it.
 
 The Discoverable Partitions Specification requires a /var partition's UUID to be
 HMAC-SHA256(key=machine-id, msg=the var GPT type UUID), truncated to 128 bits
@@ -35,7 +40,6 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-COMPOSE = ROOT / "src" / "slice" / "compose.sh"
 BOOT = ROOT / "tools" / "validation" / "slice_boot.py"
 STATE_DIR = ROOT / "src" / "slice" / "composition" / "state-partitions"
 
@@ -66,12 +70,9 @@ def check_state_volumes() -> int:
     failures: list[str] = []
 
     declared = _extract(
-        COMPOSE, r"^harness_machine_id=([0-9a-f]{32})$", "declared machine-id", failures
-    )
-    delivered = _extract(
         BOOT,
         r'^HARNESS_MACHINE_ID = "([0-9a-f]{32})"$',
-        "delivered machine-id",
+        "declared machine-id",
         failures,
     )
     var_conf = STATE_DIR / "20-var.conf"
@@ -84,13 +85,13 @@ def check_state_volumes() -> int:
         print("\n".join(failures), file=sys.stderr)
         return 1
 
-    assert declared is not None and delivered is not None
+    assert declared is not None
 
-    if declared != delivered:
-        failures.append(
-            f"compose.sh declares machine-id {declared} and slice_boot.py delivers "
-            f"{delivered}; a guest booted with one cannot mount a /var built for the other"
-        )
+    # The declared-versus-delivered comparison that stood here is gone with the
+    # second copy: one constant is both, so there is nothing left to disagree.
+    # The derivation below is what the check now rests on, and it was always the
+    # part that caught a silent failure -- a /var whose UUID does not match
+    # simply does not mount, with no error and no failed unit.
 
     if declared == "0" * 32:
         # systemd treats an all-zero machine-id as unset, so the credential
@@ -133,7 +134,6 @@ def check_state_volumes() -> int:
                 "delivered_by": str(BOOT.relative_to(ROOT)),
                 "derived_var_uuid": str(expected),
                 "gpt_type_var": str(GPT_TYPE_VAR),
-                "machine_id_declared_by": str(COMPOSE.relative_to(ROOT)),
                 "result": "passing",
             },
             ensure_ascii=False,

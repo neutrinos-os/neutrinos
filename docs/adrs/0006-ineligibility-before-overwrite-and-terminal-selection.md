@@ -1,7 +1,7 @@
 ---
 id: ADR-0006
 title: Mark a slot durably ineligible before overwriting it, and stop selection at an attributable terminal state
-status: proposed
+status: accepted
 date: 2026-08-16
 deciders: [Jason Tarasovic]
 designs: [DES-0006]

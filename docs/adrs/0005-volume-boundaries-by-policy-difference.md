@@ -1,7 +1,7 @@
 ---
 id: ADR-0005
 title: Earn every volume boundary with a policy difference, and place `/var` on the machine-state volume
-status: proposed
+status: accepted
 date: 2026-08-16
 deciders: [Jason Tarasovic]
 designs: [DES-0006]

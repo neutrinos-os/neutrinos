@@ -1,7 +1,7 @@
 ---
 id: ADR-0007
 title: Set routine unlock policy per role, with TPM2 + PIN on the workstation
-status: proposed
+status: accepted
 date: 2026-08-16
 deciders: [Jason Tarasovic]
 designs: [DES-0006]

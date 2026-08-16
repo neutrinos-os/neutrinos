@@ -1,7 +1,7 @@
 ---
 id: ADR-0008
 title: Do not authenticate general mutable state; authenticate the state that selects what boots
-status: proposed
+status: accepted
 date: 2026-08-16
 deciders: [Jason Tarasovic]
 designs: [DES-0006]

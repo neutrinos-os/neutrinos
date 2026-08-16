@@ -1,7 +1,7 @@
 ---
 id: ADR-0004
 title: Authenticate `/usr` as the release artifact and deliver configuration by signed confext
-status: proposed
+status: accepted
 date: 2026-08-16
 deciders: [Jason Tarasovic]
 designs: [DES-0006, DES-0005]

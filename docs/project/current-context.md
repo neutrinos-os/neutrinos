@@ -110,10 +110,10 @@ The synthetic signing material expires **2026-09-11**.
 
 ## Accepted decisions bounding current work
 
-Pointers, not authority. **[ADR index](../adrs/README.md)** is the list;
-ADR-0004 through ADR-0009 are `proposed` and record the DES-0006 and DES-0005
-rulings of 2026-08-11, so storage and configuration are bound there rather than
-in a design review. Also: naming (`naming.md`); Apache-2.0 and public
+Pointers, not authority. **[ADR index](../adrs/README.md)** is the list; ADR-0004
+through ADR-0009 were **accepted 2026-08-16** and record the DES-0006 and
+DES-0005 rulings of 2026-08-11, so storage and configuration are bound there
+rather than in a design review. Also: naming (`naming.md`); Apache-2.0 and public
 (`scope.md`, `P-007`); system policy (`docs/requirements/system.md`); test
 taxonomy (`test-strategy.md`); validation contract (`validation-contract.md`);
 PLN-0000's readiness model.

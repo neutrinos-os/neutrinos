@@ -1,7 +1,7 @@
 ---
 id: ADR-0009
 title: Resolve a deployment variant to a set of disjoint signed confexts with per-confext failure policy
-status: proposed
+status: accepted
 date: 2026-08-16
 deciders: [Jason Tarasovic]
 designs: [DES-0005, DES-0006]

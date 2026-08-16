@@ -1,7 +1,30 @@
 # NeutrinOS agent index
 
+## The test
+
+Before proposing or starting work, answer both:
+
+1. **Which [charter](docs/project/charter.md) criterion (CH-001..CH-007) does
+   this unblock?** "None" means it is a preference with a document attached.
+   Six of the seven need a machine that installs, boots, updates and rolls back,
+   so work that does not move toward one is usually not the work.
+2. **What does it cost to reverse?** A rebuild is cheap: default it and move on.
+   A physical visit to an enrolled machine is not: that is where a gate, a
+   review and measurement belong.
+
+Rigour scales with **reversibility, not with how foundational a choice feels**.
+The `/usr` filesystem format consumed a plan, a review, fourteen tasks and
+54,000 words; it is `Format=` in one repart file, selected by
+`NEUTRINOS_SLICE_ARM`, and it appears in no CH criterion. Do not repeat that
+shape.
+
+Prefer working code over prose. A document must name what it unblocks.
+
 ## Read
 
+- Goals and priorities: [charter](docs/project/charter.md) and
+  [principles](docs/project/principles.md), ~1,000 words together and accepted.
+  They are the standing brief; read them when the question is what to do next.
 - Read-only status/orientation/report: read only this file +
   [current context](docs/project/current-context.md). Hard stop.
 - Exception: when the user explicitly names or asks to verify one authority,
@@ -29,7 +52,10 @@
 ## Defaults
 
 - Pre-implementation docs phase. No NeutrinOS source code until plan + gate
-  explicitly authorize it.
+  explicitly authorize it. **Agent-authored and never ratified by the owner**,
+  unlike the charter and ADRs; it contradicts "prefer working code" above, and
+  is the reason nothing has booted. Do not cite it as a decision. Suspending it
+  is the owner's, and asking is cheaper than writing around it.
 - systemd-first: [ADR-0001](docs/adrs/0001-systemd-first.md). Overlapping
   alternative requires recorded evidence.
 - Bounded, declarative, reviewable, non-Turing-complete operator config; exact

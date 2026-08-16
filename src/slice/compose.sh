@@ -140,6 +140,33 @@ if [ ! -e "$build_root/out" ]; then
     ln -s out-erofs "$build_root/out"
 fi
 
+# Composition either produces the artifact it was asked for, or it fails.
+#
+# mkosi declines to rebuild an existing output -- "Output path ... exists
+# already. (Use --force to rebuild.)" -- and exits 0. Everything after it then
+# runs against the previous artifact and the script reports success having
+# rebuilt nothing. Measured 2026-08-16: a rebuild intended to prove a deleted
+# file was gone was a no-op, and verifying against its output would have
+# reported a pass from the artifact the change was meant to alter.
+#
+# The existing mitigation is downstream and indirect: the verity certificate is
+# copied unconditionally so that T3-SLICE-003 fails later. That makes the state
+# visible to validation but leaves this script's own exit code meaningless, and
+# a build tool whose exit code does not mean "built" is one every caller has to
+# work around. Refusing here is the direct statement.
+for argument in "$@"; do
+    case "$argument" in
+    --force | -f | -ff) force=yes ;;
+    esac
+done
+if [ -e "$out_dir/neutrinos-slice.raw" ] && [ "${force:-no}" = no ]; then
+    echo "compose: $out_dir/neutrinos-slice.raw exists and --force was not" \
+         "passed; mkosi would decline to rebuild it and this script would" \
+         "report success without composing anything. Pass --force to rebuild," \
+         "or remove the output directory." >&2
+    exit 1
+fi
+
 # One verity subject across every build root: PLN-0002 amendment 4, declared in
 # docs/project/artifact-parameter-declaration.md. The subject is what `db` and
 # /usr/lib/verity.d carry, so two subjects means a fixture and an artifact

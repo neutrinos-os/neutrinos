@@ -4,7 +4,7 @@ last_updated: 2026-08-15
 source_snapshot_revision: 6a75f20
 current_gate: G1
 target_gate: G2
-active_plan: none (PLN-0000, PLN-0001, PLN-0002 complete; no implementation slice is authorized)
+active_plan: PLN-0003 (accepted 2026-08-15; PLN-0000, PLN-0001, PLN-0002 complete)
 ---
 
 # Current project context
@@ -39,13 +39,15 @@ active_plan: none (PLN-0000, PLN-0001, PLN-0002 complete; no implementation slic
   03a and 04 stay permanently partial, their remainders moved to `S-004`, and no
   registered check re-measures a figure the plan produced.
   (`docs/plans/0002-usr-artifact-format-spike.md`, `complete`.)
-- **There is no active plan, and therefore no implementation authority.**
-  PLN-0000's mutation boundary requires G1 *plus an accepted follow-on plan*, so
-  NeutrinOS source and reference-VM work is unauthorized until another plan is
-  accepted. Documentation, ADR, design, backlog and validation work is
-  unaffected. Physical-host mutation, production authority, and any mechanism
-  ADR remain unauthorized as before, and **no candidate fixture has become a
-  decision**.
+- **PLN-0003 is accepted** (2026-08-15, [PR-0031](reviews/0031-usr-read-workload-comparison-plan.md))
+  and is the **active plan and sole active implementation slice**
+  (`docs/plans/0003-usr-read-workload-comparison.md`). It restores the authority
+  PLN-0002's completion removed, on the same basis: G1 plus an accepted
+  follow-on plan. It authorizes one thing its predecessors did not -- building
+  **non-member** artifacts, marked as such and destroyed at task end -- and
+  **forbids rebuilding, re-signing, or modifying any member of the PLN-0002-06
+  set**. Physical-host mutation, production authority, and any mechanism ADR
+  remain unauthorized, and **no candidate fixture has become a decision**.
 - Requirement statuses inherited from PLN-0001 and carried into G2:
   **SYS-018, SYS-041, SYS-059 accepted at `Partial`** by Jason Tarasovic on
   2026-08-11; SYS-049 partial and not claimed on substitution alone. The
@@ -311,21 +313,48 @@ against the corrected requirement trace.
 
 ## Next action
 
-**Decide what the next plan is, or take C-007 to an ADR.** PLN-0002 is
-**complete, accepted 2026-08-15**, and with it the last implementation
-authority: there is no active plan, so no NeutrinOS source or reference-VM work
-is authorized until another is accepted. Nothing is mid-flight -- every task row
-is complete, accepted, or moved out, both canonical profiles are green, and the
-evidence is retained.
+**PLN-0003-01: the workload and measurement declaration.** It is the active
+plan's first task and nothing precedes it -- **declare before measuring**, on
+PLN-0002-05's standard, where an undeclared parameter invalidates the
+comparison. What it must fix: the two workload shapes, the memory cells and each
+cell's direction of bias, host cache mode, readahead state, accelerator,
+repetition count, the cold-cache protocol, and what counts as page-cache
+footprint on each arm.
 
-The two natural candidates, neither selected:
+PLN-0002 is **complete, accepted 2026-08-15**; every task row is complete,
+accepted, or moved out, both canonical profiles are green, and its evidence is
+retained in the PLN-0002-14 bundle.
 
-- **An ADR on C-007**, which is what the recommendation exists for. It still
-  needs four things and one of them is a measurement: verification item 9's
-  workload read comparison, the one result that could reverse EROFS.
-- **A plan for DES-0006 verification items 3, 4 and 5** -- A/B slots, staging,
-  finalization, power loss, recovery -- which is where every uncovered C-001
-  cell and the deferred system layer of the recovery criterion went.
+**[PLN-0003](../plans/0003-usr-read-workload-comparison.md) is drafted,
+reviewed, revised, and still `proposed`** -- not accepted, and no work is
+authorized under it. It is the `/usr` read-workload comparison: PLN-0002-13's
+threat 1, and the one measurement that could reverse the C-007 recommendation.
+It measures the two accepted primaries unmodified and rebuilds no member of the
+set. [PR-0031](reviews/0031-usr-read-workload-comparison-plan.md) found the
+first draft **not fit to accept**, and its **ten challenges were all ruled
+2026-08-15** and applied. Three rulings matter beyond the plan:
+
+- **No verification item owns this comparison.** It is C-007 evidence, and
+  DES-0006 takes a disposition at plan end rather than a new item or a clause on
+  item 9 -- which as written is the *state filesystem* workload across Btrfs,
+  XFS and ext4 under `C-009`.
+- **Non-member artifacts are permitted**, marked as such and destroyed at task
+  end, for attribution and instrument control. The six members are still never
+  rebuilt, re-signed, or modified.
+- **Measure first, weigh afterwards.** No reversal threshold is pre-registered,
+  so the exchange rate between a read cost and 111.4 MiB per slot is set once
+  the figures exist. It is the plan's largest carried risk, accepted
+  deliberately, and its disposition must state that the weighing was done with
+  the numbers visible.
+
+**A correction to an accepted record follows from the first of those and is the
+owner's**: PLN-0002-13's threat 1 names item 9 as owning this comparison, which
+the ruling makes false. It joins the `fsck.erofs` correction already open.
+
+The other open candidate, not drafted: **a plan for DES-0006 verification items
+3, 4 and 5** -- A/B slots, staging, finalization, power loss, recovery -- which
+is where every uncovered C-001 cell and the deferred system layer of the
+recovery criterion went.
 
 Two qualifications ride with the plan's acceptance and are recorded in its
 assessment rather than here: **03a and 04 stay partial permanently**, their
@@ -465,26 +494,29 @@ architecture.
 
 Currently allowed:
 
+- NeutrinOS reference-VM work within the bounded scope of active PLN-0003,
+  under its named tasks, using disposable VM disks, firmware variables, virtual
+  TPM state, and test networks;
+- **building non-member artifacts** for attribution and instrument control,
+  marked non-member at creation and destroyed at task end;
+- synthetic signing, enrollment, identity, and credential fixtures;
+- build caches and artifacts in declared development locations;
 - documentation, repository guidance, ADR and design work, and validation
   scaffolding;
 - read-only repository and host inspection when the specific task authorizes
-  it;
-- re-running the existing canonical validation profiles against retained
-  artifacts, which is maintenance of what exists rather than new implementation;
-  and
+  it; and
 - documentation-only evaluation with synthetic inputs.
 
-**No NeutrinOS source implementation or reference-VM work is currently
-authorized.** PLN-0002 completed on 2026-08-15 and PLN-0000's boundary requires
-G1 *plus an accepted follow-on plan*. Composition, VM boots, measurement runs,
-and new fixtures need a new accepted plan first; the disposable-VM, synthetic-
-material and declared-cache allowances above return with it.
+**The six PLN-0002-06 artifacts are read-only inputs.** Every boot is
+`snapshot=on` with the digest verified against the retained value before use.
+Rebuilding, re-signing, or modifying a member is prohibited under PLN-0003 and
+would void PLN-0002's tally.
 
 Currently prohibited:
 
-- NeutrinOS source implementation and reference-VM work of any kind, there
-  being no active plan to bound it, and any work reaching for G2 qualification
-  claims;
+- implementation outside PLN-0003's accepted task scope, rebuilding or
+  modifying any member of the PLN-0002-06 set, a compression sweep as a result,
+  or any work reaching for G2 qualification claims;
 - mutation of `desktop-jason`, `router`, `misc`, or another physical host;
 - use of production credentials, signing keys, enrollment state, recovery
   material, or machine authority;
@@ -494,7 +526,7 @@ Currently prohibited:
 
 The exact mutation-changing authority and stop conditions live in
 `docs/plans/0000-pre-implementation-readiness.md` (mutation boundary, retained
-after completion) and `docs/plans/0002-usr-artifact-format-spike.md` (task
+after completion) and `docs/plans/0003-usr-read-workload-comparison.md` (task
 scope and stop conditions). Do not open either for a read-only status report;
 the current boundary above is complete for that task.
 

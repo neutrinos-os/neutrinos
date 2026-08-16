@@ -284,6 +284,29 @@ TESTS = (
         function="check_secret_scan",
     ),
     Test(
+        id="T1-SLICE-001",
+        level="T1",
+        profiles=("fast", "complete"),
+        timeout_seconds=120,
+        # The first T1 registered. The test strategy has claimed T1 coverage for
+        # SYS-016 and SYS-018 since it was accepted, and nothing exercised it:
+        # every check above this reads a file or boots a machine, and the slice
+        # helpers' own logic -- what a variant means, which repository is the
+        # declared one, what makes a retained tree reusable -- was reachable
+        # only by running a build. It stayed that way while the helpers were
+        # shell; the conversion to importable modules is what makes it testable,
+        # and an untested importable module is only a claim about testability.
+        traces=("PLN-0001/PLN-0001-07", "SYS-016", "SYS-018"),
+        capabilities=(),
+        fixtures=(
+            "src/slice/*.py",
+            "constructed input-set and capability declarations",
+            "a recorded stand-in for the declared repository",
+        ),
+        cleanup_owner="validation runner",
+        function="check_slice_library_units",
+    ),
+    Test(
         id="T2-SLICE-001",
         level="T2",
         profiles=("fast", "complete"),
@@ -1047,7 +1070,14 @@ def tool_install_path(
     return path
 
 
-def check_runner_hostile_probes() -> int:
+def run_pytest(directory: str) -> int:
+    """Run one pytest suite, with its cache outside the checkout.
+
+    Two suites now: the runner's hostile probes, and the slice helpers' own
+    logic. Separate directories and separate registered tests, because they
+    fail for unrelated reasons and a single check would report one ID for
+    either.
+    """
     cache_dir = validation_cache_root() / "pytest"
     result = subprocess.run(
         (
@@ -1057,12 +1087,20 @@ def check_runner_hostile_probes() -> int:
             "-o",
             f"cache_dir={cache_dir}",
             "-q",
-            "tools/validation/tests",
+            directory,
         ),
         cwd=ROOT,
         check=False,
     )
     return result.returncode
+
+
+def check_runner_hostile_probes() -> int:
+    return run_pytest("tools/validation/tests")
+
+
+def check_slice_library_units() -> int:
+    return run_pytest("src/slice/tests")
 
 
 def relative_files(root: Path) -> list[str]:
@@ -1613,6 +1651,7 @@ CHECKS: dict[str, Callable[[], int]] = {
     "check_derived_indexes": check_derived_indexes,
     "check_bounded_and_frozen_documents": check_bounded_and_frozen_documents,
     "check_tracked_artifacts": check_tracked_artifacts,
+    "check_slice_library_units": check_slice_library_units,
     "check_runner_hostile_probes": check_runner_hostile_probes,
     "check_empty_mise_cache": check_empty_mise_cache,
     "check_clean_clone": check_clean_clone,

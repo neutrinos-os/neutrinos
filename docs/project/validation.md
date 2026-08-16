@@ -86,6 +86,20 @@ survived twenty-six commits and a gate review. It classifies the index, not
 `HEAD`, so a breach fails before it is committed, and it takes Git's own binary
 classification from `git diff --numstat` rather than re-deciding what binary
 means.
+`T1-SLICE-001` runs the slice helpers' own unit tests, in `src/slice/tests/`. It
+is the first T1 registered: the [test strategy](test-strategy.md) has claimed
+T1 coverage for SYS-016 and SYS-018 since acceptance, and nothing exercised it,
+because until the helpers became importable Python modules their logic was
+reachable only by running a build. What it covers is pure logic -- what a
+variant and an arm mean, the single-declared-repository rule, a role's package
+resolution from its capability declaration, the entry point's passthrough to
+mkosi, and the two refusals that have no other test: composing over an existing
+artifact without `--force`, and reusing a retained tree that is not the declared
+repository. Registering it found a defect the conversion had introduced: the
+loop that fetches everything `repomd.xml` names was building its URL from an
+imported function rather than from the repository URL, which no build had hit
+because the reuse path above it skips the loop whenever a retention exists.
+
 `T2-SLICE-001` validates `src/slice/input-set.toml` against the schema its own
 `[schema]` block declares, and reproduces the eleven constructed rejections the
 [input declaration](slice-input-declaration.md) claims. It uses the locked
@@ -105,8 +119,12 @@ for the injected fault that did not fail, registered 2026-08-11.
 `T2-SLICE-002` asserts that the composition mechanism still enforces the
 declaration: `LocalMirror=` is set to the declared repository URL, neither
 `Mirror=` nor `Repositories=` appears, `Distribution=` and `Release=` match the
-declaration, and the values `compose.sh` duplicates -- repository URL, mkosi
-commit, tools-tree base image -- agree with it. The mixed-branch faults
+declaration, and no helper restates a declared value -- repository URL, mkosi
+commit, tools-tree base image, metadata digest -- that the declaration already
+holds. The assertion is inverted from what it was: those values used to be
+duplicated in `compose.sh` and were checked for agreement, and now the check is
+that the duplicate is absent, because a copy that agrees today is a copy that
+can drift tomorrow. The mixed-branch faults
 previously failed closed on Fedora's per-release GPG keys, an inherited
 guarantee that would not survive a change of distribution; the branch assertion
 makes it an enforced one. The `compose.sh` half closes the drift PLN-0001-02

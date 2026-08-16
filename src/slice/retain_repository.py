@@ -137,7 +137,7 @@ def retain_metadata(url: str, declared_digest: str, destination: Path) -> Path:
         if href is None:
             continue
         target = destination / href
-        fetch(f"{repository}/{href}", target)
+        fetch(f"{url}/{href}", target)
         if data.get("type") == "primary" and target.name.endswith(("primary.xml.zst", "primary.xml.gz")):
             primary = target
 

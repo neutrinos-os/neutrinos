@@ -133,7 +133,7 @@ an ADR. W-002 and W-004 are open.
 
 ## Validation
 
-`check:fast` runs 12 and `check:complete` 22, 2 deferred of 24 registered;
+`check:fast` runs 13 and `check:complete` 23, 2 deferred of 25 registered;
 `mise run check:list` is authoritative. Editing `tools/validation/` requires
 `complete`. `T2-ROLE-001` and `T2-STATE-001` each reject eight constructed
 violations; `T4-STATE-001` asserts both state volumes are block-device-backed.

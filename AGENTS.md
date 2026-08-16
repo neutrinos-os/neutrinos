@@ -92,6 +92,13 @@ Prefer working code over prose. A document must name what it unblocks.
   shared-file conflict resolution.
 - Agent memory: non-authoritative; never sole home of decisions/results/next
   action.
+- **NEVER `pgrep`, `pkill`, or `ps | grep`.** No exception, no last resort. A
+  name pattern is not a process identity: the searching command's own argv
+  contains the pattern, so a wait loop matches itself and never exits while the
+  work it watches has already finished. Wait on the background task and read its
+  output when notified; in a shell, hold the pid you started (`cmd & pid=$!;
+  wait "$pid"`); to wait on a condition, test the condition. If none of those
+  fit, restructure the work.
 - MUST NOT block the turn over 90s. Anything expected to run longer (VM
   matrices, `check:complete`, composition) runs in the background; keep working.
 

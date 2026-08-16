@@ -35,13 +35,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
-import shutil
-import stat
 import subprocess
 import sys
 from pathlib import Path
 
+from common import remove_tree
 from declaration import load, repository
 
 ROOT = Path(__file__).resolve().parent
@@ -123,25 +121,6 @@ def provision_mkosi(build_root: Path, commit: str) -> None:
             check=True,
         )
     subprocess.run(["git", "-C", str(checkout), "checkout", "--quiet", commit], check=True)
-
-
-def remove_tree(tree: Path) -> None:
-    """Delete an exported root filesystem, which resists ordinary deletion.
-
-    The Fedora base image ships thirteen directories at mode 0555 -- `/usr/bin`,
-    `/usr/lib` and the rest -- and nothing can be unlinked inside a directory
-    without write permission, so `rmtree` fails partway through. Suppressing
-    that with `ignore_errors` leaves a half-deleted tree that the next step
-    builds on top of: measured 2026-08-16, it left 1,527 files and no
-    `etc/resolv.conf`. The modes are restored to writable first, and a failure
-    after that is reported rather than ignored.
-    """
-    if not tree.exists():
-        return
-    for directory, _, _ in os.walk(tree):
-        path = Path(directory)
-        path.chmod(path.stat().st_mode | stat.S_IRWXU)
-    shutil.rmtree(tree)
 
 
 def build_tools_tree(build_root: Path, declaration: dict) -> None:

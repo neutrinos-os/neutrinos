@@ -50,6 +50,8 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
+
+from common import default_build_root
 from typing import Any
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -589,13 +591,7 @@ def main() -> int:
     parser.add_argument(
         "--build-root",
         type=Path,
-        default=Path(
-            os.environ.get(
-                "NEUTRINOS_SLICE_BUILD_ROOT",
-                Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-                / "neutrinos/slice",
-            )
-        ),
+        default=default_build_root(),
     )
     parser.add_argument("--arm", choices=sorted(ARMS), action="append", default=None)
     parser.add_argument("--cell", choices=CELLS, action="append", default=None)

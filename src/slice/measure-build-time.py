@@ -46,6 +46,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from common import default_build_root
+
 # (directory, arm, variant). The six of amendment 5, named rather than globbed.
 ARTIFACTS = (
     ("out-erofs", "erofs", "primary"),
@@ -166,13 +168,7 @@ def main() -> int:
     parser.add_argument(
         "--build-root",
         type=Path,
-        default=Path(
-            os.environ.get(
-                "NEUTRINOS_SLICE_BUILD_ROOT",
-                Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-                / "neutrinos/slice",
-            )
-        ),
+        default=default_build_root(),
     )
     parser.add_argument(
         "--repetitions",

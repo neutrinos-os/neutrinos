@@ -38,6 +38,8 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
+from common import remove_tree
+
 # The six of amendment 5, named rather than globbed, for the reason
 # retain-artifact-digests.py records: a glob measures five and reports success.
 ARTIFACTS = (
@@ -468,7 +470,10 @@ def measure_inspectability(build_root: Path, measurements: dict[str, dict]) -> d
                 directory_entries = (
                     len(list(dir_target.rglob("*.preset"))) if dir_target.exists() else 0
                 )
-            shutil.rmtree(extract_dir, ignore_errors=True)
+            # Not ignore_errors: an extracted /usr carries mode-0555
+            # directories, so the delete fails partway and a suppressed failure
+            # leaves files the next arm's rglob then counts as its own.
+            remove_tree(extract_dir)
 
         listings[arm] = {
             "listing_tool": source,

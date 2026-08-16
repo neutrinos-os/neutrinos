@@ -36,6 +36,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from common import digest
 from declaration import load
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -52,14 +53,6 @@ def schema_path() -> Path:
     """
     declaration = load(SLICE / "input-set.toml")
     return SLICE / "schema" / f"input-set-v{declaration['schema']['version']}.schema.json"
-
-
-def digest(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        while chunk := handle.read(1 << 20):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 
 def artifact_digests(directory: Path) -> dict[str, str]:

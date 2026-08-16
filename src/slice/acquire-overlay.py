@@ -26,22 +26,15 @@ bytes that were declared rather than whatever the URL serves today.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import sys
 import tomllib
 import urllib.error
 import urllib.request
 from pathlib import Path
 
+from common import digest
+
 ROOT = Path(__file__).resolve().parent
-
-
-def digest(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        while chunk := handle.read(1 << 20):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 
 def acquire(overlay: dict, destination: Path) -> list[str]:

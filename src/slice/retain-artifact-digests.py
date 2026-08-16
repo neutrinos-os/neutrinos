@@ -22,12 +22,13 @@ rebuild them.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+
+from common import digest
 
 # The six of amendment 5, named rather than globbed. A glob would silently
 # retain five and report success; the count is the completion criterion.
@@ -39,14 +40,6 @@ ARTIFACTS = (
     "out-ext4-content",
     "out-ext4-seed",
 )
-
-
-def digest(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        while chunk := handle.read(1 << 20):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 
 def kernel_command_line(uki: Path) -> str:

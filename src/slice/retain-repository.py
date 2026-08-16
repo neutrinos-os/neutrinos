@@ -35,7 +35,6 @@ repository rather than merely a repository.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import subprocess
@@ -45,6 +44,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
 
+from common import digest
 from declaration import load, repository
 
 ROOT = Path(__file__).resolve().parent
@@ -73,14 +73,6 @@ def decompress(path: Path) -> bytes:
 
         return gzip.decompress(path.read_bytes())
     return path.read_bytes()
-
-
-def digest(path: Path) -> str:
-    hasher = hashlib.sha256()
-    with path.open("rb") as handle:
-        while chunk := handle.read(1 << 20):
-            hasher.update(chunk)
-    return hasher.hexdigest()
 
 
 def retain_metadata(url: str, declared_digest: str, destination: Path) -> Path:

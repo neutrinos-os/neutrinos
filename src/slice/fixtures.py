@@ -32,11 +32,11 @@ part of the composition that an ecosystem change would leave alone.
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
-import subprocess
 import sys
 from pathlib import Path
+
+from common import run_mkosi
 
 ROOT = Path(__file__).resolve().parent
 
@@ -61,21 +61,15 @@ def build(build_root: Path, source: Path, output: Path, signer: str) -> Path:
     keys = build_root / "keys"
     output.mkdir(parents=True, exist_ok=True)
 
-    environment = dict(os.environ)
-    environment["PYTHONPATH"] = str(build_root / "mkosi")
-
-    subprocess.run(
+    run_mkosi(
+        build_root,
         [
-            sys.executable, "-m", "mkosi",
-            f"--tools-tree={build_root / 'tools'}",
             f"--verity-key={keys / f'{signer}.key'}",
             f"--verity-certificate={keys / f'{signer}.crt'}",
             f"--output-directory={output}",
             "--force", "build",
         ],
         cwd=source,
-        env=environment,
-        check=True,
     )
 
     image = output / f"{CONFEXT}.raw"

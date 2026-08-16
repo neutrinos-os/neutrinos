@@ -22,12 +22,12 @@ gone.
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+from common import run_mkosi
 from declaration import load
 
 ROOT = Path(__file__).resolve().parent
@@ -204,8 +204,6 @@ def main() -> int:
         return 0
 
     keys = build_root / "keys"
-    environment = dict(os.environ)
-    environment["PYTHONPATH"] = str(build_root / "mkosi")
 
     # --initrd is passed rather than declared because mkosi has no specifier for
     # the output directory: %C, %P, %D, %F, %I is the whole set. Setting it makes
@@ -221,10 +219,8 @@ def main() -> int:
     #
     # The variant's arguments come first so the caller's `--force` or `summary`
     # still reaches mkosi last.
-    command = [
-        sys.executable, "-m", "mkosi",
-        f"--tools-tree={build_root / 'tools'}",
-        # Inside this build root, not the user's shared mkosi cache: PLN-0001-07
+    arguments_to_mkosi = [
+        # Package cache inside this build root, not the user's shared mkosi cache: PLN-0001-07
         # found 58 RPMs there that the declared repository does not contain, left
         # by injected faults. A build resolving from a shared cache cannot say
         # where its inputs came from.
@@ -241,7 +237,7 @@ def main() -> int:
         *variant_arguments(arguments.variant, arguments.role),
         *arguments.mkosi,
     ]
-    subprocess.run(command, cwd=COMPOSITION, env=environment, check=True)
+    run_mkosi(build_root, arguments_to_mkosi, cwd=COMPOSITION)
 
     # Every run, whether or not mkosi rebuilt anything. Regenerating signing
     # material and re-running otherwise leaves a new key beside an artifact

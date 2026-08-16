@@ -5,7 +5,7 @@ status: in-review
 owners: [Jason Tarasovic]
 reviewers: [Codex]
 created: 2026-08-09
-last_updated: 2026-08-11
+last_updated: 2026-08-15
 depends_on: [DES-0001, DES-0002, DES-0003, DES-0004]
 decision_backlog: [S-004, L-003, L-004, L-005, C-002]
 related_adrs: []
@@ -744,6 +744,47 @@ closed by an item that does not actually answer it.
     quota -- with alerting before violation, not merely by observing what
     happens when the disk fills.
 
+### Disposition 2026-08-15: what PLN-0002 measured against item 2
+
+**Drafted by PLN-0002-14 and accepted by Jason Tarasovic on 2026-08-15**, as the
+disposition PLN-0002 hands back. **It accepts no format and no mechanism**:
+C-007 stays open, EROFS and ext4 remain candidate fixtures, and each item below
+is a statement of what was measured or what is still owed. Detail and evidence
+are in the [evidence bundle and
+disposition](../../project/artifact-evidence-bundle.md); the figures are in the
+six records it cites.
+
+**Item 2 is answered, with one accepted amendment.** Both formats were built as
+`/usr` artifacts authenticated through a signed UKI and dm-verity -- six
+artifacts from one tree state -- booted, and compared on all eight criteria.
+Early boot was exercised first, deliberately, because C-013's early-boot
+assumption was this design's own stated residual risk; it held. The recovery
+criterion is **split by amendment accepted 2026-08-15**: its format layer is
+measured, its system layer is deferred to items 3 and 5, which need the A/B
+slots that plan excluded. Item 2's `crypttab` clause is **unsatisfiable rather
+than skipped** -- no `crypttab`, `fstab` or `veritytab` exists in either arm's
+initrd while the generators that would read them ship in both -- and goes to
+item 6 and `S-004`.
+
+**Three things item 2 did not ask for, which this design now owns:**
+
+- the `/usr` verity **signature is verified and gates nothing**: a valid
+  signature by the enrolled authority over a root hash the image does not carry
+  boots to `running` with zero failed units, enrolled or not, identically on
+  both arms. `systemd.image_policy=usr=signed` is a structural predicate, not an
+  enforcement mechanism, and upstream's enforcement point is the TPM unseal
+  rather than the mount. Open under `S-005`;
+- the release **manifest is on no partition of any artifact** and nothing at
+  boot reads it, so it cannot be an input to the boot-integrity gate. If C-013
+  intends it as a release-owned member, it is not currently delivered as one;
+- the **Verity partitions are 95% empty**, 62.6 MiB wasted per artifact on both
+  arms. It cancels between the arms, so it decides nothing about C-007, and it
+  is over half the size advantage the C-007 recommendation rests on.
+
+**What is still owed on item 2's own terms**: every C-001 cell needing A/B
+slots, finalization, power loss, UKI substitution, or a physical role -- which
+is items 3 and 4, not this one.
+
 ## Accepted requirements
 
 The project-level review accepts SYS-048 through SYS-056:
@@ -770,8 +811,19 @@ The project-level review accepts SYS-048 through SYS-056:
 ## Risks and unresolved questions
 
 - Does EROFS materially outperform or simplify ext4+dm-verity for actual
-  NeutrinOS `/usr` images? (C-007, open. C-013 is resolved, so this is now
-  asked against the `/usr` artifact rather than a full root.)
+  NeutrinOS `/usr` images? (C-007, **open, and now with a measured
+  recommendation**. PLN-0002 recommends **EROFS, conditional on the update
+  mechanism not being whole-image-only**, deciding on image size -- 1.65x,
+  111.4 MiB per slot -- with differential update transfer supporting it and
+  ext4 winning four low-weight criteria; the recommendation and its weighing
+  rule were accepted 2026-08-15, and **that acceptance does not accept EROFS**.
+  C-007 stays open until an ADR records a format, and four things such an ADR
+  still needs are listed in the
+  [recommendation](../../project/artifact-format-recommendation.md): item 9's
+  workload comparison, which is the one measurement that could reverse it; a
+  selected update mechanism; the ParticleOS command-line ruling; and a C-002
+  capacity budget. C-013 is resolved, so this was asked and answered against the
+  `/usr` artifact rather than a full root.)
 - Can `systemd-sysupdate` finalize root, Verity, and UKI resources with the
   exact all-old/all-new behavior required by DES-0001 under power loss?
 - Should recovery be a self-contained UKI, a separate root/Verity pair, local

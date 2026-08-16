@@ -1,10 +1,10 @@
 ---
 status: informative
 last_updated: 2026-08-15
-source_snapshot_revision: f59719e
+source_snapshot_revision: 6a75f20
 current_gate: G1
 target_gate: G2
-active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
+active_plan: none (PLN-0000, PLN-0001, PLN-0002 complete; no implementation slice is authorized)
 ---
 
 # Current project context
@@ -34,11 +34,18 @@ active_plan: PLN-0002 (accepted 2026-08-11; PLN-0000 and PLN-0001 complete)
   seven injected faults. Its records are the input declaration, composition,
   boot, identity, failure-evidence, reconstruction, and evidence-bundle
   documents in this directory.
-- **PLN-0002 is accepted** (2026-08-11, PR-0030) and is the **active plan and
-  sole active implementation slice** (`docs/plans/0002-usr-artifact-format-spike.md`).
-  PLN-0000's mutation boundary holds: G1 plus an accepted follow-on plan.
-  Physical-host mutation, production authority, and any mechanism ADR remain
-  unauthorized. No candidate fixture has become a decision.
+- **PLN-0002 is complete**, accepted 2026-08-15 by Jason Tarasovic against its
+  exit-criteria assessment, with two qualifications carried in that assessment:
+  03a and 04 stay permanently partial, their remainders moved to `S-004`, and no
+  registered check re-measures a figure the plan produced.
+  (`docs/plans/0002-usr-artifact-format-spike.md`, `complete`.)
+- **There is no active plan, and therefore no implementation authority.**
+  PLN-0000's mutation boundary requires G1 *plus an accepted follow-on plan*, so
+  NeutrinOS source and reference-VM work is unauthorized until another plan is
+  accepted. Documentation, ADR, design, backlog and validation work is
+  unaffected. Physical-host mutation, production authority, and any mechanism
+  ADR remain unauthorized as before, and **no candidate fixture has become a
+  decision**.
 - Requirement statuses inherited from PLN-0001 and carried into G2:
   **SYS-018, SYS-041, SYS-059 accepted at `Partial`** by Jason Tarasovic on
   2026-08-11; SYS-049 partial and not claimed on substitution alone. The
@@ -82,9 +89,9 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | --- | --- |
 | 01 early-boot spike | **complete**, stop-gate not triggered ([record](spike-early-boot-record.md)) |
 | 02 `/usr`-only composition | **complete**, one defect found and fixed ([record](usr-artifact-composition.md)) |
-| 03a confext build and `/etc` carve | **partial, nothing owed**: signature enforcement, its last owed item, is closed by measurement ([carve record](etc-path-carve.md) question 7). Whether that is completion is the owner's; the carve and tooling stay candidate either way |
-| 03b confext delivery | pending and **deferred 2026-08-14**: the 2026-08-12 ruling sequencing it after 06 and before 07 is superseded, because the fail-open it was meant to keep out of the measurements is closed and registered. The plan's own text says no task depends on it |
-| 04 disposable layout | **partial**; the confext partition is deliberately not placed, pending 03b |
+| 03a confext build and `/etc` carve | **partial permanently, nothing owed**: signature enforcement, its last owed item, is closed by measurement ([carve record](etc-path-carve.md) question 7); the general case left the plan with 03b on 2026-08-15. The carve, the tooling and the `/usr/lib/confexts` delivery path stay **candidate fixtures** handed back to DES-0005 |
+| 03b confext delivery | **moved out of PLN-0002 by owner ruling 2026-08-15** (plan amendment 6). Where a separately delivered confext lives and when it is merged is now an open sub-question under `S-004` in the [backlog](decision-backlog.md), owned by DES-0005. Nothing in the plan depended on it and no measurement waited on it |
+| 04 disposable layout | **partial permanently**; the unplaced confext partition moved out with 03b on 2026-08-15 and is part of the `S-004` sub-question. The four partitions it did place are fixtures, and one is measured wasteful: the Verity partition is 64 MiB fixed and **95% empty** on both arms |
 | 05 parameter declaration | **accepted 2026-08-12** of a stated incomplete state; implemented in the composition and **audited against the built artifacts 2026-08-14**, which took three corrections; both of its open parameters were ruled the same day ([declaration](artifact-parameter-declaration.md)) |
 | 06 six authenticated artifacts | **complete**, accepted 2026-08-14: six artifacts from one tree state, digests retained, command line uniform across the set, determinism re-measured with the confext rebuilt ([artifact set](usr-artifact-set.md)). The verity signature partition, a UKI signed by `CN=NeutrinOS image, synthetic`, and `systemd.image_policy=usr=signed` in the UKI landed earlier the same day |
 | 07 offline measurements | **complete and accepted 2026-08-15**: five of C-007's eight criteria measured over the six artifacts ([measurements](artifact-format-measurements.md)). No recommendation; the five do not agree |
@@ -93,7 +100,7 @@ Authority is the plan's task table. Summary as of 2026-08-15:
 | 11 slice tests | **complete, accepted 2026-08-15**: the five hold on both arms; two checks added and one widened, each verified failure-sensitive, plus `T4-SLICE-003`/`T4-SLICE-004` registered **deferred** for task 10's signature fail-open ([check updates](slice-check-updates.md)). Both questions it raised are ruled 2026-08-15 -- registration belongs to the task that first needs the assertion enforced, and the fail-open owes a deferred registration rather than a check asserting the observed behaviour |
 | 12 recovery disposition | **complete and accepted 2026-08-15**: format layer measured over eight injection sites -- a tie on file data, **ext4 ahead on metadata diagnosis**; system layer deferred to items 3 and 5; `crypttab` unsatisfiable because none exists in the artifact ([disposition](artifact-recovery-disposition.md)) |
 | 13 C-007 recommendation | **complete and accepted 2026-08-15**, recommendation and weighing rule both: **EROFS, conditional on the update mechanism not being whole-image-only**, on image size as the one deciding criterion ([recommendation](artifact-format-recommendation.md)). **This does not accept EROFS** -- an ADR does that, and C-007 stays open |
-| 14 evidence bundle and DES-0006 disposition | pending |
+| 14 evidence bundle and DES-0006 disposition | **complete and accepted 2026-08-15** ([bundle](artifact-evidence-bundle.md)): 9343 KiB across 130 files retained outside the repository, scan clean, both profile runs retained in full; the plan's requirement trace updated from planned evidence to observed results; DES-0006 disposition and the exit-criteria assessment accepted with it, including the qualifications on criteria 1 and 5. **It accepts no format**: C-007 stays open for an ADR |
 | 10 negative evidence | **complete and accepted 2026-08-15**: seven cells per arm, 32 boots, both firmware states ([substitution records](artifact-substitution-records.md)). Image substitution fails **closed**; signature substitution fails **open**, enrolled or not. Identical on both arms |
 
 `06a`/`06b`/`06c`/`06d` are **not plan structure**; task 06 is undivided. The
@@ -215,9 +222,12 @@ labels were an agent decomposition and are retracted.
 
 - `mise run check:fast` runs **8 checks**; `mise run check:complete` runs
   **16** as of PLN-0002-11, which registered `T3-SLICE-004` and `T4-SLICE-002`.
-  `complete` ran green at 16 of 16 on 2026-08-15 against the EROFS primary of
-  the PLN-0002-06 set, so it can still act as a gate. The counts are
-  authoritative from `mise run check:list`.
+  Both profiles were re-run for PLN-0002-14 on 2026-08-15 against the EROFS
+  primary of the PLN-0002-06 set -- `fast` 8 of 8, `complete` 16 of 16 with 2
+  deferred -- and **both runs are retained in full in the PLN-0002-14 bundle**,
+  so `complete` can still act as a gate and the run behind that claim survives
+  the temporary directory it was written to. The counts are authoritative from
+  `mise run check:list`.
 - **18 tests are registered and 16 run.** `T4-SLICE-003` and `T4-SLICE-004` are
   registered `deferred` and are never selected, so they neither pass nor fail;
   `complete` reports them as `deferred=2` with their justification in the
@@ -250,6 +260,12 @@ labels were an agent decomposition and are retracted.
   duplicated-state failures, including acceptances that no mechanism guards.
 
 ## Awaiting the owner
+
+**PLN-0002-14 was accepted 2026-08-15** -- bundle, requirement trace, DES-0006
+disposition and exit-criteria assessment -- and **03b was moved out of the plan**
+by the same ruling, so neither is open. What is left of the plan is whether it
+is complete as a whole; see [Next action](#next-action). The two items below are
+separate from that and predate it.
 
 **Two items are open.** PLN-0002-13's recommendation and its weighing rule were
 **accepted 2026-08-15** and are not among them; that acceptance did not accept
@@ -295,8 +311,33 @@ against the corrected requirement trace.
 
 ## Next action
 
-**PLN-0002-14: evidence bundle, requirement trace, work register, and DES-0006
-disposition.** It is the plan's last task, and PLN-0001-08 is the shape.
+**Decide what the next plan is, or take C-007 to an ADR.** PLN-0002 is
+**complete, accepted 2026-08-15**, and with it the last implementation
+authority: there is no active plan, so no NeutrinOS source or reference-VM work
+is authorized until another is accepted. Nothing is mid-flight -- every task row
+is complete, accepted, or moved out, both canonical profiles are green, and the
+evidence is retained.
+
+The two natural candidates, neither selected:
+
+- **An ADR on C-007**, which is what the recommendation exists for. It still
+  needs four things and one of them is a measurement: verification item 9's
+  workload read comparison, the one result that could reverse EROFS.
+- **A plan for DES-0006 verification items 3, 4 and 5** -- A/B slots, staging,
+  finalization, power loss, recovery -- which is where every uncovered C-001
+  cell and the deferred system layer of the recovery criterion went.
+
+Two qualifications ride with the plan's acceptance and are recorded in its
+assessment rather than here: **03a and 04 stay partial permanently**, their
+remainders having left with 03b; and **no check re-measures a figure**, so image
+size, boot time and blast radius are retained measurements rather than enforced
+invariants.
+
+**The requirement trace now records one measured falsification.** SYS-049's
+substitution clause holds for the image and the Verity tree -- eight cells, all
+failing closed -- and **does not hold for the signature**, six cells, all
+failing open. That is a gap in the requirement's satisfaction, carried in the
+registry by two deferred checks, and not a missing measurement.
 
 **PLN-0002-13 is complete and accepted 2026-08-15**, recommendation and weighing
 rule both ([recommendation](artifact-format-recommendation.md)): **EROFS,
@@ -338,8 +379,9 @@ outcome -- and the [check updates](slice-check-updates.md)' two deferred
 registrations, which are what keeps that fail-open in the registry once PLN-0002
 closes. Both are identical on the two arms.
 
-**PLN-0002-03b remains deferred**, not sequenced ahead of the measurement tasks,
-and no task depends on it.
+**PLN-0002-03b has left the plan** (owner ruling 2026-08-15, amendment 6):
+confext delivery is an open sub-question under `S-004`, owned by DES-0005, and
+no task in PLN-0002 depended on it.
 
 The synthetic signing material expires **2026-09-11**, after which these
 artifacts are measured against expired enrollment material.
@@ -423,20 +465,26 @@ architecture.
 
 Currently allowed:
 
-- NeutrinOS source implementation and reference-VM work within the bounded
-  scope of active PLN-0002, under its named tasks, using disposable VM disks,
-  firmware variables, virtual TPM state, and test networks;
-- synthetic signing, enrollment, identity, and credential fixtures;
-- build caches and artifacts in declared development locations;
-- documentation, repository guidance, and validation scaffolding;
+- documentation, repository guidance, ADR and design work, and validation
+  scaffolding;
 - read-only repository and host inspection when the specific task authorizes
-  it; and
+  it;
+- re-running the existing canonical validation profiles against retained
+  artifacts, which is maintenance of what exists rather than new implementation;
+  and
 - documentation-only evaluation with synthetic inputs.
+
+**No NeutrinOS source implementation or reference-VM work is currently
+authorized.** PLN-0002 completed on 2026-08-15 and PLN-0000's boundary requires
+G1 *plus an accepted follow-on plan*. Composition, VM boots, measurement runs,
+and new fixtures need a new accepted plan first; the disposable-VM, synthetic-
+material and declared-cache allowances above return with it.
 
 Currently prohibited:
 
-- implementation outside PLN-0002's accepted task scope, or any work reaching
-  for G2 qualification claims;
+- NeutrinOS source implementation and reference-VM work of any kind, there
+  being no active plan to bound it, and any work reaching for G2 qualification
+  claims;
 - mutation of `desktop-jason`, `router`, `misc`, or another physical host;
 - use of production credentials, signing keys, enrollment state, recovery
   material, or machine authority;

@@ -642,7 +642,7 @@ Named so nothing here is read as wider than it is.
 - **Partition sizing.** The ESP's 512M and the verity partition's 64M are slack,
   not measurements, and `mkosi.repart` says so at each. Real sizing follows the
   task 07 measurements rather than preceding them.
-- **Confext delivery.** PLN-0002-03b, sequenced after 06.
+- **Confext delivery.** Left PLN-0002 on 2026-08-15; now an open sub-question under `S-004`, owned by DES-0005.
 - **Persistence and machine identity.** `S-004` and `L-003`. The fixture boots
   on a transient identity and measures nothing that depends on continuity.
 - **Whether mkosi is the mechanism.** It is a candidate fixture. bootc remains

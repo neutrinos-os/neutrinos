@@ -1,6 +1,6 @@
 ---
 status: open
-last_updated: 2026-08-12
+last_updated: 2026-08-15
 governing_plan: PLN-0002
 ---
 
@@ -13,7 +13,9 @@ whichever task hits it first.
 
 **All three are now ruled, and none of the rulings closes its finding
 entirely.** Finding 1's *plan* half was ruled on 2026-08-11 and its **design
-half remains open**, moving to PLN-0002-03b. Findings 2 and 3 were ruled on
+half remains open**, which moved to PLN-0002-03b and, when that task left the
+plan on 2026-08-15 by owner ruling, to an open sub-question under `S-004` owned
+by DES-0005. Findings 2 and 3 were ruled on
 2026-08-12, both **narrower than the options put up**: finding 2 adopts A and
 leaves B and D open rather than selecting a design, and finding 3 rules the
 direction only and leaves the mechanism to `L-003`. Each ruling is recorded

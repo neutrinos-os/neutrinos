@@ -18,7 +18,7 @@ verify its summary against the current ADRs, requirements, and active design.
 6. [Maintenance and security policy](project/maintenance-policy.md)
 7. [Decision backlog](project/decision-backlog.md)
 8. [Current project context](project/current-context.md)
-9. [Aggregate work register](project/work-register.md)
+9. [Architecture decision records](adrs/README.md)
 10. [Pre-implementation readiness plan](plans/0000-pre-implementation-readiness.md)
 11. [Reference-VM evidence slice plan](plans/0001-reference-vm-slice.md)
 12. [Test and evidence strategy](project/test-strategy.md)

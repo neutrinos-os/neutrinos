@@ -9,16 +9,14 @@ active_plan: PLN-0003 (accepted 2026-08-15; PLN-0000, PLN-0001, PLN-0002 complet
 
 # Current project context
 
-> Maintained, non-normative, self-contained cold-context artifact. For a
-> read-only status task, rely on this file and open no path it cites; exception,
-> one authority the user names. Before edits or a high-risk claim, verify the
-> governing source. A conflicting source wins; correct this summary.
+> Maintained, non-normative cold-context artifact. For a read-only status task,
+> rely on this file and open no path it cites; exception, one authority the user
+> names. Before edits or a high-risk claim, verify the governing source. A
+> conflicting source wins; correct this summary.
 >
 > A pointer index, never the sole home of a decision, ruling, measurement or next
-> action — anything recorded only here is a defect. **Keep it under 1,100 words**
-> (`wc -w`); it was 5,350 on 2026-08-16 and the excess was all restatement.
-> A measurement, or a narrative of how a result was reached, belongs in the
-> owning record.
+> action. **Keep it under 1,100 words**, enforced by `T0-DOC-004`; a measurement,
+> or a narrative of how a result was reached, belongs in the owning record.
 
 ## Position
 
@@ -97,6 +95,10 @@ work; read-only inspection the task authorizes.
 with the digest verified first. Rebuilding, re-signing or modifying a member is
 prohibited and would void PLN-0002's tally.
 
+Also allowed, owner authorization 2026-08-16 and outside PLN-0003's task scope:
+**corpus-integrity checks under `tools/validation/`**. No artifact, VM or
+measurement work.
+
 Prohibited: implementation outside PLN-0003's task scope; a compression sweep as
 a result; G2 qualification claims; mutation of `desktop-jason`, `router`, `misc`
 or another physical host; production credentials, keys, enrollment state,
@@ -108,33 +110,38 @@ The synthetic signing material expires **2026-09-11**.
 
 ## Accepted decisions bounding current work
 
-Pointers, not authority. Naming (`naming.md`); Apache-2.0 and public (`scope.md`,
-`P-007`); ADR-0001 systemd-first, ADR-0002 separate authority and recovery,
-ADR-0003 bounded fleet intent; system policy (`docs/requirements/system.md`);
-test taxonomy (`test-strategy.md`); validation contract
-(`validation-contract.md`); PLN-0000's readiness model. DES-0006 C-008, C-013,
-C-014, C-015 and DES-0005's confext lifecycle bound storage and configuration —
-the release artifact is `/usr`, and `/etc` holds nothing durable.
+Pointers, not authority. **[ADR index](../adrs/README.md)** is the list;
+ADR-0004 through ADR-0009 are `proposed` and record the DES-0006 and DES-0005
+rulings of 2026-08-11, so storage and configuration are bound there rather than
+in a design review. Also: naming (`naming.md`); Apache-2.0 and public
+(`scope.md`, `P-007`); system policy (`docs/requirements/system.md`); test
+taxonomy (`test-strategy.md`); validation contract (`validation-contract.md`);
+PLN-0000's readiness model.
 
 ## Fixtures, not architecture
 
-mkosi composition (challenger: bootc); a declared Fedora snapshot (challenger: a
-literal Arch snapshot); EROFS and ext4, with Btrfs mutable state for later;
-`systemd-sysinstall`; a general distribution kernel with a normal initrd; an
-ordinary disposable VM as harness. **PR-0029 C-005 is the standing risk**:
+mkosi composition (challenger: bootc); a declared Fedora snapshot (challenger:
+Arch); EROFS and ext4; `systemd-sysinstall`; a distribution kernel with a normal
+initrd; a disposable VM as harness. **PR-0029 C-005 is the standing risk**:
 repeated success is how a candidate becomes a decision without an ADR, and the
-test is whether the challengers are ever run. PR-0030 C-006 is the same risk
-inside PLN-0002's confext path carve. W-002, W-004 and the role contracts remain
-open; do not encode their fixture shapes as architecture.
+test is whether the challengers are ever run. PR-0030 C-006 is the same risk in
+PLN-0002's confext carve. W-002, W-004 and the role contracts are open; do not
+encode their fixture shapes as architecture.
 
 ## Validation
 
-`check:fast` runs 8 checks and `check:complete` 16, with 2 deferred of 18
+`check:fast` runs 10 checks and `check:complete` 18, with 2 deferred of 20
 registered; `mise run check:list` is authoritative. `complete` needs a composed
 artifact and the declared fixture directories, and editing `tools/validation/`
 requires it. Details: [validation](validation.md). **CI is red on `main` and
-stays red** (`P-008`); not tracked or reported. `P-009` and `P-010` are open and
-block nothing.
+stays red** (`P-008`); not tracked or reported. `P-009` is open and blocks
+nothing.
+
+**`T0-DOC-003` and `T0-DOC-004` are `P-010`'s first step** (2026-08-16),
+RES-0016's recommended validator and not an answer to the question, which stays
+open. They bind the ADR and comparison indexes to the files they describe, hold
+this file to the word bound it declares, and stop a routing document linking to
+anything frozen. Six failure modes verified detected.
 
 ## Context path
 

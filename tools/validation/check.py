@@ -216,6 +216,28 @@ TESTS = (
         function="check_markdown_links",
     ),
     Test(
+        id="T0-DOC-003",
+        level="T0",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("P-010/RES-0016",),
+        capabilities=(),
+        fixtures=("repository Markdown files",),
+        cleanup_owner="validation runner",
+        function="check_derived_indexes",
+    ),
+    Test(
+        id="T0-DOC-004",
+        level="T0",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("P-010/RES-0016",),
+        capabilities=(),
+        fixtures=("repository Markdown files",),
+        cleanup_owner="validation runner",
+        function="check_bounded_and_frozen_documents",
+    ),
+    Test(
         id="T0-HYG-001",
         level="T0",
         profiles=("fast", "complete"),
@@ -673,6 +695,158 @@ def check_markdown_links() -> int:
                     continue
                 if not (document.parent / target).exists():
                     failures.append(f"{relative} -> {raw}")
+    if failures:
+        print("\n".join(failures))
+        return 1
+    return 0
+
+
+def _frontmatter_field(document: Path, field: str) -> str | None:
+    """Read one top-level frontmatter scalar, without a YAML dependency.
+
+    Only the leading `---` block is scanned, so a matching line in the body
+    cannot masquerade as metadata.
+    """
+    lines = document.read_text(encoding="utf-8").splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return None
+        name, separator, value = line.partition(":")
+        if separator and name.strip() == field:
+            return value.strip()
+    return None
+
+
+def check_derived_indexes() -> int:
+    """Hold hand-maintained indexes to the files they claim to describe.
+
+    An index is a derived view, and `P-010` records that derived views in this
+    corpus rot: the work register went stale in two days while every fact in it
+    existed correctly elsewhere. RES-0016 recommends exactly one first step
+    against that failure class, a validator, because it costs no dependencies
+    and fits the `check:fast` contract. This is that step, scoped to the two
+    indexes that carry conclusions rather than prose.
+
+    Status is checked as well as presence, because a row that lists a decision
+    as proposed after it was accepted is the duplicated-state failure rather
+    than the referential one, and both were observed on the same day.
+    """
+    failures: list[str] = []
+
+    adr_dir = ROOT / "docs" / "adrs"
+    adr_index = (adr_dir / "README.md").read_text(encoding="utf-8")
+    # `| [ADR-0004](0004-....md) | **Proposed** | ...`
+    rows = dict(
+        re.findall(
+            r"^\|\s*\[ADR-\d+\]\(([^)]+)\)\s*\|\s*([^|]+?)\s*\|",
+            adr_index,
+            re.MULTILINE,
+        )
+    )
+    for record in sorted(adr_dir.glob("[0-9]*.md")):
+        name = record.name
+        if name not in rows:
+            failures.append(f"ADR not in docs/adrs/README.md index: {name}")
+            continue
+        declared = _frontmatter_field(record, "status")
+        listed = rows[name].replace("*", "").strip().lower()
+        # The index may qualify a status ("Accepted; amended 2026-08-11"); the
+        # frontmatter word must lead it.
+        if declared and not listed.startswith(declared.lower()):
+            failures.append(
+                f"ADR status disagrees with the index: {name} "
+                f"frontmatter={declared!r} index={rows[name].strip()!r}"
+            )
+
+    comparisons = ROOT / "docs" / "research" / "comparisons"
+    comparison_index = (comparisons / "README.md").read_text(encoding="utf-8")
+    linked = set(re.findall(r"\]\(([^)#]+)\)", comparison_index))
+    for study in sorted(comparisons.glob("*.md")):
+        if study.name == "README.md":
+            continue
+        if study.name not in linked:
+            failures.append(
+                f"comparison not in docs/research/comparisons/README.md: {study.name}"
+            )
+
+    if failures:
+        print("\n".join(failures))
+        return 1
+    return 0
+
+
+# Documents whose job is to route a reader somewhere. A historical record may
+# describe a frozen document; an index must not send anyone to one.
+LIVE_ROUTING_DOCUMENTS = (
+    "AGENTS.md",
+    "docs/README.md",
+    "docs/project/*.md",
+    "docs/adrs/*.md",
+    "docs/research/comparisons/README.md",
+)
+
+
+def check_bounded_and_frozen_documents() -> int:
+    """Enforce two rules the corpus states about itself and never checked.
+
+    The word bound is read from the document rather than hardcoded, so the
+    check and the rule cannot disagree: whatever `current-context.md` declares
+    is what it is held to. It grew to 5,350 words under a maintenance note
+    telling it to stay a summary, which is what an unenforced rule is worth.
+
+    The frozen rule is general. Any document whose frontmatter says
+    `status: frozen` must not be linked from a document whose job is routing,
+    because a frozen file is not maintained and a reader sent there is being
+    sent to decay. Historical records may still cite it; that is what they are
+    for.
+    """
+    failures: list[str] = []
+
+    context = ROOT / "docs" / "project" / "current-context.md"
+    text = context.read_text(encoding="utf-8")
+    declared = re.search(r"under ([\d,]+) words", text)
+    if declared is None:
+        failures.append(
+            "docs/project/current-context.md no longer declares a word bound; "
+            "the bound is the document's own and must stay stated in it"
+        )
+    else:
+        cap = int(declared.group(1).replace(",", ""))
+        actual = len(text.split())
+        if actual > cap:
+            failures.append(
+                f"docs/project/current-context.md is {actual} words against its "
+                f"declared bound of {cap}; move detail to the owning record"
+            )
+
+    frozen = {
+        document.resolve()
+        for document in ROOT.rglob("*.md")
+        if ".git" not in document.relative_to(ROOT).parts
+        and _frontmatter_field(document, "status") == "frozen"
+    }
+    if frozen:
+        routing: list[Path] = []
+        for pattern in LIVE_ROUTING_DOCUMENTS:
+            routing.extend(sorted(ROOT.glob(pattern)))
+        for document in routing:
+            if document.resolve() in frozen:
+                continue
+            for raw in re.findall(
+                r"\]\(([^)#]+)", document.read_text(encoding="utf-8")
+            ):
+                if re.match(r"^(?:https?|mailto):", raw):
+                    continue
+                target = (document.parent / raw).resolve()
+                if target in frozen:
+                    failures.append(
+                        f"{document.relative_to(ROOT)} links to frozen "
+                        f"{target.relative_to(ROOT)}; cite it only from a "
+                        f"historical record"
+                    )
+
     if failures:
         print("\n".join(failures))
         return 1
@@ -1309,12 +1483,26 @@ CHECKS: dict[str, Callable[[], int]] = {
     "check_confext_signature_policy": check_confext_signature_policy,
     "check_git_diff": check_git_diff,
     "check_markdown_links": check_markdown_links,
+    "check_derived_indexes": check_derived_indexes,
+    "check_bounded_and_frozen_documents": check_bounded_and_frozen_documents,
     "check_tracked_artifacts": check_tracked_artifacts,
     "check_runner_hostile_probes": check_runner_hostile_probes,
     "check_empty_mise_cache": check_empty_mise_cache,
     "check_clean_clone": check_clean_clone,
     "check_secret_scan": check_secret_scan,
 }
+
+# A test names its function as a string, so the registry and this table are two
+# places one check must appear. Registering in only the first produced a
+# `KeyError` at dispatch time, reported as `failing` after the profile had
+# already started -- and a direct call to the function passed, because it
+# bypassed this table. Bind them at import instead, so the omission cannot reach
+# a run at all.
+_undispatchable = sorted({test.function for test in TESTS} - set(CHECKS))
+if _undispatchable:
+    raise AssertionError(
+        f"registered test function(s) missing from CHECKS: {', '.join(_undispatchable)}"
+    )
 
 
 SLICE_ARTIFACT_MEMBERS = (

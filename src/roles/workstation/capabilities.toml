@@ -107,7 +107,11 @@ origin = "role requirement: audio, video, screen sharing"
 
 [capability.portals]
 stage = "workflow"
-packages = ["xdg-desktop-portal", "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk"]
+packages = [
+  "xdg-desktop-portal",
+  "xdg-desktop-portal-wlr",
+  "xdg-desktop-portal-gtk",
+]
 assert = "the portal service answers on the session bus and the screencast interface is offered by the wlr backend"
 origin = "role requirement: screen sharing; design-session transcript"
 note = """Two backends is deliberate and is the usual source of breakage: wlr
@@ -163,7 +167,7 @@ a prompt that authorizes nothing or no prompt at all."""
 
 [capability.secret-storage]
 stage = "workflow"
-packages = ["gnome-keyring"]
+packages = ["oo7"]
 assert = "exactly one Secret Service provider is on the session bus and a stored secret is retrieved after a session restart"
 origin = "design-session transcript"
 note = "Same single-provider constraint as the authorization agent, same reason."

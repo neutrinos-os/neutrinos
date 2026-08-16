@@ -72,6 +72,21 @@ CID_ATTEMPTS = 64
 # Synthetic, and visibly so. It appears only in the login banner of a VM that
 # is discarded when this function returns.
 HARNESS_HOSTNAME = "slice-t4-fixture"
+# The harness machine-id, host-supplied for the same reason the hostname is.
+# The artifact carries none, and must not: a machine-id inside a release
+# artifact is one machine's identity in something meant to boot on many.
+#
+# It is load-bearing beyond identity. The Discoverable Partitions Specification
+# requires a /var partition's UUID to be HMAC-SHA256(machine-id, var type UUID),
+# and systemd-gpt-auto-generator declines to mount a /var that does not match --
+# which is what stops a machine mounting another machine's state. So this value
+# decides whether the state variant's /var mounts at all.
+#
+# Duplicated from src/slice/compose.sh, which declares it, on the same terms as
+# that script's own duplication of input-set.toml: the two are held together by
+# T2-STATE-001 rather than by anyone remembering. Changing it in one place fails
+# that check.
+HARNESS_MACHINE_ID = "6a5f2c8e4b3d47a19e7c0d5f8b62a134"
 # Named individually, never as a pattern, so a third unit cannot fail behind
 # them. Both fail for one measured reason: no `.pcrpkey` section in the UKI,
 # because the composition never requests expected-PCR signing, so every NvPCR
@@ -236,6 +251,7 @@ def check_boot() -> int:
                 "firstboot.timezone": "UTC",
                 "firstboot.locale": "C.UTF-8",
                 "system.hostname": HARNESS_HOSTNAME,
+                "system.machine_id": HARNESS_MACHINE_ID,
                 # An unlocked account with no password, in a VM that exists for
                 # the length of this function. There is no secret here because
                 # there is no secret.

@@ -40,15 +40,38 @@ fi
 # means integrity did not bind the contents, a seed variant that boots means it
 # did not bind the identity. Environment-selected, like the arm and for the
 # same reason.
+# `state` is a fourth variant and is NOT a substitution source. It adds the
+# machine-state and home partitions from composition/state-partitions/, so it
+# is the first artifact this project has built with anything writable on it. It
+# rides the variant axis because that axis already guarantees the one thing
+# that matters here: a non-primary variant writes to its own output directory
+# and therefore cannot overwrite the six retained PLN-0002-06 members, whose
+# rebuild would void PLN-0002's tally.
 variant=${NEUTRINOS_SLICE_VARIANT:-primary}
 
 case "$variant" in
-    primary|content|seed) ;;
+    primary|content|seed|state) ;;
     *)
-        echo "compose: no variant '$variant'; expected primary, content or seed" >&2
+        echo "compose: no variant '$variant'; expected primary, content, seed or state" >&2
         exit 1
         ;;
 esac
+
+# The harness machine-id, declared here and nowhere else.
+#
+# It is delivered to the guest as the `system.machine_id` SMBIOS type 11
+# credential by tools/validation/slice_boot.py, so the artifact carries no
+# machine identity -- PLN-0001's standing finding is that the harness supplies
+# what the harness needs, and a machine-id baked into a release artifact would
+# be one machine's identity inside something meant to boot on many.
+#
+# It is also what composition/state-partitions/20-var.conf's UUID= is derived
+# from, because the Discoverable Partitions Specification requires a /var
+# partition's UUID to be HMAC-SHA256(machine-id, var-type-uuid) or
+# systemd-gpt-auto-generator will not mount it. repart takes no substitution, so
+# that file holds a literal and T2-STATE-001 recomputes it from this value. The
+# two move together or the check fails; neither can drift silently.
+harness_machine_id=6a5f2c8e4b3d47a19e7c0d5f8b62a134
 
 # Six peer directories, no arm holding a privileged name (PLN-0002-06). `out`
 # survives as a symlink because the PLN-0001 records name it and an operator's
@@ -260,6 +283,16 @@ case "$variant" in
         ;;
     seed)
         set -- --seed="$variant_seed" "$@"
+        ;;
+    state)
+        # A second definitions directory rather than partitions added to the
+        # shared composition/mkosi.repart/. RepartDirectories= is a list and the
+        # CLI appends to it, so repart receives the shared directory, the arm
+        # directory and this one; nothing in the shared set is edited, so a
+        # `primary` build is byte-identical to what it produced before this
+        # variant existed.
+        set -- --repart-directory="$root/composition/state-partitions" \
+               --extra-tree="$root/composition/mkosi.extra.state" "$@"
         ;;
 esac
 

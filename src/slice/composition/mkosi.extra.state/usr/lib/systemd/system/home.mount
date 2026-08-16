@@ -1,0 +1,18 @@
+# The home volume. See var.mount for why these are explicit units rather than
+# discovered ones; the reasoning is identical and is not repeated, so that
+# changing it in one place cannot leave the other silently disagreeing.
+[Unit]
+Description=NeutrinOS home volume
+DefaultDependencies=no
+Before=local-fs.target
+After=blockdev@dev-disk-by\x2dpartlabel-neutrinos\x2dhome.target
+Conflicts=umount.target
+Before=umount.target
+
+[Mount]
+What=/dev/disk/by-partlabel/neutrinos-home
+Where=/home
+Type=btrfs
+
+[Install]
+WantedBy=local-fs.target

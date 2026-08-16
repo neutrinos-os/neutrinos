@@ -21,91 +21,94 @@ active_plan: PLN-0003 (accepted 2026-08-15; PLN-0000, PLN-0001, PLN-0002 complet
 ## Position
 
 - **G1 approved** 2026-08-10 (PR-0029). A readiness gate, not a capability gate:
-  it authorizes disposable VM and lab work and nothing else. Seven review
-  challenges are carried open, not closed.
+  it authorizes disposable VM and lab work only. Seven review challenges carried
+  open.
 - **PLN-0000, PLN-0001 and PLN-0002 are complete and accepted**, the last on
-  2026-08-15 with two qualifications in its exit-criteria assessment. Their
-  results live in the plans and records; they are not restated here.
+  2026-08-15 with two qualifications in its exit-criteria assessment.
 - **PLN-0003 is accepted** 2026-08-15 (PR-0031): the `/usr` read-workload
   comparison, the one measurement that could reverse the C-007 recommendation
   (`docs/plans/0003-usr-read-workload-comparison.md`).
 - **SYS-018, SYS-041, SYS-059 and SYS-049 are accepted at `Partial`**
-  (2026-08-11). SYS-049's substitution clause holds for the image and the Verity
-  tree and **is falsified for the signature** — a measured gap carried by two
-  deferred checks.
+  (2026-08-11). SYS-049's substitution clause holds for the image and Verity tree
+  and **is falsified for the signature**, carried by two deferred checks.
 
 ## Next action
 
 **The owner directed a build sequence on 2026-08-16**, ahead of PLN-0003, which
 is not retired: (1) the workstation capability declaration — landed, 21 entries,
-`T2-ROLE-001`; (2) a machine-state volume and a home volume in the VM
-composition, which ADR-0005 governs and the `root=tmpfs` fixture omits; (3) boot
-that composition to a graphical session in a disposable VM; (4) measure C-009
-against the container and microVM workload the declaration names. **Step 2 is
-next.** PLN-0003-01's workload declaration still precedes any C-007 measurement.
+`T2-ROLE-001`; (2) machine-state and home volumes — landed as the `state`
+composition variant, `/var` and `/home` measured mounted from Btrfs partitions;
+(3) boot that composition to a graphical session in a disposable VM; (4) measure
+C-009 on the container and microVM workload the declaration names. **Step 3 is
+next.**
 
 ## Standing findings
 
 One line each; the owning record is the authority.
 
 - **This slice's mechanisms fail open silently — eight instances**, so a
-  successful boot is not a statement about the artifact. Worst: a valid signature
-  over a root hash the image does not carry boots to `running` with zero failed
-  units ([substitution](artifact-substitution-records.md)).
+  successful boot says nothing about the artifact. Worst: a valid signature over
+  a root hash the image does not carry boots to `running` with zero failed units
+  ([substitution](artifact-substitution-records.md)).
 - `systemd.image_policy=usr=signed` is a structural predicate, not an enforcement
   mechanism ([declaration](artifact-parameter-declaration.md)).
 - Upstream's `/usr` signature enforcement point is the TPM unseal, not the mount
-  (`S-005`, [backlog](decision-backlog.md)).
-- Confext signature enforcement is closed and registered (`T4-CONFEXT-001`).
+  (`S-005`, [backlog](decision-backlog.md)). Confext enforcement is closed
+  (`T4-CONFEXT-001`).
 - Build determinism is closed; **any determinism claim must state whether the
   confext was rebuilt** ([artifact set](usr-artifact-set.md)).
-- **Any blast-radius claim must state whether readahead was disabled**, and any
-  size claim must use bytes in use — partition size overstates EROFS's advantage
-  by 56% ([corruption](artifact-corruption-records.md),
+- **Any blast-radius claim must state whether readahead was disabled**; size
+  claims use bytes in use — partition size overstates EROFS by 56%
+  ([corruption](artifact-corruption-records.md),
   [measurements](artifact-format-measurements.md)).
 - A declared parameter can be wrong rather than merely missing; the 2026-08-14
   audit read the built artifacts and took three corrections.
+- **`systemd-gpt-auto-generator` mounts nothing under `root=tmpfs`** (2026-08-16):
+  it finds partitions through the device behind `/`. Explicit `.mount` units in
+  `/usr` work and are what ships; the derived `/var` UUID is correct but reads
+  nothing until a writable root partition exists.
 
 ## Open and the owner's
 
 - **Two corrections to accepted records**: the `fsck.erofs --extract` finding
   ([disposition](artifact-recovery-disposition.md)), and PLN-0002-13's threat 1
-  naming verification item 9 as owning the workload comparison.
-- **The ruled command line is not the implemented one** (ruling 2026-08-12
-  against `usr=signed` with `usrhash=` retained). Settling it in the ruling's
-  favour rebuilds the six artifacts and voids what was measured against them
+  naming item 9 as owning the workload comparison.
+- **The ruled command line is not the implemented one** (2026-08-12, against
+  `usr=signed` with `usrhash=` retained). Settling it rebuilds the six artifacts
+  and voids what was measured against them
   ([declaration](artifact-parameter-declaration.md)).
 - Whether G1's approval should be revisited against the corrected trace.
 - **C-007 is open.** PLN-0002-13 recommends EROFS, conditional on the updater not
   being whole-image-only, on image size at 1.65x and 111.4 MiB per slot. **That
   acceptance does not accept EROFS** — an ADR does
   ([recommendation](artifact-format-recommendation.md)).
-- **C-009 is open** and now has a workload: the container and microVM entries of
-  the workstation capability declaration. Not measurable until step 2.
+- **C-009 is open** and now has both a workload — the container and microVM
+  entries of the capability declaration — and volumes to measure on.
+- **A writable root partition** would make partition discovery native, and
+  reverses the `root=tmpfs` ruling of 2026-08-11.
 
 ## Mutation boundary
 
 Allowed: PLN-0003's named tasks on disposable VM disks, firmware variables,
 virtual TPM state and test networks; **non-member artifacts**, marked at creation
-and destroyed at task end; synthetic signing, enrollment and credential fixtures;
-build caches in declared locations; documentation and validation work; read-only
-inspection the task authorizes.
+and destroyed at task end; synthetic signing and credential fixtures; build
+caches in declared locations; documentation and validation work.
 
-**The six PLN-0002-06 artifacts are read-only inputs**, every boot `snapshot=on`
-with the digest verified first. Rebuilding, re-signing or modifying a member is
-prohibited and would void PLN-0002's tally.
+**The six PLN-0002-06 artifacts are read-only inputs**, every boot `snapshot=on`.
+Rebuilding or modifying a member would void PLN-0002's tally; the `state` variant
+is a separate artifact and touches none of them.
 
 Also allowed, owner authorization 2026-08-16, outside PLN-0003's scope:
 **corpus-integrity checks under `tools/validation/`**; **role declaration and VM
-composition work under `src/roles/`** for the build sequence above, disposable
-VMs only. `AGENTS.md`'s pre-implementation clause is suspended for that sequence
-by the sole acceptance authority.
+composition work under `src/roles/` and `src/slice/`** for the build sequence
+above, disposable VMs only. `AGENTS.md`'s pre-implementation clause is suspended
+for that sequence by the sole acceptance authority.
 
-Prohibited: implementation outside those two scopes; a compression sweep as a
-result; G2 qualification claims; mutation of `desktop-jason`, `router`, `misc` or
-another physical host; production credentials, keys, enrollment state, recovery
-material or machine authority; treating a candidate fixture, probe or agent
-summary as an accepted decision; autonomous push, merge, release or publication.
+Prohibited: implementation outside those two scopes; G2 qualification claims;
+mutation of `desktop-jason`, `router`, `misc` or another physical host;
+production credentials, keys, enrollment state, recovery material or machine
+authority; treating a candidate fixture, probe or agent summary as an accepted
+decision; autonomous push, merge, release or publication.
 
 The synthetic signing material expires **2026-09-11**.
 
@@ -113,29 +116,29 @@ The synthetic signing material expires **2026-09-11**.
 
 Pointers, not authority. **[ADR index](../adrs/README.md)** is the list; ADR-0004
 through ADR-0009, **accepted 2026-08-16**, record the DES-0006 and DES-0005
-rulings of 2026-08-11, so storage and configuration are bound there rather than
-in a design review. Also: naming (`naming.md`); Apache-2.0 and public
-(`scope.md`, `P-007`); system policy (`docs/requirements/system.md`); test
-taxonomy (`test-strategy.md`); validation contract (`validation-contract.md`);
-PLN-0000's readiness model.
+rulings, so storage and configuration are bound there rather than in a design
+review. Also: naming; Apache-2.0 and public (`scope.md`, `P-007`); system policy
+(`docs/requirements/system.md`); test taxonomy; validation contract; PLN-0000's
+readiness model.
 
 ## Fixtures, not architecture
 
 mkosi composition (challenger: bootc); a declared Fedora snapshot (challenger:
-Arch); EROFS and ext4; `systemd-sysinstall`; a distribution kernel with a normal
-initrd; a disposable VM as harness; every component named in a role capability
-declaration. **PR-0029 C-005 is the standing risk**: repeated success is how a
-candidate becomes a decision without an ADR, and the test is whether the
-challengers are ever run. PR-0030 C-006 is the same in PLN-0002's confext carve.
-W-002 and W-004 are open.
+Arch); EROFS and ext4; Btrfs on `/var` and `/home`; `systemd-sysinstall`; a
+distribution kernel; a disposable VM as harness; every component named in a role
+capability declaration. **PR-0029 C-005 is the standing risk**: repeated success
+is how a candidate becomes a decision without an ADR. PR-0030 C-006 is the same
+in PLN-0002's confext carve. W-002 and W-004 are open.
 
 ## Validation
 
-`check:fast` runs 11 checks and `check:complete` 19, with 2 deferred of 21
-registered; `mise run check:list` is authoritative. `T2-ROLE-001` validates every
-`src/roles/*/capabilities.toml` against the schema it names and against eight
-constructed violations, all verified detected. `complete` needs a composed
-artifact and the declared fixtures, and editing `tools/validation/` requires it. Details: [validation](validation.md). **CI is red on `main` and
+`check:fast` runs 12 and `check:complete` 21, 2 deferred of 23 registered;
+`mise run check:list` is authoritative. `T2-ROLE-001` and `T2-STATE-001` each
+reject eight constructed violations, verified detected; `T4-STATE-001` asserts
+both state volumes are block-device-backed, verified to fail without them.
+`mise.toml` sets `sandbox.deny_env`, so **no artifact-dependent check is
+reachable through `mise run`** — all eight block. Editing `tools/validation/`
+requires `complete`. Details: [validation](validation.md). **CI is red on `main` and
 stays red** (`P-008`); not tracked or reported. `P-009` is open and blocks
 nothing.
 

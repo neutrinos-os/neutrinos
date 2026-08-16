@@ -1,0 +1,43 @@
+# The machine-state volume, mounted explicitly rather than discovered.
+#
+# Measured 2026-08-16, and this file exists because of the measurement rather
+# than ahead of it. The state artifact carries a /var partition of the correct
+# Discoverable Partitions Specification type, with the UUID the specification
+# derives from the harness machine-id -- verified on the built disk. It is still
+# not mounted by systemd-gpt-auto-generator, because that generator finds
+# sibling partitions by way of the block device backing the root filesystem, and
+# with `root=tmpfs` there is no such device. No var.mount unit is generated at
+# all; home.mount reports not-found. Nothing fails, nothing logs, and writes to
+# /var land on the tmpfs and disappear at poweroff.
+#
+# So the derived UUID buys nothing today. It is kept anyway: it is what the
+# specification requires, it costs one line, and the moment a writable root
+# partition exists the generator does the work this file is doing. Removing it
+# would have to be undone then.
+#
+# The alternative is a writable root partition, which would make discovery work
+# natively and is the shape a real installation needs. That reverses the
+# `root=tmpfs` owner ruling of 2026-08-11 and is not this task's to take. This
+# file is the reversible half: two units in /usr, deleted in one commit.
+[Unit]
+Description=NeutrinOS machine-state volume
+DefaultDependencies=no
+Before=local-fs.target
+After=blockdev@dev-disk-by\x2dpartlabel-neutrinos\x2dvar.target
+Conflicts=umount.target
+Before=umount.target
+
+[Mount]
+# By partition label, not by UUID. The UUID is seed-derived at composition time
+# and the label is declared in state-partitions/20-var.conf, so the label is the
+# stable name an operator can read off both the definition and the disk.
+What=/dev/disk/by-partlabel/neutrinos-var
+Where=/var
+Type=btrfs
+
+# Fixture, like the filesystem itself. C-009 is open and no mount option here is
+# a measurement; a compression or nodatacow option would prejudge exactly the
+# question the comparison exists to answer.
+
+[Install]
+WantedBy=local-fs.target

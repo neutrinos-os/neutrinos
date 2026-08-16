@@ -46,6 +46,7 @@ BETTERLEAKS_ENV = "NEUTRINOS_VALIDATION_BETTERLEAKS"
 SLICE_ARTIFACT_ENV = "NEUTRINOS_SLICE_ARTIFACT_DIR"
 SLICE_REPOSITORY_ENV = "NEUTRINOS_SLICE_REPOSITORY_DIR"
 CONFEXT_FIXTURE_ENV = "NEUTRINOS_CONFEXT_FIXTURE_DIR"
+STATE_ARTIFACT_ENV = "NEUTRINOS_STATE_ARTIFACT_DIR"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -87,6 +88,10 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         # Optional on the same terms: the enrolled artifact and the pair of
         # confexts T4-CONFEXT-001 compares signers with.
         CONFEXT_FIXTURE_ENV,
+        # Optional on the same terms: the state variant, which is a separate
+        # artifact from the six PLN-0002-06 members and must never be pointed at
+        # them -- it carries partitions they do not have.
+        STATE_ARTIFACT_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -288,6 +293,35 @@ TESTS = (
         ),
         cleanup_owner="validation runner",
         function="check_role_capabilities",
+    ),
+    Test(
+        id="T2-STATE-001",
+        level="T2",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("ADR-0005", "C-009"),
+        capabilities=(),
+        fixtures=(
+            "src/slice/compose.sh",
+            "tools/validation/slice_boot.py",
+            "src/slice/composition/state-partitions/",
+        ),
+        cleanup_owner="validation runner",
+        function="check_state_volumes",
+    ),
+    Test(
+        id="T4-STATE-001",
+        level="T4",
+        profiles=("complete",),
+        timeout_seconds=300,
+        traces=("ADR-0005", "CH-003"),
+        capabilities=("declared state artifact", "user-owned disposable VM"),
+        fixtures=(
+            "composed state-variant disk image",
+            "src/slice/composition/mkosi.extra.state/",
+        ),
+        cleanup_owner="validation runner",
+        function="check_state_boot",
     ),
     Test(
         id="T2-SLICE-002",
@@ -1412,6 +1446,22 @@ def check_role_capabilities() -> int:
     return run()
 
 
+def check_state_boot() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.state_boot import check_state_boot as run
+
+    return run()
+
+
+def check_state_volumes() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.state_volumes import check_state_volumes as run
+
+    return run()
+
+
 def check_slice_composition() -> int:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -1495,6 +1545,8 @@ def check_confext_signature_policy() -> int:
 CHECKS: dict[str, Callable[[], int]] = {
     "check_role_capabilities": check_role_capabilities,
     "check_slice_input_set": check_slice_input_set,
+    "check_state_boot": check_state_boot,
+    "check_state_volumes": check_state_volumes,
     "check_slice_composition": check_slice_composition,
     "check_slice_repository_attribution": check_slice_repository_attribution,
     "check_slice_artifact": check_slice_artifact,
@@ -1561,6 +1613,28 @@ def capability_slice_artifact(
     missing = [name for name in SLICE_ARTIFACT_MEMBERS if not (directory / name).is_file()]
     if missing:
         return f"declared slice artifact is missing {', '.join(missing)}"
+    return None
+
+
+def capability_state_artifact(
+    environment: Mapping[str, str] = os.environ,
+) -> str | None:
+    """A composed state-variant artifact, declared outside the checkout.
+
+    Separate from the slice artifact capability rather than sharing it: they are
+    different disks. The state variant carries /var and /home partitions the six
+    PLN-0002-06 members do not, so a check pointed at a member would fail for
+    the right reason but the wrong cause, reading as a defect in the mount units
+    rather than as a misdeclared fixture.
+    """
+    if not environment.get(STATE_ARTIFACT_ENV):
+        return f"{STATE_ARTIFACT_ENV} is not set"
+    try:
+        directory = declared_directory(STATE_ARTIFACT_ENV, environment)
+    except ValueError as error:
+        return str(error)
+    if not (directory / "neutrinos-slice.raw").is_file():
+        return "declared state artifact is missing neutrinos-slice.raw"
     return None
 
 
@@ -1689,6 +1763,7 @@ def capability_secure_boot_firmware() -> str | None:
 # missing from an otherwise valid checkout are probed here.
 CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
     "declared slice artifact": capability_slice_artifact,
+    "declared state artifact": capability_state_artifact,
     "retained declared repository": capability_retained_repository,
     "zstd reader": capability_zstd_reader,
     "user-owned disposable VM": capability_virtualization,

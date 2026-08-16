@@ -194,37 +194,13 @@ python3 "$root/acquire-overlay.py" --destination="$overlay_dir"
 confext_staging="$build_root/confext-staging"
 confext_out="$build_root/confext"
 
+# Both signings and the staging tree, in fixtures.py. NEUTRINOS_SKIP_CONFEXT
+# keeps its name and its meaning: measure-build-time.py sets it,
+# retain-artifact-digests.py reports on it, and the artifact-parameter and
+# format-measurement records cite it as a condition of measurements already
+# taken.
 if [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
-    mkdir -p "$confext_out"
-    (
-        cd "$root/confext/neutrinos-network"
-        PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
-            --tools-tree="$build_root/tools" \
-            --verity-key="$keys_dir/verity.key" \
-            --verity-certificate="$keys_dir/verity.crt" \
-            --output-directory="$confext_out" \
-            --force build
-    )
-
-    rm -rf "$confext_staging"
-    mkdir -p "$confext_staging/usr/lib/confexts" "$confext_staging/usr/lib/verity.d"
-    cp "$confext_out/neutrinos-network.raw" "$confext_staging/usr/lib/confexts/"
-    cp "$keys_dir/verity.crt" "$confext_staging/usr/lib/verity.d/neutrinos-synthetic.crt"
-
-    # The same tree, signed by the unenrolled key. T4-CONFEXT-001's comparison
-    # means something only if the signer is the only difference; a second image
-    # from a second source could be refused for being the wrong image. Not
-    # staged into the artifact -- it is delivered from outside, as a
-    # substitution would be.
-    (
-        cd "$root/confext/neutrinos-network"
-        PYTHONPATH="$build_root/mkosi" python3 -m mkosi \
-            --tools-tree="$build_root/tools" \
-            --verity-key="$keys_dir/verity-wrong.key" \
-            --verity-certificate="$keys_dir/verity-wrong.crt" \
-            --output-directory="$confext_out-unenrolled" \
-            --force build
-    )
+    python3 "$root/fixtures.py" --build-root="$build_root"
 fi
 
 # Prepended to the caller's arguments so `--force` or `summary` still reaches

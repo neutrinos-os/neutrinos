@@ -1,0 +1,24 @@
+# greetd configuration, in /usr rather than /etc.
+#
+# greetd looks for /etc/greetd/config.toml by default. ADR-0004 delivers /etc
+# exclusively by signed confext with Mutable=disabled, and this is release
+# content rather than something a machine owns, so it lives in /usr and the
+# service is pointed at it by a drop-in. No search order decides which file
+# wins.
+
+[terminal]
+vt = 1
+
+# The greeter that runs when no session is active. agreety ships inside the
+# greetd package itself -- verified in the retained repository file list -- so
+# this needs no second package. The transcript names tuigreet, which Fedora 44
+# does not carry.
+[default_session]
+command = "/usr/bin/agreety --cmd /usr/bin/bash"
+user = "greetd"
+
+# Deliberately no [initial_session]. That key is greetd's autologin: it starts a
+# session at boot with no authentication at all. It would make the qualification
+# check easier and would make the check meaningless, because the `login`
+# capability asserts that an account authenticates *through* greetd. A fixture
+# that skips the mechanism under test is not a fixture.

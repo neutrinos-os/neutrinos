@@ -1,0 +1,42 @@
+# The PAM stack, in /usr/lib/pam.d rather than /etc/pam.d.
+#
+# It exists because of a measured failure, not by anticipation. user@1000.service
+# failed with `PAM:accounting acct="neutrinos" res=failed`, and the cause is
+# structural: ADR-0004 delivers /etc exclusively by signed confext, PLN-0002-02
+# carved 1352 entries out of /etc, and Fedora puts the entire PAM stack in
+# /etc/pam.d. systemd ships /usr/lib/pam.d/systemd-user, but that file includes
+# `system-auth`, which on Fedora comes from authselect under /etc and therefore
+# does not exist here. Every PAM-mediated login fails, which means no user
+# manager, which means no graphical session.
+#
+# /usr/lib/pam.d is where Linux-PAM looks when /etc/pam.d has no match, so this
+# is the upstream-sanctioned location rather than a workaround. Authentication
+# policy for a role is release content on the same argument as the compositor
+# configuration beside it: it is not something an individual machine owns.
+#
+# FIXTURE-GRADE. This is the minimum that lets a session start in a disposable
+# VM. It is not a reviewed authentication policy, it establishes no credential
+# authority, and it must not reach a physical host without review -- lockout,
+# account expiry, password quality, faillock and the whole delay policy are
+# absent, deliberately, because guessing at them would look like a decision.
+
+auth        required                                     pam_env.so
+# nullok, and it is doing real work rather than being sloppy: the session
+# account is created by systemd-sysusers with no password, because a password
+# inside a release artifact would be a secret shipped to every machine. The
+# harness supplies credentials. On a physical host this line is wrong and is the
+# first thing a review must change.
+auth        sufficient                                   pam_unix.so nullok
+auth        required                                     pam_deny.so
+
+account     required                                     pam_unix.so
+account     required                                     pam_permit.so
+
+password    required                                     pam_unix.so shadow nullok
+
+session     required                                     pam_limits.so
+session     required                                     pam_unix.so
+# What creates XDG_RUNTIME_DIR and registers the session with logind. Without
+# it there is no /run/user/1000, and a Wayland compositor has nowhere to put its
+# socket.
+session     optional                                     pam_systemd.so

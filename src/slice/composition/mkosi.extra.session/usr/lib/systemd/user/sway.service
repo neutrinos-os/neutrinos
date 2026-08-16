@@ -1,0 +1,48 @@
+# The compositor as a systemd user unit. This is the uwsm replacement, and the
+# reason it exists at all: a compositor started as a bare process from a greeter
+# is not a unit, so nothing in the session has ordering, dependencies or
+# supervision, and ADR-0001's systemd-first preference would be satisfied on
+# paper only.
+#
+# uwsm generates units of roughly this shape. It is absent from the declared
+# Fedora 44 closure -- measured, not assumed -- so the units are written
+# instead: bounded, in signed /usr, with no undeclared dependency.
+[Unit]
+Description=Sway compositor
+
+# BindsTo rather than Wants, and this is the load-bearing line. The compositor
+# is what a graphical session *is*: when sway exits the session is over, and
+# every unit that wants graphical-session.target must stop with it rather than
+# linger against a compositor that is gone.
+BindsTo=graphical-session.target
+Before=graphical-session.target
+Requires=graphical-session-pre.target
+After=graphical-session-pre.target
+
+[Service]
+# Type=notify, so the unit is active when the compositor says it is ready rather
+# than when exec succeeded. sway.config calls systemd-notify --ready; without
+# that call this unit never reaches active and the target never starts, which is
+# a deliberate failure mode -- a session that cannot report readiness should not
+# be reported as one.
+Type=notify
+NotifyAccess=all
+ExecStart=/usr/bin/sway --config /usr/lib/neutrinos/sway.config
+
+# No ExecStartPost= importing the environment. It was here and it did nothing:
+# `systemctl --user import-environment` reads the environment of the process it
+# runs in, and WAYLAND_DISPLAY and SWAYSOCK are set by sway for its children
+# rather than in this unit's environment. It runs from sway.config instead,
+# inside the compositor, where the variables exist.
+
+# Deliberately no `systemctl --user start graphical-session.target` here, and no
+# matching stop. Measured: systemd refuses it -- "unit graphical-session.target
+# may be requested by dependency only (it is configured to refuse manual
+# start/stop)" -- because that target sets RefuseManualStart. The BindsTo above
+# is a dependency and pulls the target in on its own, which is the mechanism the
+# manual call was duplicating badly.
+
+# No Restart=. A compositor that keeps dying should surface as a failed session,
+# not as a restart loop that looks like a working machine from outside.
+Restart=no
+TimeoutStartSec=30

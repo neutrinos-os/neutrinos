@@ -1,0 +1,11 @@
+# greetd's PAM service. It ships its own file to /etc/pam.d/greetd, which this
+# image does not have for the reason system-auth beside it records.
+#
+# Without this, greetd starts and looks healthy -- measured, it reported active
+# and running -- while every authentication through it fails. That is the same
+# shape as the rest of this project's fail-open findings: the service is up, so
+# nothing looks wrong, and the mechanism it exists for does not work.
+auth        include                                      system-auth
+account     include                                      system-auth
+password    include                                      system-auth
+session     include                                      system-auth

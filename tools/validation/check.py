@@ -47,6 +47,7 @@ SLICE_ARTIFACT_ENV = "NEUTRINOS_SLICE_ARTIFACT_DIR"
 SLICE_REPOSITORY_ENV = "NEUTRINOS_SLICE_REPOSITORY_DIR"
 CONFEXT_FIXTURE_ENV = "NEUTRINOS_CONFEXT_FIXTURE_DIR"
 STATE_ARTIFACT_ENV = "NEUTRINOS_STATE_ARTIFACT_DIR"
+SESSION_ARTIFACT_ENV = "NEUTRINOS_SESSION_ARTIFACT_DIR"
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -92,6 +93,9 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         # artifact from the six PLN-0002-06 members and must never be pointed at
         # them -- it carries partitions they do not have.
         STATE_ARTIFACT_ENV,
+        # Optional on the same terms: the session variant, which is the state
+        # variant plus the role's session-stage packages and units.
+        SESSION_ARTIFACT_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -308,6 +312,20 @@ TESTS = (
         ),
         cleanup_owner="validation runner",
         function="check_state_volumes",
+    ),
+    Test(
+        id="T4-SESSION-001",
+        level="T4",
+        profiles=("complete",),
+        timeout_seconds=600,
+        traces=("CH-003", "CH-006", "ADR-0001"),
+        capabilities=("declared session artifact", "user-owned disposable VM"),
+        fixtures=(
+            "composed session-variant disk image",
+            "src/roles/workstation/capabilities.toml",
+        ),
+        cleanup_owner="validation runner",
+        function="check_session_boot",
     ),
     Test(
         id="T4-STATE-001",
@@ -1446,6 +1464,14 @@ def check_role_capabilities() -> int:
     return run()
 
 
+def check_session_boot() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.session_boot import check_session_boot as run
+
+    return run()
+
+
 def check_state_boot() -> int:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -1545,6 +1571,7 @@ def check_confext_signature_policy() -> int:
 CHECKS: dict[str, Callable[[], int]] = {
     "check_role_capabilities": check_role_capabilities,
     "check_slice_input_set": check_slice_input_set,
+    "check_session_boot": check_session_boot,
     "check_state_boot": check_state_boot,
     "check_state_volumes": check_state_volumes,
     "check_slice_composition": check_slice_composition,
@@ -1635,6 +1662,26 @@ def capability_state_artifact(
         return str(error)
     if not (directory / "neutrinos-slice.raw").is_file():
         return "declared state artifact is missing neutrinos-slice.raw"
+    return None
+
+
+def capability_session_artifact(
+    environment: Mapping[str, str] = os.environ,
+) -> str | None:
+    """A composed session-variant artifact, declared outside the checkout.
+
+    Distinct from the state artifact for the same reason that one is distinct
+    from the slice artifact: they are different disks, and a check pointed at
+    the wrong one fails for the right reason with the wrong cause.
+    """
+    if not environment.get(SESSION_ARTIFACT_ENV):
+        return f"{SESSION_ARTIFACT_ENV} is not set"
+    try:
+        directory = declared_directory(SESSION_ARTIFACT_ENV, environment)
+    except ValueError as error:
+        return str(error)
+    if not (directory / "neutrinos-slice.raw").is_file():
+        return "declared session artifact is missing neutrinos-slice.raw"
     return None
 
 
@@ -1763,6 +1810,7 @@ def capability_secure_boot_firmware() -> str | None:
 # missing from an otherwise valid checkout are probed here.
 CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
     "declared slice artifact": capability_slice_artifact,
+    "declared session artifact": capability_session_artifact,
     "declared state artifact": capability_state_artifact,
     "retained declared repository": capability_retained_repository,
     "zstd reader": capability_zstd_reader,

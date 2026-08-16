@@ -50,12 +50,18 @@ fi
 variant=${NEUTRINOS_SLICE_VARIANT:-primary}
 
 case "$variant" in
-    primary|content|seed|state) ;;
+    primary|content|seed|state|session) ;;
     *)
-        echo "compose: no variant '$variant'; expected primary, content, seed or state" >&2
+        echo "compose: no variant '$variant'; expected primary, content, seed," \
+             "state or session" >&2
         exit 1
         ;;
 esac
+
+# The role whose capability declaration drives the session variant's package
+# selection. One role today; named rather than assumed so a second one is a
+# value here and not an edit to the logic below.
+role=${NEUTRINOS_SLICE_ROLE:-workstation}
 
 # The harness machine-id, declared here and nowhere else.
 #
@@ -293,6 +299,29 @@ case "$variant" in
         # variant existed.
         set -- --repart-directory="$root/composition/state-partitions" \
                --extra-tree="$root/composition/mkosi.extra.state" "$@"
+        ;;
+    session)
+        # State plus a graphical session. It includes the state variant's
+        # partitions and mount units rather than repeating them, because the
+        # session needs a home volume to put a home directory on: a session
+        # composed without one works exactly once, which is the failure shape
+        # T4-STATE-001 exists to catch.
+        #
+        # The package list comes from the role's capability declaration, which
+        # is what makes that file a mechanism rather than a description. A
+        # package no capability declares does not enter the image, and a
+        # capability whose packages change moves the artifact.
+        #
+        # Only the `session` stage. The `workflow` stage is daily-use capability
+        # that follows once a session exists, and pulling it in now would make
+        # the first graphical boot depend on twenty packages whose failures are
+        # unrelated to whether a session comes up.
+        for package in $(python3 "$root/role-packages.py" --role="$role" --stage=session); do
+            set -- --package="$package" "$@"
+        done
+        set -- --repart-directory="$root/composition/state-partitions" \
+               --extra-tree="$root/composition/mkosi.extra.state" \
+               --extra-tree="$root/composition/mkosi.extra.session" "$@"
         ;;
 esac
 

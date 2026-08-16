@@ -259,24 +259,32 @@ case are in the [check updates](slice-check-updates.md).
 Composition needs the network, and canonical validation is offline, so the
 artifact is an operator-declared input:
 
-There are three such declarations, and `sandbox.deny_env` means each must be
-passed through explicitly -- it strips everything otherwise, including mise's
-own `[env]`. A complete run with every fixture available therefore needs all
-three named, which is what an earlier reading of this section missed by naming
-only the first:
+There are five such declarations -- `slice`, `state`, `session`, `repository`
+and `confext` -- and `sandbox.deny_env` means **no environment variable reaches
+the runner through `mise run` at all**, including mise's own `[env]`. The
+supported route is the runner's `--artifact KIND=DIR` option, after a `--` so
+mise passes the arguments through rather than reading them itself:
 
 ```sh
-export NEUTRINOS_SLICE_ARTIFACT_DIR=/path/to/mkosi/output
-export NEUTRINOS_SLICE_REPOSITORY_DIR=/path/to/retained/repository
-export NEUTRINOS_CONFEXT_FIXTURE_DIR=/path/to/confext/fixture
-mise run \
-  --allow-env=NEUTRINOS_SLICE_ARTIFACT_DIR \
-  --allow-env=NEUTRINOS_SLICE_REPOSITORY_DIR \
-  --allow-env=NEUTRINOS_CONFEXT_FIXTURE_DIR \
-  check:complete
+build_root=${XDG_CACHE_HOME:-$HOME/.cache}/neutrinos/slice
+mise run check:complete -- \
+  --artifact slice="$build_root/out-erofs" \
+  --artifact state="$build_root/out-erofs-state" \
+  --artifact session="$build_root/out-erofs-session" \
+  --artifact repository="$build_root/inputs/repository" \
+  --artifact confext="$build_root/fixture"
 ```
 
-**Without them, `check:complete` fails with `blocked=1` or more.** That is deliberate and
+**Every path must be absolute.** `mise run` does not run the task from the
+caller's directory, so a relative path names nothing. It is rejected at the
+invocation rather than accepted and blocked later: `--artifact slice=out-erofs`
+used to be taken, and the nine artifact-dependent checks then blocked with "must
+be an absolute path", which is the right reason in a report the operator has to
+open to see. The rule is `declared_directory`, the same one the capabilities
+apply, so absolute, existing and outside the checkout are one message and not
+three behaviours.
+
+**Without the declarations, `check:complete` fails with `blocked=9`.** That is deliberate and
 follows the contract: a required test that cannot run is blocked, not skipped,
 and blocked fails the profile. A complete run that reported green while
 silently omitting its artifact evidence would be worse than one that fails.
@@ -395,10 +403,10 @@ Before a check is registered it must:
   the injections named where the check is documented. A check shown only to
   accept is not evidence -- and both checks PLN-0002-11 added passed their
   baseline while fail-opening under injection;
-- **be reachable through `mise run`** with its declared environment passed by
-  `--allow-env=`, verified rather than assumed. `sandbox.deny_env` strips
-  everything else, and `T4-CONFEXT-001` was registered and unreachable for a
-  period because of it;
+- **be reachable through `mise run`** with its artifact declared by
+  `--artifact KIND=DIR`, verified rather than assumed. `sandbox.deny_env` means
+  `--allow-env=` does not work, and `T4-CONFEXT-001` was registered and
+  unreachable for a period because of it;
 - **declare its capabilities**, so an absent fixture blocks and fails the
   profile rather than skipping;
 - **state its timeout against the profile budget.** `complete` now carries

@@ -2540,6 +2540,15 @@ def declare_artifacts(
     set. A check pointed at two different disks by two different routes is the
     ambiguity these checks exist to prevent, and silently preferring one of them
     would decide it invisibly.
+
+    The directory is validated here, by the same `declared_directory` the
+    capabilities use, so a value that can never work is an invocation error
+    rather than a block. `--artifact slice=out-erofs` used to be accepted and
+    then blocked nine checks with "must be an absolute path", which is the right
+    reason in the wrong place: `mise run` does not run the task from the
+    caller's directory, so a relative path is a mistake an operator makes
+    routinely, and the report they must open to see it is the last place to say
+    so. One rule and one message, at the invocation that can still be corrected.
     """
     for declaration in declarations:
         kind, separator, value = declaration.partition("=")
@@ -2551,6 +2560,13 @@ def declare_artifacts(
             raise ValueError(f"no artifact kind {kind!r}; expected one of {expected}")
         if name in environment:
             raise ValueError(f"{kind} artifact is declared twice")
+        # Against a mapping holding only this declaration, so the rule is
+        # applied to the value being declared rather than to whatever the
+        # environment happens to hold.
+        try:
+            declared_directory(name, {name: value})
+        except ValueError as error:
+            raise ValueError(f"{kind} artifact: {error}") from error
         environment[name] = value
 
 

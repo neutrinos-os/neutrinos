@@ -140,8 +140,9 @@ violations; `T4-STATE-001` asserts both state volumes are block-device-backed.
 All verified failing when they should.
 `T4-SESSION-001` asserts nine observations and **records the two capabilities it
 refuses to assert**: `graphics` needs a GPU the VM lacks, `login` needs a driven
-authentication. `mise.toml` sets `sandbox.deny_env`, so **no artifact-dependent
-check is reachable through `mise run`** — all nine block. Details: [validation](validation.md). **CI is red on `main` and
+authentication. `sandbox.deny_env` blocks the nine artifact-dependent checks
+unless declared: `check:complete -- --artifact KIND=DIR`, absolute paths only.
+Details: [validation](validation.md). **CI is red on `main` and
 stays red** (`P-008`); not tracked or reported. `P-009` is open and blocks
 nothing.
 

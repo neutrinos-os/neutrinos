@@ -24,10 +24,17 @@ def runner_invocation(
     *arguments: str,
     extra_environment: dict[str, str] | None = None,
 ) -> Iterator[tuple[subprocess.CompletedProcess[str], Path, dict[str, Any]]]:
+    # Artifact declarations are stripped rather than inherited. A probe run
+    # started from inside a run that declared artifacts would pick them up, and
+    # then reject a declaration this helper makes as "declared twice" -- which
+    # is the outer invocation deciding what the probe measures. Observed: this
+    # suite passes standalone and failed inside a `check:complete` that named
+    # all five.
+    declared = set(check.ARTIFACT_DECLARATIONS.values())
     environment = {
         name: value
         for name, value in os.environ.items()
-        if name in check.ALLOWED_RUNNER_ENVIRONMENT
+        if name in check.ALLOWED_RUNNER_ENVIRONMENT and name not in declared
     }
     if extra_environment:
         environment.update(extra_environment)
@@ -234,6 +241,64 @@ def test_tool_install_paths_must_be_existing_absolute_external_directories(
         check.tool_install_path(name, {name: str(tmp_path / "missing")})
     with pytest.raises(ValueError, match=f"{name} must be outside the repository"):
         check.tool_install_path(name, {name: str(check.ROOT)})
+
+
+def test_artifact_declaration_is_validated_at_the_invocation(tmp_path: Path) -> None:
+    """A value that can never work must not be accepted and then blocked.
+
+    `--artifact slice=out-erofs` was accepted, and nine checks blocked with
+    "must be an absolute path" -- the right reason, in a report the operator has
+    to open. `mise run` does not run the task from the caller's directory, so a
+    relative path is the routine mistake, and it is caught where it is made.
+    """
+    name = check.ARTIFACT_DECLARATIONS["slice"]
+
+    environment: dict[str, str] = {}
+    with pytest.raises(ValueError, match="must be an absolute path"):
+        check.declare_artifacts(["slice=out-erofs"], environment)
+    assert environment == {}, "a rejected declaration must not reach the environment"
+
+    with pytest.raises(ValueError, match="must identify an existing directory"):
+        check.declare_artifacts([f"slice={tmp_path / 'missing'}"], {})
+
+    with pytest.raises(ValueError, match="must be outside the repository"):
+        check.declare_artifacts([f"slice={check.ROOT}"], {})
+
+    accepted: dict[str, str] = {}
+    check.declare_artifacts([f"slice={tmp_path}"], accepted)
+    assert accepted == {name: str(tmp_path)}
+
+
+def test_a_rejected_artifact_declaration_names_the_flag_and_the_variable(
+    tmp_path: Path,
+) -> None:
+    """The operator typed a kind; the reason has to reach the flag they typed."""
+    with pytest.raises(ValueError) as refused:
+        check.declare_artifacts(["confext=fixture"], {})
+    message = str(refused.value)
+    assert "confext artifact" in message
+    assert check.ARTIFACT_DECLARATIONS["confext"] in message
+
+
+def test_a_relative_artifact_declaration_fails_the_run_before_any_check(
+    tmp_path: Path,
+) -> None:
+    """End to end: an invocation error, not a run whose checks blocked.
+
+    The declared environment is supplied so that preflight is not what stops
+    it: what is under test is that a relative artifact path stops the run on
+    its own.
+    """
+    with runner_invocation(
+        "profile", "complete", "--artifact", "slice=out-erofs",
+        extra_environment=preflight_environment(str(tmp_path)),
+    ) as (result, run_dir, manifest):
+        assert result.returncode != 0
+        assert manifest["selected_ids"] == []
+        assert manifest["counts"]["blocked"] == 0
+        assert manifest["counts"]["passing"] == 0
+        assert (run_dir / "results.jsonl").read_bytes() == b""
+        assert "must be an absolute path" in manifest["error"]
 
 
 def test_child_environment_is_allowlisted(monkeypatch: pytest.MonkeyPatch) -> None:

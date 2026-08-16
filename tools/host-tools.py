@@ -74,6 +74,7 @@ TOOLS = (
     Tool("debugfs", "e2fsprogs", "measurement",
          "ext4 extent maps, which decide where PLN-0002-09 flips a bit"),
     Tool("dumpe2fs", "e2fsprogs", "measurement", "ext4 superblock parameters for the declaration audit"),
+    Tool("mmd", "mtools", "fixtures", "creates \\loader\\keys\\auto on the ESP before the keys are written"),
     Tool("mcopy", "mtools", "fixtures", "writes auto-enrolment keys into an artifact's ESP"),
     Tool("mdir", "mtools", "fixtures", "proves what was written to the ESP"),
     Tool("mtype", "mtools", "validation", "reads loader configuration out of the ESP"),

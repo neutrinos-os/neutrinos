@@ -1,9 +1,24 @@
 ---
-status: active
+status: frozen
+frozen: 2026-08-16
 last_updated: 2026-08-15
 ---
 
 # Work register
+
+> **Frozen 2026-08-16. Not maintained; do not update it, and do not cite it.**
+> Every row is a hand-maintained join over the decision backlog, requirements,
+> designs, ADRs, research exercises and plans, each of which already holds the
+> authoritative state. The register's own purpose note records what that cost:
+> it went stale for two days while every fact in it existed correctly elsewhere
+> — `P-010`'s duplicated-state failure, observed on this document. Rather than
+> keep paying for a derived view, the derivation is dropped.
+>
+> Read the source instead: questions in [decision-backlog.md](decision-backlog.md),
+> current position in [current-context.md](current-context.md), the rest in the
+> plan, design, ADR or record that owns it. Content below is accurate as of
+> 2026-08-15 and decays from there; `git show corpus-2026-08-16` is the
+> maintained state.
 
 ## Purpose
 

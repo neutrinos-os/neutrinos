@@ -13,7 +13,8 @@
 - Never cold-read `docs/research/results/`, session history, or every linked
   source. Use only for an explicit evidence/history task.
 - On-demand: [terms](docs/project/glossary.md); [ADRs](docs/adrs/README.md);
-  [questions](docs/project/decision-backlog.md); [aggregate](docs/project/work-register.md).
+  [questions](docs/project/decision-backlog.md). `work-register.md` is frozen:
+  do not read, cite, or update it.
 
 ## Authority
 
@@ -58,8 +59,8 @@
   being changed. Do not edit the tree while it runs; it asserts repository state
   is unchanged, and an edit mid-run trips that assertion.
 - Small coherent commits; only after user approval/request; no unrelated work.
-- Update source + affected indexes/context/work register together when their
-  declared triggers fire.
+- Update the source and `current-context.md` together when its declared triggers
+  fire. Keep that file under 1,100 words; move detail to the owning record.
 - Multi-agent only by explicit user request. Per task: owner + file scope +
   isolated worktree/branch. No concurrent same-file edits. Integrator owns
   shared-file conflict resolution.

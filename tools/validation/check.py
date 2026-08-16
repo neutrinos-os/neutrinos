@@ -275,6 +275,21 @@ TESTS = (
         function="check_slice_input_set",
     ),
     Test(
+        id="T2-ROLE-001",
+        level="T2",
+        profiles=("fast", "complete"),
+        timeout_seconds=60,
+        traces=("CH-003", "CH-006", "ADR-0003"),
+        capabilities=(),
+        fixtures=(
+            "src/roles/*/capabilities.toml",
+            "src/roles/*/schema/capabilities-v1.schema.json",
+            "constructed schema violations",
+        ),
+        cleanup_owner="validation runner",
+        function="check_role_capabilities",
+    ),
+    Test(
         id="T2-SLICE-002",
         level="T2",
         profiles=("fast", "complete"),
@@ -1389,6 +1404,14 @@ def check_slice_input_set() -> int:
     return check_input_set()
 
 
+def check_role_capabilities() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.role_capabilities import check_role_capabilities as run
+
+    return run()
+
+
 def check_slice_composition() -> int:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -1470,6 +1493,7 @@ def check_confext_signature_policy() -> int:
 
 
 CHECKS: dict[str, Callable[[], int]] = {
+    "check_role_capabilities": check_role_capabilities,
     "check_slice_input_set": check_slice_input_set,
     "check_slice_composition": check_slice_composition,
     "check_slice_repository_attribution": check_slice_repository_attribution,

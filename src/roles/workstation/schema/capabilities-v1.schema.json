@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neutrinos.example/schema/role/capabilities-v1",
+  "title": "Role capability declaration",
+  "description": "Structure of the operator-authored capability declaration for a role. Each capability entry is both a package-selection driver for composition and a predicate a qualification check must observe on a booted artifact, which is what makes a role definition executable rather than prose. This schema validates structure only. It does not assert that any named package exists in the declared closure, that any predicate is implemented, or that any component selection has been accepted -- every packages value is a candidate fixture under ADR-0003's bounded-configuration rule and stays one however many times it works.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "role",
+    "capability"
+  ],
+  "properties": {
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {
+          "const": "neutrinos.role.capabilities",
+          "description": "Immutable schema identifier required by ADR-0003."
+        },
+        "version": {
+          "const": 1
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "requirement"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Role identifier. Must match the containing directory name; that agreement is a check obligation, not expressible here."
+        },
+        "requirement": {
+          "type": "string",
+          "pattern": "^docs/requirements/roles/[a-z0-9-]+\\.md$",
+          "description": "Repository-relative path to the requirement this declaration serves. The requirement is policy; this file is one mechanism for it."
+        },
+        "reference_host": {
+          "type": "string",
+          "description": "Physical deployment target named for traceability only. Naming a host here authorizes no mutation of it."
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Capability entries keyed by identifier.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stage", "packages", "assert", "origin"],
+        "properties": {
+          "stage": {
+            "enum": ["session", "workflow"],
+            "description": "Work ordering, not importance. 'session' is what a usable graphical session in a disposable virtual machine requires; 'workflow' is daily-use capability that follows once a session exists."
+          },
+          "packages": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Candidate package selections. An empty array is meaningful and permitted: it declares a capability that is a property of how the artifact is composed rather than a component that can be installed."
+          },
+          "assert": {
+            "type": "string",
+            "minLength": 16,
+            "description": "The predicate a qualification check must observe on a booted artifact. Stated as an observation, never as a command, so the declaration does not encode one harness."
+          },
+          "origin": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Where the entry came from, so that a transcript preference is never read as a ratified decision."
+          },
+          "note": {
+            "type": "string",
+            "description": "Why the entry is shaped the way it is, including what it deliberately does not claim."
+          }
+        }
+      }
+    }
+  }
+}

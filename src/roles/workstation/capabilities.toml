@@ -1,0 +1,211 @@
+# Capability declaration for the workstation role.
+#
+# What this is: the machine-readable form of the capability areas in
+# docs/requirements/roles/workstation.md, with the component selections the
+# design session named. One entry is simultaneously a package-selection driver
+# and a qualification predicate, which is what the charter's distinguishing
+# invariant asks for -- a release artifact is deployable to this role only when
+# it has passed that role's boot and acceptance checks.
+#
+# What this is NOT: an accepted decision about any component. The role
+# requirement states that "package and desktop-component selections remain
+# design decisions, not role requirements", and nothing here changes that.
+# Every `packages` value is a candidate fixture and stays one however many
+# times it works. The `origin` field records where a name came from so a
+# transcript preference is never mistaken for a ratified choice.
+#
+# Relationship to composition: this file is the declaration and a role's mkosi
+# configuration is the mechanism, the same split as src/slice/input-set.toml
+# against src/slice/composition/mkosi.conf. If they disagree, this file is what
+# was promised and the composition is the defect.
+#
+# `assert` is a predicate a qualification check must observe on a booted
+# artifact. None is executed yet; no check consumes this file today. An entry
+# whose assert cannot be observed from outside the graphical session is a
+# defect in the entry, not a reason to weaken it.
+#
+# `stage` orders the work and claims nothing about importance:
+#   session   -- needed to reach a usable graphical session in a disposable VM.
+#   workflow  -- daily-use capability that follows once a session exists.
+
+[schema]
+id = "neutrinos.role.capabilities"
+version = 1
+
+[role]
+name = "workstation"
+requirement = "docs/requirements/roles/workstation.md"
+# The first physical deployment target for this role. Named for traceability
+# only; nothing here authorizes any mutation of that machine.
+reference_host = "desktop-jason"
+
+# --------------------------------------------------------------------------
+# stage: session
+# --------------------------------------------------------------------------
+
+[capability.graphics]
+stage = "session"
+packages = ["mesa-dri-drivers", "mesa-vulkan-drivers", "libdrm"]
+assert = "a DRM render node exists and the compositor reports a hardware renderer, not a software fallback"
+origin = "role requirement: graphical Wayland session"
+note = """The reference host is AMD Radeon PRO W6600, so amdgpu is the physical
+path; the disposable VM path is virtio-gpu. These are different drivers and a
+VM pass is not evidence for the physical host. Kernel module selection is W-004
+and is not decided here."""
+
+[capability.compositor]
+stage = "session"
+packages = ["sway"]
+assert = "a Wayland display socket is present in the user runtime directory and the compositor process is running under the user manager"
+origin = "design-session transcript"
+note = """Sway is the transcript's stated preference and the only compositor
+named. It is a candidate. The capability is a Wayland session, not Sway."""
+
+[capability.session-lifecycle]
+stage = "session"
+packages = ["uwsm"]
+assert = "graphical-session.target is reached inside the user manager for the session user, and the compositor is a unit under it rather than a bare process"
+origin = "design-session transcript"
+note = """The reason to care: without a session manager the compositor is not a
+systemd unit, so nothing in the session has ordering, dependencies or
+supervision, and ADR-0001 would be satisfied on paper only. This is the entry
+that makes the graphical session systemd-native."""
+
+[capability.login]
+stage = "session"
+packages = ["greetd", "greetd-tuigreet"]
+assert = "greetd.service is active before any session exists, and a synthetic account authenticates through it to a running compositor"
+origin = "design-session transcript"
+note = """Synthetic credentials only. No production credential or enrollment
+authority is exercised by this capability in development or in tests."""
+
+[capability.terminal]
+stage = "session"
+packages = ["foot"]
+assert = "a terminal emulator starts inside the graphical session and executes a command"
+origin = "design-session transcript"
+note = "First interactive proof the session is usable rather than merely running."
+
+[capability.session-diagnostics]
+stage = "session"
+packages = []
+assert = "after a deliberately failed graphical session, the journal for the session user is readable from a text console or from the harness"
+origin = "role requirement: access to logs after a failed graphical boot"
+note = """No packages: this is a property of how the session is composed, not a
+component. It is in the session stage on purpose -- it is what makes every
+other entry debuggable when it fails."""
+
+# --------------------------------------------------------------------------
+# stage: workflow
+# --------------------------------------------------------------------------
+
+[capability.audio]
+stage = "workflow"
+packages = ["pipewire", "wireplumber", "pipewire-pulseaudio"]
+assert = "pipewire.service and wireplumber.service are active in the user manager and at least one sink is present"
+origin = "role requirement: audio, video, screen sharing"
+
+[capability.portals]
+stage = "workflow"
+packages = ["xdg-desktop-portal", "xdg-desktop-portal-wlr", "xdg-desktop-portal-gtk"]
+assert = "the portal service answers on the session bus and the screencast interface is offered by the wlr backend"
+origin = "role requirement: screen sharing; design-session transcript"
+note = """Two backends is deliberate and is the usual source of breakage: wlr
+provides screencast on Sway, gtk provides the file chooser. Which backend
+answers which interface must be declared, not left to arrival order."""
+
+[capability.notifications]
+stage = "workflow"
+packages = ["mako"]
+assert = "the notification interface is claimed on the session bus and a submitted notification is displayed"
+origin = "design-session transcript"
+
+[capability.launcher]
+stage = "workflow"
+packages = ["fuzzel"]
+assert = "the launcher starts and executes a selected desktop entry"
+origin = "design-session transcript"
+
+[capability.lock-and-idle]
+stage = "workflow"
+packages = ["swaylock", "swayidle"]
+assert = "the session locks on request, the lock survives a compositor restart attempt, and unlock requires authentication"
+origin = "role requirement: suspend and resume"
+note = """A lock screen that a crash dismisses is a security defect, not a
+cosmetic one; the assert names the crash case for that reason."""
+
+[capability.clipboard]
+stage = "workflow"
+packages = ["wl-clipboard"]
+assert = "content copied in one client is pasted in another, including across the Xwayland boundary"
+origin = "design-session transcript"
+
+[capability.screen-capture]
+stage = "workflow"
+packages = ["grim", "slurp"]
+assert = "a region capture produces a non-empty image file"
+origin = "design-session transcript"
+
+[capability.x11-compatibility]
+stage = "workflow"
+packages = ["xorg-x11-server-Xwayland"]
+assert = "an X11 client starts and displays under Xwayland"
+origin = "design-session transcript"
+note = "Required by applications the role must run, not a preference for X11."
+
+[capability.authorization-agent]
+stage = "workflow"
+packages = ["polkit", "polkit-gnome"]
+assert = "exactly one polkit agent is registered for the session and an action requiring authorization prompts"
+origin = "design-session transcript"
+note = """Exactly one. Two registered agents is the common failure and produces
+a prompt that authorizes nothing or no prompt at all."""
+
+[capability.secret-storage]
+stage = "workflow"
+packages = ["gnome-keyring"]
+assert = "exactly one Secret Service provider is on the session bus and a stored secret is retrieved after a session restart"
+origin = "design-session transcript"
+note = "Same single-provider constraint as the authorization agent, same reason."
+
+[capability.toolkit-theming]
+stage = "workflow"
+packages = ["gtk3", "gtk4", "adwaita-icon-theme"]
+assert = "a GTK client starts with the declared icon theme resolved rather than falling back"
+origin = "design-session transcript"
+
+[capability.containers]
+stage = "workflow"
+packages = ["podman", "fuse-overlayfs"]
+assert = "a rootless container runs as the session user with a bind-mounted source tree writable from inside"
+origin = "role requirement: rootless containers and bind-mounted source trees"
+note = """This capability and the one below are the workload C-009 must be
+measured against. They cannot be exercised until a machine-state volume and a
+home volume exist, which is why C-009 has never been measurable."""
+
+[capability.microvm]
+stage = "workflow"
+packages = ["qemu-kvm", "systemd-container"]
+assert = "a disposable virtual machine boots from a reflink copy of a disk image and the copy consumes materially less space than a full copy"
+origin = "role requirement: microVM execution"
+note = """systemd-vmspawn ships in systemd-container. The reflink clause is not
+decoration: it is the C-009 criterion, and an assert that ignores it would pass
+on a filesystem that cannot serve this workflow."""
+
+[capability.networking]
+stage = "workflow"
+packages = ["iwd"]
+assert = "wired and wireless links configured by systemd-networkd reach a route, with wireless authenticated"
+origin = "role requirement: wired and wireless networking"
+note = """Wired configuration already exists as a confext under
+src/slice/confext/neutrinos-network. Wireless is new and the reference host has
+Intel wireless."""
+
+[capability.suspend-resume]
+stage = "workflow"
+packages = []
+assert = "the machine suspends and resumes with the graphical session intact, the lock re-engaged, and network links restored"
+origin = "role requirement: suspend and resume"
+note = """No packages. Deliberately last: it is the capability least likely to
+be evidenced by a virtual machine, so a VM pass here is close to worthless and
+the physical host is the only real check."""

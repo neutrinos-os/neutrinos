@@ -20,6 +20,12 @@ the [reference-host inventory](../../research/hardware/reference-host-inventory.
 - approximately 512 GB system NVMe and 1 TB `/home` NVMe
 - current ext4 root and home with no observed block-encryption mapping
 
+The capability areas below have a machine-readable form in
+`src/roles/workstation/capabilities.toml`, where each carries the component
+selections the design session named and the predicate a qualification check
+must observe. That file is a mechanism serving this requirement; the selections
+in it remain candidates, per the constraint below.
+
 ## Candidate capability areas
 
 - UEFI boot and recovery

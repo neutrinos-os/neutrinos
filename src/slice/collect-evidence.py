@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Collect the PLN-0001 evidence bundle outside the repository.
+"""Collect an evidence bundle outside the repository.
 
-PLN-0001-08. The slice's records cite evidence spread across a build root, two
-output directories, and validation run directories that live in a temporary
-path. This gathers the parts a reader would need to check those records, into
-one place with a digest for every file, and leaves the multi-gigabyte artifacts
+PLN-0001-08, and PLN-0002-14 on the same terms. The records cite evidence spread
+across a build root, several output directories, per-task evidence directories,
+and validation run directories that live in a temporary path a reboot removes.
+This gathers the parts a reader would need to check those records, into one
+place with a digest for every file, and leaves the multi-gigabyte artifacts
 where they are: the hygiene contract's bounds mean a bundle records identity and
 reconstruction rather than bytes.
+
+The per-task measurement evidence PLN-0002 produced is the exception to
+"identity, not bytes": `--task-evidence` copies those directories verbatim,
+because a measurement's JSON and the serial console it was read from are the
+evidence and are not reconstructible from anything else. They are small.
 
 What it deliberately does not do is copy the disk images, the retained
 repository packages, or the extracted trees. Those are reconstructible from the
@@ -118,6 +124,13 @@ def main() -> int:
         type=Path,
         help="extracted image tree manifest; repeatable, compared pairwise",
     )
+    parser.add_argument(
+        "--task-evidence",
+        action="append",
+        default=[],
+        type=Path,
+        help="per-task evidence directory, copied verbatim; repeatable",
+    )
     parser.add_argument("--destination", required=True, type=Path)
     arguments = parser.parse_args()
 
@@ -138,10 +151,25 @@ def main() -> int:
         SLICE / "composition" / "mkosi.conf",
         SLICE / "retain-repository.py",
         SLICE / "schema" / "input-set-v2.schema.json",
+        *sorted(SLICE.glob("mkosi.repart/*.conf")),
+        *sorted(SLICE.glob("composition/mkosi.repart/*.conf")),
+        # The measurement mechanisms, on the same ground as compose.sh: every
+        # figure in PLN-0002's records was produced by one of these, and a
+        # record citing one by path stops being checkable when the checkout
+        # moves on.
+        *sorted(SLICE.glob("measure-*.py")),
+        SLICE / "retain-artifact-digests.py",
+        # The enrolment fixture: what the signature dimension of the
+        # substitution matrix was measured against.
+        SLICE / "enroll-fixture.sh",
     ):
-        shutil.copy2(source, bundle / "composition" / source.name)
+        if source.is_file():
+            shutil.copy2(source, bundle / "composition" / source.name)
 
     for name, source in (
+        # Renamed on the way in, because the confext has an `mkosi.conf` of its
+        # own and the bundle is flat.
+        ("confext-mkosi.conf", SLICE / "confext" / "neutrinos-network" / "mkosi.conf"),
         ("neutrinos-slice.manifest", build_root / "out" / "neutrinos-slice.manifest"),
         ("retained.json", build_root / "inputs" / "repository" / "retained.json"),
         ("repomd.xml", build_root / "inputs" / "repository" / "repodata" / "repomd.xml"),
@@ -203,6 +231,19 @@ def main() -> int:
         encoding="utf-8",
     )
 
+    measurements: dict[str, object] = {}
+    for source in arguments.task_evidence:
+        if not source.is_dir():
+            continue
+        target = bundle / "measurements" / source.name
+        shutil.copytree(source, target, dirs_exist_ok=True)
+        files = [path for path in target.rglob("*") if path.is_file()]
+        measurements[source.name] = {
+            "files": len(files),
+            "bytes": sum(path.stat().st_size for path in files),
+            "source": str(source),
+        }
+
     runs = [
         copy_run(arguments.fast_run, bundle / "validation" / "fast"),
         copy_run(arguments.complete_run, bundle / "validation" / "complete"),
@@ -220,6 +261,7 @@ def main() -> int:
     index = {
         "collected_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "identity": identity,
+        "measurements": measurements,
         "not_collected": {
             "disk images, UKIs, kernels, initrds": "digests only; reconstructible from declared inputs",
             "extracted image trees": "manifests only; the trees are derived from the images",
@@ -228,6 +270,14 @@ def main() -> int:
                 "plus the repository's own signed metadata"
             ),
             "PLN-0001-06 fault injections": "separate bundle at evidence/pln-0001-06",
+            "VM disks, firmware variables, vTPM state": (
+                "destroyed at task end per PLN-0002's boundary; the serial console "
+                "of every boot is retained under measurements/"
+            ),
+            "synthetic signing material": (
+                "generated into the build root and destroyed with it; subjects are "
+                "declared in the parameter declaration, keys are never collected"
+            ),
         },
         "source_revision": revision,
         "unsafe_output_findings": findings,

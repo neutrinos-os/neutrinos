@@ -131,6 +131,17 @@ def main() -> int:
     )
     print(f"confext: built {unenrolled.name} signed by the unenrolled key")
 
+    # Delivered to T4-CONFEXT-001 here, with the build that produced them, and
+    # not at the end of a composition as they were. Copying them there tied the
+    # fixture's freshness to the artifact's: rebuilding the extensions without
+    # composing left the check reading a previous build's images, and nothing
+    # detected it. Whatever built them last is what the check now sees.
+    fixture = build_root / "fixture"
+    fixture.mkdir(parents=True, exist_ok=True)
+    for image, name in ((enrolled, "confext-enrolled.raw"), (unenrolled, "confext-unenrolled.raw")):
+        shutil.copy2(image, fixture / name)
+    print(f"confext: delivered both images to {fixture}")
+
     return 0
 
 

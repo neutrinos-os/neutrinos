@@ -37,7 +37,7 @@ image_cert=${NEUTRINOS_ENROLL_IMAGE_CERT:-$keys_dir/secureboot.crt}
 verity_cert=${NEUTRINOS_ENROLL_VERITY_CERT:-$keys_dir/verity.crt}
 [ -f "$verity_cert" ] || {
     echo "enroll-fixture: no verity certificate at $verity_cert;" \
-         "compose.sh generates it" >&2; exit 1; }
+         "buildroot.py generates it" >&2; exit 1; }
 
 for tool in sbsiglist sbvarsign mcopy sfdisk; do
     command -v "$tool" >/dev/null 2>&1 || {

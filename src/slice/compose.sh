@@ -307,21 +307,23 @@ fi
 # retention silently did not happen. A step added for a new check must not take
 # out an established one.
 #
+# Only the enrollment remains here, because only it needs the composed
+# artifact: it copies the artifact and writes the signed variable updates into
+# the copy's ESP. The two extension images are delivered to the fixture
+# directory by fixtures.py, with the build that produced them.
+#
 # It needs an image-signing certificate to keep in `db` beside the verity
 # signer, since enrolling without one produces a machine whose firmware refuses
-# its own UKI. This script generates that certificate, so the else branch is
+# its own UKI. buildroot.py generates that certificate, so the else branch is
 # the damaged-build-root case. It reports and continues rather than failing the
 # composition: the fixture's absence blocks T4-CONFEXT-001, which is the same
 # signal in the place that reads it.
 if [ -f "$out_dir/neutrinos-slice.manifest" ] && [ -z "${NEUTRINOS_SKIP_CONFEXT:-}" ]; then
     if [ -f "$keys_dir/secureboot.crt" ]; then
         sh "$root/enroll-fixture.sh"
-        cp "$confext_out/neutrinos-network.raw" "$build_root/fixture/confext-enrolled.raw"
-        cp "$confext_out-unenrolled/neutrinos-network.raw" \
-            "$build_root/fixture/confext-unenrolled.raw"
     else
         echo "compose: no image-signing certificate at $keys_dir/secureboot.crt," \
-             "so the T4-CONFEXT-001 fixture was not built. This script generates" \
+             "so the T4-CONFEXT-001 fixture was not built. buildroot.py generates" \
              "that certificate, so its absence means the build root is damaged" \
              "rather than incomplete." >&2
     fi

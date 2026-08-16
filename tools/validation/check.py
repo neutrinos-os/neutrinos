@@ -24,7 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 
 
@@ -48,6 +48,21 @@ SLICE_REPOSITORY_ENV = "NEUTRINOS_SLICE_REPOSITORY_DIR"
 CONFEXT_FIXTURE_ENV = "NEUTRINOS_CONFEXT_FIXTURE_DIR"
 STATE_ARTIFACT_ENV = "NEUTRINOS_STATE_ARTIFACT_DIR"
 SESSION_ARTIFACT_ENV = "NEUTRINOS_SESSION_ARTIFACT_DIR"
+# The declared build outputs a check may be pointed at, keyed by the name the
+# operator types. One mapping, used by three things that must agree: the
+# `--artifact` invocation option, the environment handed to the child process
+# that runs a check, and the evidence record. They disagreed once already.
+#
+# These are declarations, not discoveries. Nothing here searches for an
+# artifact: composition writes outputs too large for the checkout, and which
+# one a check is pointed at is the operator's statement, recorded as such.
+ARTIFACT_DECLARATIONS = {
+    "slice": SLICE_ARTIFACT_ENV,
+    "state": STATE_ARTIFACT_ENV,
+    "session": SESSION_ARTIFACT_ENV,
+    "repository": SLICE_REPOSITORY_ENV,
+    "confext": CONFEXT_FIXTURE_ENV,
+}
 SYNTHETIC_CANARY_ENV = "NEUTRINOS_VALIDATION_CANARY"
 SYNTHETIC_CANARY_PREFIX = "NEUTRINOS_SYNTHETIC_CANARY_"
 UNSAFE_OUTPUT_PATTERNS = (
@@ -1926,7 +1941,14 @@ def child_environment(home: Path, cache_root: Path, canary: str) -> dict[str, st
         UV_CACHE_ENV: os.environ[UV_CACHE_ENV],
         BETTERLEAKS_ENV: os.environ[BETTERLEAKS_ENV],
     }
-    for declared in (SLICE_ARTIFACT_ENV, SLICE_REPOSITORY_ENV, CONFEXT_FIXTURE_ENV):
+    # Every declared artifact, not a hand-kept subset. The state and session
+    # variants were missing here while being present in
+    # ALLOWED_RUNNER_ENVIRONMENT and in their capability functions, so the
+    # capability evaluated in this process saw the declaration and the child
+    # that actually runs the check did not: T4-STATE-001 and T4-SESSION-001
+    # would raise KeyError inside the child rather than run. Driving both from
+    # one mapping is what stops the two lists from disagreeing again.
+    for declared in ARTIFACT_DECLARATIONS.values():
         if declared in os.environ:
             environment[declared] = os.environ[declared]
     if "SYSTEMROOT" in os.environ:
@@ -2454,6 +2476,35 @@ class InvocationArgumentParser(argparse.ArgumentParser):
         raise ValueError("invalid command-line invocation")
 
 
+def declare_artifacts(
+    declarations: Sequence[str], environment: MutableMapping[str, str]
+) -> None:
+    """Put `--artifact KIND=DIR` declarations into the environment.
+
+    The runner reads artifact locations from the environment, and `mise` sets
+    `sandbox.deny_env`, so a task cannot forward one from the caller's shell.
+    Without this option there is no supported way to run an artifact-dependent
+    check at all, and every such run was assembled by hand -- which is where the
+    guessed variable names and malformed interpreter invocations came from.
+
+    The declaration is rejected rather than merged when the variable is already
+    set. A check pointed at two different disks by two different routes is the
+    ambiguity these checks exist to prevent, and silently preferring one of them
+    would decide it invisibly.
+    """
+    for declaration in declarations:
+        kind, separator, value = declaration.partition("=")
+        if not separator or not kind or not value:
+            raise ValueError(f"--artifact takes KIND=DIR, not {declaration!r}")
+        name = ARTIFACT_DECLARATIONS.get(kind)
+        if name is None:
+            expected = ", ".join(sorted(ARTIFACT_DECLARATIONS))
+            raise ValueError(f"no artifact kind {kind!r}; expected one of {expected}")
+        if name in environment:
+            raise ValueError(f"{kind} artifact is declared twice")
+        environment[name] = value
+
+
 def parse_args() -> argparse.Namespace:
     parser = InvocationArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -2461,6 +2512,10 @@ def parse_args() -> argparse.Namespace:
     profile.add_argument("name")
     exact = subparsers.add_parser("run")
     exact.add_argument("ids", nargs="+")
+    exact.add_argument("--artifact", action="append", default=[], metavar="KIND=DIR")
+    single = subparsers.add_parser("one")
+    single.add_argument("id")
+    single.add_argument("--artifact", action="append", default=[], metavar="KIND=DIR")
     subparsers.add_parser("list")
     internal = subparsers.add_parser("_execute")
     internal.add_argument("id", choices=tuple(TEST_BY_ID))
@@ -2476,8 +2531,16 @@ def main() -> int:
         return list_tests()
     if arguments.command == "profile":
         return run("profile", (arguments.name,))
-    if arguments.command == "run":
-        return run("run", arguments.ids)
+    if arguments.command in {"run", "one"}:
+        try:
+            declare_artifacts(arguments.artifact, os.environ)
+        except ValueError as error:
+            return run("invalid", (), invocation_error=bounded_error(error))
+        ids = (arguments.id,) if arguments.command == "one" else arguments.ids
+        # No separate result handling for `one`: a selected test that cannot run
+        # is blocked, and blocked already fails the run. Asking for one test and
+        # being told it was skipped must not exit 0.
+        return run("run", ids)
     test = TEST_BY_ID[arguments.id]
     # The runner-private path, closed for the same reason selection is: a
     # deferred test must not be reachable by any route that could report it

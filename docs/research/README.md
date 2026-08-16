@@ -4,6 +4,11 @@ Research documents collect evidence used by designs. They should separate
 upstream facts, measured results, operating experience, and assumptions, and
 should include source dates because the relevant projects evolve quickly.
 
+**Start at the [comparison index](comparisons/README.md).** It carries the
+durable conclusion of every comparison in one paragraph each — 1,577 words
+against 32,528. Open a comparison itself only to challenge its conclusion or to
+use its evidence.
+
 Initial research tracks:
 
 - [whole-system comparison with existing atomic and declarative systems](comparisons/existing-systems.md)

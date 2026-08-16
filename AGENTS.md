@@ -13,8 +13,8 @@
 - Never cold-read `docs/research/results/`, session history, or every linked
   source. Use only for an explicit evidence/history task.
 - On-demand: [terms](docs/project/glossary.md); [ADRs](docs/adrs/README.md);
-  [questions](docs/project/decision-backlog.md). `work-register.md` is frozen:
-  do not read, cite, or update it.
+  [questions](docs/project/decision-backlog.md); [risks](docs/project/risk-register.md).
+  `work-register.md` is deleted; its facts live in their owning records.
 
 ## Authority
 

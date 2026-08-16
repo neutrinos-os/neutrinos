@@ -147,8 +147,8 @@ anything frozen. Six failure modes verified detected.
 
 1. Root `AGENTS.md`. 2. This file. 3. Read-only status: hard stop — cite paths
 without opening them. 4. Execution or edit: the active plan's sections and only
-the sources governing the exact change. 5. Questions: `decision-backlog.md`
-(`work-register.md` is frozen — do not read or cite it). 6. History:
+the sources governing the exact change. 5. Questions: `decision-backlog.md`;
+risks: `risk-register.md`. 6. History:
 `docs/background/design-session-summary.md`.
 
 Update this file when the gate, the active plan, a relevant accepted decision or

@@ -94,7 +94,8 @@ read the entire design archive before useful work:
    prohibited actions, dirty-worktree expectations, and the next action;
 3. a hard stop after those two files for read-only status/orientation/report
    work, except one authority explicitly named by the user;
-4. the [work register](../project/work-register.md) only for aggregate status;
+4. the work register only for aggregate status (removed 2026-08-16;
+   retained at tag `corpus-2026-08-16`);
 5. the active plan only for execution/edit scope and requirement trace; and
 6. only the DES/ADR/SYS/EX sources governing the exact task.
 
@@ -215,7 +216,7 @@ command. Before G1:
 | ID | Exit criterion | Status | Evidence or required disposition |
 | --- | --- | --- | --- |
 | PRE-001 | The first slice has an accepted outcome, non-goals, and mutation boundary. | Satisfied | Owner approval of this plan on 2026-08-10 |
-| PRE-002 | Every decision relevant to the slice is classified as accepted, experimental fixture, blocking, or deferred. | Satisfied | Owner approval of the candidate fixture table and [work register](../project/work-register.md) on 2026-08-10 |
+| PRE-002 | Every decision relevant to the slice is classified as accepted, experimental fixture, blocking, or deferred. | Satisfied | Owner approval of the candidate fixture table and `work-register.md` on 2026-08-10 |
 | PRE-003 | The exact source tree, candidate package snapshot, configuration inputs, build-tool identity, and expected output artifact set are named. | Satisfied | Owner acceptance of PLN-0001 and [PR-0027](../project/reviews/0027-reference-vm-slice-plan.md) on 2026-08-10: [PLN-0001](0001-reference-vm-slice.md) inputs and dependencies, plus `PLN-0001-01`
 | PRE-004 | Applicable accepted system requirements are mapped to first-slice tests, with non-applicable requirements and reduced claims justified. | Satisfied | Owner acceptance of PLN-0001 and [PR-0027](../project/reviews/0027-reference-vm-slice-plan.md) on 2026-08-10: [PLN-0001](0001-reference-vm-slice.md) decision and requirement trace
 | PRE-005 | At least one success path and representative substitution, corruption, interruption, reconstruction, and offline failure paths are specified. | Satisfied | Owner acceptance of PLN-0001 and [PR-0027](../project/reviews/0027-reference-vm-slice-plan.md) on 2026-08-10: [PLN-0001](0001-reference-vm-slice.md) work tasks `PLN-0001-03`, `-06`, and `-07`

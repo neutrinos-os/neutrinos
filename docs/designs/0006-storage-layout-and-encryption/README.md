@@ -110,17 +110,19 @@ Verity pair. That binding, plus the deployment manifest, identifies the booted
 deployment. `A`, `B`, partition order, GPT label, filename, and human version
 are storage and discovery metadata only.
 
-Release root content is not encrypted and contains no machine, user, workload,
-or production secret. Exact normal configuration is initially flattened into
-the root artifact. Persistent mutable data resides in LUKS2 volumes separated
+Release content is not encrypted and contains no machine, user, workload, or
+production secret. Persistent mutable data resides in LUKS2 volumes separated
 when custody, unlock timing, recovery authority, preservation, or destruction
 policy differs.
 
-**Two sentences above are superseded 2026-08-11 by the C-013 resolution.** The
-authenticated artifact is `/usr`, not "one read-only root filesystem image",
-and configuration is delivered by signed confexts rather than flattened into
-it. See
-[the amendment](#amendment-2026-08-11-the-authenticated-artifact-is-usr).
+The authenticated artifact is **`/usr`**, not one read-only root filesystem
+image, and configuration is delivered by signed confexts rather than flattened
+into it. Accepted as
+[ADR-0004](../../adrs/0004-usr-scoped-release-artifact.md); see also
+[the amendment](#amendment-2026-08-11-the-authenticated-artifact-is-usr). The
+two superseded sentences that stood here until 2026-08-16 are in git history;
+they were removed because a superseded statement sitting above its own
+correction is quotable as current.
 
 Btrfs is the leading mutable-filesystem candidate, reflecting the
 [original design goal](../../background/2026-08-09-design-session-transcript.md)

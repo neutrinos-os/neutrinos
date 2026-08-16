@@ -63,7 +63,8 @@ operator-facing configuration must not become a Turing-complete module
 language, and missing convenience-schema support must not block direct use of
 upstream-native configuration.
 
-The [aggregate work register](../project/work-register.md) is the canonical
+The aggregate work register (`docs/project/work-register.md`, removed
+2026-08-16; retained at tag `corpus-2026-08-16`) was the canonical
 summary of remaining policy, mechanism, evidence, implementation, and gate
 work. [PLN-0000](../plans/0000-pre-implementation-readiness.md) defines the
 proposed boundary for authorizing a first disposable VM-only implementation
@@ -410,7 +411,7 @@ Before continuing architecture work after compaction or in a new session:
 3. Read the [ADR index](../adrs/README.md),
    [system requirements](../requirements/system.md), and
    [decision backlog](../project/decision-backlog.md).
-4. Read the [work register](../project/work-register.md) and current
+4. Read the work register (removed 2026-08-16) and current
    [plans](../plans/README.md) to identify the active gate and next action.
 5. Read the complete current design and adversarial review for the active
    backlog question.

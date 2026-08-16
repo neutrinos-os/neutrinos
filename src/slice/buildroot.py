@@ -51,6 +51,31 @@ ROOT = Path(__file__).resolve().parent
 # which is the owner's call and not something to arrange from here.
 MKOSI_REPOSITORY = "https://github.com/systemd/mkosi"
 
+# The four subjects of the signing-material table in
+# docs/project/artifact-parameter-declaration.md, generated into the build root
+# and destroyed with it. Synthetic throughout: PLN-0002 forbids production
+# material and needs none, since what is under test is whether the mechanism
+# binds, not whose key signs.
+#
+# They were generated in two places -- three here and the platform key in
+# enroll-fixture.sh -- under guards written twice and differing. The declaration
+# holds them in one table because their distinctness is the measurement:
+# T4-CONFEXT-001's entire content is which signer `db` carries, and a shared
+# subject would make enrolling one enroll the other. One table there, one owner
+# here.
+#
+# The verity subject is restated rather than read, which the declaration
+# sanctions in as many words: "one subject" is not a value a build script can
+# check itself against, so the literal is named there and guarded here.
+VERITY_SUBJECT = "NeutrinOS verity, synthetic"
+
+SIGNING_MATERIAL = (
+    ("verity", VERITY_SUBJECT),
+    ("verity-wrong", "NeutrinOS slice verity, synthetic, unenrolled"),
+    ("secureboot", "NeutrinOS image, synthetic"),
+    ("platform", "NeutrinOS slice platform key, synthetic"),
+)
+
 
 def tools_tree_identity(declaration: dict) -> str:
     """Digest what the tools tree is built from, not what it came out as.
@@ -228,6 +253,71 @@ def provision_tools_tree(build_root: Path, declaration: dict) -> bool:
     return True
 
 
+def certificate_subject(certificate: Path) -> str:
+    return subprocess.run(
+        ["openssl", "x509", "-noout", "-subject", "-in", str(certificate)],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def provision_signing_material(build_root: Path) -> list[str]:
+    """Generate what is missing; never regenerate what exists.
+
+    Every guard is on the certificate rather than the key: openssl writes the
+    key first, and an interrupted run otherwise leaves a key with no certificate
+    that a key-guarded check skips forever. Observed in the PLN-0002-01 spike.
+
+    The verity subject is checked against the certificate rather than against a
+    marker file. Changing the declared string alone would otherwise be a silent
+    no-op on an existing build root, reading as satisfied while every artifact
+    kept the old signer. It fails rather than regenerating, because regenerating
+    would change the signature of artifacts already measured.
+    """
+    keys = build_root / "keys"
+    keys.mkdir(parents=True, exist_ok=True)
+    generated: list[str] = []
+
+    verity = keys / "verity.crt"
+    if verity.is_file():
+        observed = certificate_subject(verity)
+        if observed != f"subject=CN={VERITY_SUBJECT}":
+            raise SystemExit(
+                f"{verity} has {observed}, and the declaration names "
+                f"'subject=CN={VERITY_SUBJECT}'. Artifacts signed by the old key "
+                "keep it until they are rebuilt. To adopt the declared subject:\n"
+                f"  rm -f {keys}/verity.key {keys}/verity.crt {keys}/verity.der"
+            )
+
+    for name, subject in SIGNING_MATERIAL:
+        certificate = keys / f"{name}.crt"
+        if not certificate.is_file():
+            subprocess.run(
+                [
+                    "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+                    "-days", "30", "-subj", f"/CN={subject}/",
+                    "-keyout", str(keys / f"{name}.key"), "-out", str(certificate),
+                ],
+                check=True,
+                capture_output=True,
+            )
+            generated.append(name)
+
+        # UEFI db takes DER and openssl emits PEM. All four, so the negative
+        # cases are enrollable too.
+        der = keys / f"{name}.der"
+        if not der.is_file():
+            subprocess.run(
+                ["openssl", "x509", "-outform", "DER", "-in", str(certificate),
+                 "-out", str(der)],
+                check=True,
+                capture_output=True,
+            )
+
+    return generated
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -239,6 +329,13 @@ def main() -> int:
     declaration = tomllib.loads(arguments.input_set.read_text(encoding="utf-8"))
     build_root = arguments.build_root
     build_root.mkdir(parents=True, exist_ok=True)
+
+    generated = provision_signing_material(build_root)
+    print(
+        f"signing material: generated {', '.join(generated)}"
+        if generated
+        else f"signing material: {len(SIGNING_MATERIAL)} subjects already present"
+    )
 
     commit = mkosi_commit(declaration)
     provision_mkosi(build_root, commit)

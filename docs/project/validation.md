@@ -100,6 +100,18 @@ loop that fetches everything `repomd.xml` names was building its URL from an
 imported function rather than from the repository URL, which no build had hit
 because the reuse path above it skips the loop whenever a retention exists.
 
+The enrollment that builds `T4-CONFEXT-001`'s fixture is covered there too,
+against a recorded stand-in for `sbsiglist`, `sbvarsign`, `mcopy` and `sfdisk`
+rather than by signing anything: what is testable is the ESP offset parse, which
+signature list each firmware variable carries, and the four fail-open guards the
+conversion from `enroll-fixture.sh` closed -- ESP directory creation that
+suppressed every error rather than only "exists", an image DER guarded by
+existence so a changed image certificate enrolled the previous signer and
+reported success, a `platform.crt` that `sbvarsign` used and nothing checked,
+and a missing `uuidgen` yielding the nil owner GUID. Each was reintroduced and
+the suite verified failing. Whether the resulting authenticated variables are
+well-formed is `T4-CONFEXT-001`'s question, and it answers it by booting.
+
 `T2-SLICE-001` validates `src/slice/input-set.toml` against the schema its own
 `[schema]` block declares, and reproduces the eleven constructed rejections the
 [input declaration](slice-input-declaration.md) claims. It uses the locked

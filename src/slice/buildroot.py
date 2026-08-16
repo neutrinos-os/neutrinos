@@ -55,8 +55,9 @@ MKOSI_REPOSITORY = "https://github.com/systemd/mkosi"
 # binds, not whose key signs.
 #
 # They were generated in two places -- three here and the platform key in
-# enroll-fixture.sh -- under guards written twice and differing. The declaration
-# holds them in one table because their distinctness is the measurement:
+# what is now enroll.py -- under guards written twice and differing. The
+# declaration holds them in one table because their distinctness is the
+# measurement:
 # T4-CONFEXT-001's entire content is which signer `db` carries, and a shared
 # subject would make enrolling one enroll the other. One table there, one owner
 # here.

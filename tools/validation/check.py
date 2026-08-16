@@ -302,6 +302,7 @@ TESTS = (
             "src/slice/*.py",
             "constructed input-set and capability declarations",
             "a recorded stand-in for the declared repository",
+            "a recorded stand-in for the enrollment's signing tools",
         ),
         cleanup_owner="validation runner",
         function="check_slice_library_units",
@@ -1829,7 +1830,7 @@ def capability_confext_fixture(
 ) -> str | None:
     """The enrolled artifact and the two confexts, produced by composition.
 
-    Built by `src/slice/enroll-fixture.sh` and declared to validation the same
+    Built by `src/slice/enroll.py` and declared to validation the same
     way the artifact is. Absence blocks rather than skips: a signature check
     with nothing to compare signers against would report the same shape as a
     passing run.

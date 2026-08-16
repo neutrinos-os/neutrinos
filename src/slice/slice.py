@@ -11,8 +11,9 @@ sequences has four lifetimes, and each subcommand below is one of them:
   fixtures    once per test material  both extension signings, delivered
   compose     once per artifact       the arm and variant, built by mkosi
   retain      once per release set    the declared repository, by digest
+  enroll      once per test material  the T4-CONFEXT-001 enrolled artifact
 
-`build` runs all five in the order their dependencies require, which is the
+`build` runs all six in the order their dependencies require, which is the
 whole of what the shell script did.
 
 Selection -- arm, variant, role -- is orthogonal to those four and is passed
@@ -28,13 +29,13 @@ from __future__ import annotations
 
 import argparse
 import os
-import subprocess
 import sys
 from pathlib import Path
 
 import acquire_overlay
 import buildroot
 import compose
+import enroll
 import fixtures
 import retain_repository
 from common import default_build_root
@@ -125,13 +126,12 @@ def run_build(arguments: argparse.Namespace) -> int:
     # silently did not happen. A step added for a new check must not take out an
     # established one.
     #
-    # Still a shell script, and the last one in this path. It needs an
-    # image-signing certificate to keep in `db` beside the verity signer, since
-    # enrolling without one produces a machine whose firmware refuses its own
-    # UKI. buildroot generates that certificate, so its absence is a damaged
-    # build root rather than an incomplete one -- reported, not fatal, because
-    # the fixture's absence blocks T4-CONFEXT-001, which is the same signal in
-    # the place that reads it.
+    # It needs an image-signing certificate to keep in `db` beside the verity
+    # signer, since enrolling without one produces a machine whose firmware
+    # refuses its own UKI. buildroot generates that certificate, so its absence
+    # is a damaged build root rather than an incomplete one -- reported, not
+    # fatal, because the fixture's absence blocks T4-CONFEXT-001, which is the
+    # same signal in the place that reads it.
     if os.environ.get("NEUTRINOS_SKIP_CONFEXT"):
         return 0
     if not (build_root / "keys" / "secureboot.crt").is_file():
@@ -143,7 +143,7 @@ def run_build(arguments: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 0
-    subprocess.run(["sh", str(ROOT / "enroll-fixture.sh")], check=True)
+    enroll.enroll(build_root)
     return 0
 
 
@@ -190,6 +190,11 @@ def run_retain(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def run_enroll(arguments: argparse.Namespace) -> int:
+    enroll.enroll(arguments.build_root)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     # Line-buffered, because mkosi writes to the same file descriptor from a
     # subprocess. Python block-buffers stdout when it is redirected, so the
@@ -217,6 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     steps.add_parser("acquire", help="declared package overlays").set_defaults(run=run_acquire)
     steps.add_parser("fixtures", help="both extension signings").set_defaults(run=run_fixtures)
     steps.add_parser("retain", help="the declared repository").set_defaults(run=run_retain)
+    steps.add_parser("enroll", help="the enrolled-artifact fixture").set_defaults(run=run_enroll)
 
     # parse_known_args, because everything after the step is mkosi's: `--force`,
     # `summary`, `-ff`. argparse rejects unknown options otherwise, and the

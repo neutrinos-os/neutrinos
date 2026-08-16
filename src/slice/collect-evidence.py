@@ -170,6 +170,7 @@ def main() -> int:
         SLICE / "acquire_overlay.py",
         SLICE / "fixtures.py",
         SLICE / "retain_repository.py",
+        SLICE / "enroll.py",
         # The schema the declaration names, not a version written here. This
         # said v2 while the declaration had said version 3 since v3 landed, so
         # the bundle carried a schema the record was not validated against --
@@ -183,12 +184,22 @@ def main() -> int:
         # moves on.
         *sorted(SLICE.glob("measure-*.py")),
         SLICE / "retain-artifact-digests.py",
-        # The enrolment fixture: what the signature dimension of the
-        # substitution matrix was measured against.
-        SLICE / "enroll-fixture.sh",
+        # The enrolment fixture -- what the signature dimension of the
+        # substitution matrix was measured against -- is `enroll.py`, listed
+        # with the other helpers above. It was `enroll-fixture.sh`.
     ):
-        if source.is_file():
-            shutil.copy2(source, bundle / "composition" / source.name)
+        # Not `if source.is_file()`. Every path above is either a glob result or
+        # a committed file, so a missing one means the mechanism was renamed and
+        # the list was not -- exactly what happened to `enroll-fixture.sh`, and
+        # the guard would have shipped a bundle missing it without a word.
+        if not source.is_file():
+            raise SystemExit(
+                f"collect-evidence: {source} is listed as part of the mechanism "
+                "and does not exist. Update this list to what the mechanism is "
+                "now called; a bundle missing it is not the bundle the records "
+                "cite."
+            )
+        shutil.copy2(source, bundle / "composition" / source.name)
 
     for name, source in (
         # Renamed on the way in, because the confext has an `mkosi.conf` of its

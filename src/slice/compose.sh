@@ -154,12 +154,22 @@ fi
 # visible to validation but leaves this script's own exit code meaningless, and
 # a build tool whose exit code does not mean "built" is one every caller has to
 # work around. Refusing here is the direct statement.
+# Only a build can be a silent no-op. `summary`, `clean` and the rest pass
+# through this script to mkosi and produce no artifact, so refusing them for an
+# artifact that already exists would break the read-only verbs -- measured
+# 2026-08-16, the first form of this guard exited 1 on `compose.sh summary`.
+# Lines below already carry the same distinction, testing for a manifest before
+# retention and before the fixture.
 for argument in "$@"; do
     case "$argument" in
     --force | -f | -ff) force=yes ;;
+    summary | clean | shell | boot | vm | qemu | ssh | journalctl | \
+    coredumpctl | serve | burn | sysupdate | sandbox | documentation | \
+    genkey | dependencies | completion | cat-config | box) verb=other ;;
     esac
 done
-if [ -e "$out_dir/neutrinos-slice.raw" ] && [ "${force:-no}" = no ]; then
+if [ -e "$out_dir/neutrinos-slice.raw" ] &&
+   [ "${force:-no}" = no ] && [ "${verb:-build}" = build ]; then
     echo "compose: $out_dir/neutrinos-slice.raw exists and --force was not" \
          "passed; mkosi would decline to rebuild it and this script would" \
          "report success without composing anything. Pass --force to rebuild," \

@@ -22,6 +22,14 @@ one.
 This is not a mirror of the repository. It is the subset one composition
 resolved, which is the only part reconstruction needs and the only part whose
 provenance this slice can state.
+
+Which publication of the repository is checked here, against the declared
+`metadata_digest`, and not only downstream in T2-SLICE-002. The declaration
+records a URL *and* a digest because the URL alone is not an identity, and a
+retention step that fetched whatever the URL served would retain the wrong
+repository and say nothing. The digest is also what makes an already-retained
+tree reusable: it is the key that says the tree on disk is the declared
+repository rather than merely a repository.
 """
 
 from __future__ import annotations
@@ -36,6 +44,10 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path
+
+from declaration import load, repository
+
+ROOT = Path(__file__).resolve().parent
 
 COMMON_NS = "{http://linux.duke.edu/metadata/common}"
 REPO_NS = "{http://linux.duke.edu/metadata/repo}"
@@ -71,7 +83,7 @@ def digest(path: Path) -> str:
     return hasher.hexdigest()
 
 
-def retain_metadata(repository: str, destination: Path) -> Path:
+def retain_metadata(url: str, declared_digest: str, destination: Path) -> Path:
     """Fetch `repomd.xml` and every file it references. Returns the primary index.
 
     Everything `repomd.xml` names is retained, not just the primary index. A
@@ -83,6 +95,24 @@ def retain_metadata(repository: str, destination: Path) -> Path:
         # The declared repository is frozen, so its metadata cannot have moved.
         # Re-fetching it every build would put a network dependency on the
         # offline rebuild this retention exists to make possible.
+        #
+        # Reuse is keyed on the declared digest, not on the file existing. An
+        # existence guard reuses whatever is in the directory, so editing the
+        # declared repository left the previous one's metadata in place and
+        # retention went on attributing packages to it. That failed open at
+        # build time and was caught only downstream, by T2-SLICE-002 comparing
+        # the same two values this now compares before using either.
+        found = digest(repomd)
+        if found != declared_digest:
+            raise SystemExit(
+                f"the retained metadata under {destination} is not the declared "
+                f"repository\n  declared {declared_digest}\n  found    {found}\n"
+                "Remove the retention directory and re-run to retain the "
+                "declared one. It is not removed here: it is the input an "
+                "offline rebuild resolves against, and discarding it on a "
+                "declaration edit would trade a stop you can recover from for "
+                "a loss you cannot."
+            )
         primary = next(
             (
                 path
@@ -93,7 +123,19 @@ def retain_metadata(repository: str, destination: Path) -> Path:
         )
         if primary is not None:
             return primary
-    fetch(f"{repository}/repodata/repomd.xml", repomd)
+    fetch(f"{url}/repodata/repomd.xml", repomd)
+
+    # Verified before anything it names is fetched, so a repository that is not
+    # the declared one costs one request rather than a full retention. Left in
+    # place rather than deleted, as acquire-overlay.py leaves a mismatched
+    # overlay file: what arrived is evidence about what the URL is serving, and
+    # the next run must fail on it again rather than quietly re-fetch.
+    found = digest(repomd)
+    if found != declared_digest:
+        raise SystemExit(
+            f"{url} serves metadata that is not the declared publication\n"
+            f"  declared {declared_digest}\n  found    {found}"
+        )
 
     primary: Path | None = None
     for data in ET.fromstring(repomd.read_bytes()):
@@ -115,7 +157,9 @@ def retain_metadata(repository: str, destination: Path) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repository", required=True, help="declared repository URL")
+    parser.add_argument(
+        "--input-set", type=Path, default=ROOT / "input-set.toml", help="declaration to read"
+    )
     parser.add_argument("--cache", required=True, type=Path, help="package cache to retain from")
     parser.add_argument(
         "--overlay",
@@ -130,6 +174,13 @@ def main() -> int:
     parser.add_argument("--destination", required=True, type=Path, help="retention root")
     arguments = parser.parse_args()
 
+    # Read here rather than passed in. compose.sh restated the URL because a
+    # shell script cannot parse TOML without a dependency this slice has not
+    # declared, which left the last copy of a declared value outside the
+    # declaration; and the digest below has no argument at all, so a caller
+    # supplying the URL could not have supplied the identity that goes with it.
+    declared = repository(load(arguments.input_set))
+
     overlay_files: set[str] = set()
     if arguments.overlay is not None and arguments.overlay.is_dir():
         overlay_files = {path.name for path in arguments.overlay.rglob("*.rpm")}
@@ -137,7 +188,7 @@ def main() -> int:
     destination: Path = arguments.destination
     destination.mkdir(parents=True, exist_ok=True)
 
-    primary = retain_metadata(arguments.repository, destination)
+    primary = retain_metadata(declared["url"], declared["metadata_digest"], destination)
     locations: dict[str, str] = {}
     for package in ET.fromstring(decompress(primary)):
         location = package.find(f"{COMMON_NS}location")
@@ -188,7 +239,7 @@ def main() -> int:
         "package_count": len(retained),
         "repomd_sha256": digest(destination / "repodata" / "repomd.xml"),
         "retained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "source_url": arguments.repository,
+        "source_url": declared["url"],
     }
     (destination / RETENTION_RECORD).write_text(
         json.dumps(record, ensure_ascii=False, indent=1, sort_keys=True) + "\n",

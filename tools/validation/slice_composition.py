@@ -35,6 +35,8 @@ INPUT_SET = ROOT / "src" / "slice" / "input-set.toml"
 COMPOSITION = ROOT / "src" / "slice" / "composition" / "mkosi.conf"
 COMPOSE = ROOT / "src" / "slice" / "compose.sh"
 BUILDROOT = ROOT / "src" / "slice" / "buildroot.py"
+RETAIN_REPOSITORY = ROOT / "src" / "slice" / "retain-repository.py"
+DECLARATION = ROOT / "src" / "slice" / "declaration.py"
 COMMON_NS = "{http://linux.duke.edu/metadata/common}"
 SETTING = re.compile(r"^([A-Za-z][A-Za-z0-9]*)=(.*)$")
 ASSIGNMENT = re.compile(r"^([a-z_]+)=(\S+)$")
@@ -154,43 +156,45 @@ def check_composition_fixture() -> int:
     # repeated the declaration's values because a shell script cannot read TOML
     # without a dependency the slice has not declared.
     #
-    # `repository_url` is the last one it still repeats, because
-    # retain-repository.py takes the URL as an argument. It is checked the same
-    # way it always was.
-    observed = assignments.get("repository_url")
-    if observed is None:
-        failures.append("compose.sh assigns no repository_url")
-    elif observed != repository:
-        failures.append(
-            f"compose.sh uses repository_url={observed!r}; the declaration names "
-            f"{repository!r}"
-        )
-
-    # The rest moved to buildroot.py, which reads the declaration, so the
-    # assertion inverts: a copy reappearing in compose.sh is the drift coming
-    # back. Comparing a restated value against the declaration only ever
-    # established that someone had recopied it correctly; having no second copy
-    # is the stronger property, and this is where it is held.
-    for variable in ("mkosi_commit", "tools_image", "tools_packages"):
+    # Every one of them has now moved to the helper that uses it, and each of
+    # those reads the declaration, so the assertion inverts: a copy reappearing
+    # in compose.sh is the drift coming back. Comparing a restated value against
+    # the declaration only ever established that someone had recopied it
+    # correctly; having no second copy is the stronger property, and this is
+    # where it is held.
+    for variable, resolver in (
+        ("repository_url", "retain-repository.py"),
+        ("mkosi_commit", "buildroot.py"),
+        ("tools_image", "buildroot.py"),
+        ("tools_packages", "buildroot.py"),
+    ):
         if variable in assignments:
             failures.append(
-                f"compose.sh assigns {variable} again; buildroot.py resolves it "
+                f"compose.sh assigns {variable} again; {resolver} resolves it "
                 "from input-set.toml and a second copy can drift from it"
             )
 
-    # Moving a copy is not removing one. buildroot.py must resolve these from the
-    # declaration, so the declared values must not appear in it as literals --
-    # otherwise the drift has simply changed address.
+    # Moving a copy is not removing one. Each helper must resolve its values from
+    # the declaration, so the declared values must not appear in any of them as
+    # literals -- otherwise the drift has simply changed address. declaration.py
+    # is read too: it is the shared reader, and a value cached there would be a
+    # copy in the one file whose whole purpose is not to hold any.
     tools = {tool["name"]: tool for tool in declared.get("tools", [])}
-    provisioner = BUILDROOT.read_text(encoding="utf-8")
+    resolvers = {
+        path.name: path.read_text(encoding="utf-8")
+        for path in (BUILDROOT, RETAIN_REPOSITORY, DECLARATION)
+    }
     for name, value in (
         ("the mkosi commit", tools.get("mkosi", {}).get("identity", "")),
         ("the tools-tree base image", declared["tools_tree"]["base_image"]),
+        ("the declared repository URL", repository),
+        ("the declared metadata digest", repositories[0]["metadata_digest"] if repositories else ""),
     ):
-        if value and value in provisioner:
-            failures.append(
-                f"buildroot.py contains {name} as a literal; it is declared in "
-                "input-set.toml and must be read from there"
+        for resolver, source in resolvers.items():
+            if value and value in source:
+                failures.append(
+                    f"{resolver} contains {name} as a literal; it is declared in "
+                    "input-set.toml and must be read from there"
             )
 
     # PLN-0002-11: the fixture this check reads is no longer one artifact's.

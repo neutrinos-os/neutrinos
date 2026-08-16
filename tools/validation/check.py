@@ -292,7 +292,11 @@ TESTS = (
         capabilities=(),
         fixtures=(
             "src/slice/input-set.toml",
-            "src/slice/schema/input-set-v2.schema.json",
+            # By declared version, not by file name. This read v2 while the
+            # declaration had said 3 since v3 landed, and the check itself
+            # resolves the path from the version, so the label named a schema
+            # the check had stopped reading.
+            "src/slice/schema/input-set-v<declared version>.schema.json",
             "constructed schema violations",
         ),
         cleanup_owner="validation runner",
@@ -367,6 +371,12 @@ TESTS = (
             "src/slice/composition/mkosi.conf",
             "src/slice/compose.sh",
             "src/slice/input-set.toml",
+            # Read too, because the values compose.sh used to restate now live
+            # in the helpers that resolve them, and the check asserts they are
+            # resolved rather than recopied.
+            "src/slice/declaration.py",
+            "src/slice/buildroot.py",
+            "src/slice/retain-repository.py",
         ),
         cleanup_owner="validation runner",
         function="check_slice_composition",

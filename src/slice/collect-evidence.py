@@ -36,8 +36,22 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from declaration import load
+
 ROOT = Path(__file__).resolve().parents[2]
 SLICE = ROOT / "src" / "slice"
+
+
+def schema_path() -> Path:
+    """The schema `input-set.toml` declares, resolved the way T2-SLICE-001 does.
+
+    Reading the version rather than naming a file keeps the bundle's schema and
+    the validated one the same object. A missing file is not raised here: the
+    caller skips anything absent, and T2-SLICE-001 is where a declared version
+    with no committed schema is a failure.
+    """
+    declaration = load(SLICE / "input-set.toml")
+    return SLICE / "schema" / f"input-set-v{declaration['schema']['version']}.schema.json"
 
 
 def digest(path: Path) -> str:
@@ -149,8 +163,22 @@ def main() -> int:
         SLICE / "input-set.toml",
         SLICE / "compose.sh",
         SLICE / "composition" / "mkosi.conf",
+        # compose.sh is no longer the whole mechanism. Acquisition, build-root
+        # provisioning, the extension fixtures and retention each moved to the
+        # helper that owns them, and each reads input-set.toml through
+        # declaration.py. A bundle carrying compose.sh alone would carry the
+        # selection and none of the resolution.
+        SLICE / "declaration.py",
+        SLICE / "compose.py",
+        SLICE / "buildroot.py",
+        SLICE / "acquire-overlay.py",
+        SLICE / "fixtures.py",
         SLICE / "retain-repository.py",
-        SLICE / "schema" / "input-set-v2.schema.json",
+        # The schema the declaration names, not a version written here. This
+        # said v2 while the declaration had said version 3 since v3 landed, so
+        # the bundle carried a schema the record was not validated against --
+        # the same defect as an existence guard, in a file list.
+        schema_path(),
         *sorted(SLICE.glob("mkosi.repart/*.conf")),
         *sorted(SLICE.glob("composition/mkosi.repart/*.conf")),
         # The measurement mechanisms, on the same ground as compose.sh: every

@@ -40,8 +40,9 @@ import shutil
 import stat
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
+
+from declaration import load, repository
 
 ROOT = Path(__file__).resolve().parent
 
@@ -90,26 +91,10 @@ def tools_tree_identity(declaration: dict) -> str:
         # Sorted: the declaration's order is editorial, and reordering the list
         # is not a change to the tree it produces.
         "packages": sorted(tools_tree["packages"]),
-        "repository": repository_url(declaration),
+        "repository": repository(declaration)["url"],
     }
     canonical = json.dumps(recipe, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
-
-
-def repository_url(declaration: dict) -> str:
-    """The one declared repository, which supplies the image and this tree.
-
-    `input-set.toml` declares exactly one and says why: a second one cannot be
-    an exact input. Failing here rather than picking the first keeps that
-    property enforced where it is read instead of only where it is written.
-    """
-    repositories = declaration["packages"]["repositories"]
-    if len(repositories) != 1:
-        raise SystemExit(
-            f"input set declares {len(repositories)} repositories; the tools tree "
-            "is built from the single declared repository and cannot choose"
-        )
-    return repositories[0]["url"]
 
 
 def mkosi_commit(declaration: dict) -> str:
@@ -177,7 +162,7 @@ def build_tools_tree(build_root: Path, declaration: dict) -> None:
             declaration["tools_tree"]["base_image"],
             "dnf5",
             "-y",
-            f"--repofrompath=pin,{repository_url(declaration)}",
+            f"--repofrompath=pin,{repository(declaration)['url']}",
             "--repo=pin",
             "--nogpgcheck",
             "install",
@@ -326,7 +311,7 @@ def main() -> int:
     parser.add_argument("--build-root", required=True, type=Path, help="build root to provision")
     arguments = parser.parse_args()
 
-    declaration = tomllib.loads(arguments.input_set.read_text(encoding="utf-8"))
+    declaration = load(arguments.input_set)
     build_root = arguments.build_root
     build_root.mkdir(parents=True, exist_ok=True)
 

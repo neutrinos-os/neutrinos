@@ -2510,6 +2510,7 @@ def parse_args() -> argparse.Namespace:
     subparsers = parser.add_subparsers(dest="command", required=True)
     profile = subparsers.add_parser("profile")
     profile.add_argument("name")
+    profile.add_argument("--artifact", action="append", default=[], metavar="KIND=DIR")
     exact = subparsers.add_parser("run")
     exact.add_argument("ids", nargs="+")
     exact.add_argument("--artifact", action="append", default=[], metavar="KIND=DIR")
@@ -2529,13 +2530,14 @@ def main() -> int:
         return run("invalid", (), invocation_error=bounded_error(error))
     if arguments.command == "list":
         return list_tests()
-    if arguments.command == "profile":
-        return run("profile", (arguments.name,))
-    if arguments.command in {"run", "one"}:
+    if arguments.command in {"profile", "run", "one"}:
         try:
             declare_artifacts(arguments.artifact, os.environ)
         except ValueError as error:
             return run("invalid", (), invocation_error=bounded_error(error))
+    if arguments.command == "profile":
+        return run("profile", (arguments.name,))
+    if arguments.command in {"run", "one"}:
         ids = (arguments.id,) if arguments.command == "one" else arguments.ids
         # No separate result handling for `one`: a selected test that cannot run
         # is blocked, and blocked already fails the run. Asking for one test and

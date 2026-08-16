@@ -34,6 +34,7 @@ ROOT = Path(__file__).resolve().parents[2]
 INPUT_SET = ROOT / "src" / "slice" / "input-set.toml"
 COMPOSITION = ROOT / "src" / "slice" / "composition" / "mkosi.conf"
 COMPOSE = ROOT / "src" / "slice" / "compose.sh"
+BUILDROOT = ROOT / "src" / "slice" / "buildroot.py"
 COMMON_NS = "{http://linux.duke.edu/metadata/common}"
 SETTING = re.compile(r"^([A-Za-z][A-Za-z0-9]*)=(.*)$")
 ASSIGNMENT = re.compile(r"^([a-z_]+)=(\S+)$")
@@ -150,21 +151,46 @@ def check_composition_fixture() -> int:
             )
 
     # PLN-0001-02 recorded this drift as possible and unguarded: compose.sh
-    # repeats the declaration's values because a shell script cannot read TOML
+    # repeated the declaration's values because a shell script cannot read TOML
     # without a dependency the slice has not declared.
-    tools = {tool["name"]: tool for tool in declared.get("tools", [])}
-    for variable, expected in (
-        ("repository_url", repository),
-        ("mkosi_commit", tools.get("mkosi", {}).get("identity", "")),
-        ("tools_image", declared["tools_tree"]["base_image"]),
-    ):
-        observed = assignments.get(variable)
-        if observed is None:
-            failures.append(f"compose.sh assigns no {variable}")
-        elif observed != expected:
+    #
+    # `repository_url` is the last one it still repeats, because
+    # retain-repository.py takes the URL as an argument. It is checked the same
+    # way it always was.
+    observed = assignments.get("repository_url")
+    if observed is None:
+        failures.append("compose.sh assigns no repository_url")
+    elif observed != repository:
+        failures.append(
+            f"compose.sh uses repository_url={observed!r}; the declaration names "
+            f"{repository!r}"
+        )
+
+    # The rest moved to buildroot.py, which reads the declaration, so the
+    # assertion inverts: a copy reappearing in compose.sh is the drift coming
+    # back. Comparing a restated value against the declaration only ever
+    # established that someone had recopied it correctly; having no second copy
+    # is the stronger property, and this is where it is held.
+    for variable in ("mkosi_commit", "tools_image", "tools_packages"):
+        if variable in assignments:
             failures.append(
-                f"compose.sh uses {variable}={observed!r}; the declaration names "
-                f"{expected!r}"
+                f"compose.sh assigns {variable} again; buildroot.py resolves it "
+                "from input-set.toml and a second copy can drift from it"
+            )
+
+    # Moving a copy is not removing one. buildroot.py must resolve these from the
+    # declaration, so the declared values must not appear in it as literals --
+    # otherwise the drift has simply changed address.
+    tools = {tool["name"]: tool for tool in declared.get("tools", [])}
+    provisioner = BUILDROOT.read_text(encoding="utf-8")
+    for name, value in (
+        ("the mkosi commit", tools.get("mkosi", {}).get("identity", "")),
+        ("the tools-tree base image", declared["tools_tree"]["base_image"]),
+    ):
+        if value and value in provisioner:
+            failures.append(
+                f"buildroot.py contains {name} as a literal; it is declared in "
+                "input-set.toml and must be read from there"
             )
 
     # PLN-0002-11: the fixture this check reads is no longer one artifact's.

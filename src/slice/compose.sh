@@ -100,23 +100,13 @@ if [ -d "$build_root/out" ] && [ ! -L "$build_root/out" ]; then
     mv "$build_root/out" "$build_root/out-erofs"
 fi
 
-# Duplicates input-set.toml deliberately: sh cannot validate TOML without a
-# dependency this slice has not declared. PLN-0001-05 registers the check that
-# the two agree; until then a drift is unguarded.
-mkosi_repository=https://github.com/systemd/mkosi
-# Paired with the systemd-261 OBS overlay in input-set.toml -- the same
-# 2026-08-11 snapshot, twenty minutes apart. They move together or not at all.
-mkosi_commit=d5ff0d0d9884cc4e06900057e2ad44adee29cb8e
-tools_image=registry.fedoraproject.org/fedora@sha256:93f227979b6ef8395cde2a38dee260ef4cbecaab7668ee45d97960aba910e918
+# The last value restated from input-set.toml. The mkosi commit, the tools-tree
+# base image and its package list used to be restated here too, because sh
+# cannot validate TOML without a dependency this slice has not declared; they
+# moved to buildroot.py, which reads the declaration. This one remains because
+# retain-repository.py takes the URL as an argument rather than reading it, and
+# retention is a separate concern from provisioning the build root.
 repository_url=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os
-
-# The tools tree supplies the package manager that resolves the image, so it is
-# a composition input and is built from the same frozen repository. The host's
-# rolling packages here would be an undeclared, moving input in the position
-# that decides what the image contains.
-tools_packages="distribution-gpg-keys cpio systemd systemd-ukify systemd-boot
-                dosfstools mtools e2fsprogs erofs-utils btrfs-progs
-                squashfs-tools tar zstd xz python3 createrepo_c"
 
 # Acquisition reads input-set.toml itself, through acquire-overlay.py, so these
 # digests are the declared ones rather than a copy. Where a helper can read the
@@ -233,25 +223,11 @@ for k in verity verity-wrong secureboot; do
     fi
 done
 
-if [ ! -d "$build_root/mkosi" ]; then
-    git clone --quiet --filter=blob:none "$mkosi_repository" "$build_root/mkosi"
-fi
-git -C "$build_root/mkosi" checkout --quiet "$mkosi_commit"
-
-if [ ! -d "$build_root/tools" ]; then
-    # shellcheck disable=SC2086 -- word splitting of the package list is intended
-    container=$(podman create --net=host "$tools_image" \
-        dnf5 -y --repofrompath="pin,$repository_url" --repo=pin --nogpgcheck \
-        install $tools_packages)
-    podman start --attach "$container" >"$build_root/tools-build.log" 2>&1
-    podman export "$container" >"$build_root/tools.tar"
-    podman rm --force "$container" >/dev/null
-    mkdir -p "$build_root/tools"
-    tar -C "$build_root/tools" -xf "$build_root/tools.tar"
-    # mkosi refuses a tools tree without this path; the sandbox supplies the
-    # contents at build time.
-    touch "$build_root/tools/etc/resolv.conf"
-fi
+# mkosi at its declared commit and a tools tree matching its declared recipe.
+# Both read input-set.toml directly, so the copies this script used to carry are
+# gone; see buildroot.py for why the tools tree is keyed by digest rather than
+# by existence.
+python3 "$root/buildroot.py" --build-root="$build_root"
 
 # Package cache inside this build root, not the user's shared mkosi cache:
 # PLN-0001-07 found 58 RPMs there that the declared repository does not

@@ -69,6 +69,26 @@
 - MUST NOT block the turn over 90s. Anything expected to run longer (VM
   matrices, `check:complete`, composition) runs in the background; keep working.
 
+## Language
+
+Binding. These words let a false claim pass review; the fail-open findings are
+the same defect in mechanism.
+
+- Never **signed**, **healthy**, **current**, **green** in place of
+  authenticated, authorized, qualified, eligible, blessed.
+- Never **trusted** without naming the anchor and the guarantee.
+- Never bare **root**: name the release artifact, its `/usr` slot, the writable
+  root partition, or the verity root hash.
+- Never **latest** as identity or selection rule: name the version ordering,
+  channel, authorization, or maintenance policy.
+- Qualify **image**, **manifest**, **scope**, **role**, **state**, **target**.
+  **layer** only inside an upstream term (OCI layer).
+- Deployment status is acquired, staged, selected, booted, blessed — not
+  installed or active.
+- Use upstream names unchanged for upstream objects. A NeutrinOS term must not
+  imply a property that has not been established.
+- Full dictionary on demand: [glossary](docs/project/glossary.md).
+
 ## Communication
 
 - Concise by default. Pointers, bullets, sentence fragments. Prose only when it

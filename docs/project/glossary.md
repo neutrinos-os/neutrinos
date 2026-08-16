@@ -518,26 +518,25 @@ Status properties must remain distinct:
 
 ## Discouraged ambiguous terms
 
-- Use **layer** only in a qualified upstream term such as **OCI layer**. Use
-  configuration source, configuration scope, deployment artifact, project
-  surface, or another exact term for other meanings.
-- Qualify **image** and **manifest**, for example release artifact image, OCI
-  image, or deployment manifest.
-- Never use bare **root**. It now has three unrelated referents: the
-  authenticated release artifact and its `/usr` slot, the unauthenticated
-  writable root partition, and the dm-verity root hash. Name which one.
-- Qualify **scope**, **role**, and **state** when more than one kind is in play.
-- Avoid **installed** and **active** for deployment lifecycle status; use
-  acquired, staged, selected, booted, or blessed.
-- Avoid **latest** as an identity or selection rule. Name the version ordering,
-  channel, authorization, or maintenance policy instead.
-- Avoid **trusted** unless the trust anchor and guarantee are stated.
-- Do not use **signed**, **healthy**, **current**, or **green** as substitutes
-  for authenticated, authorized, qualified, eligible, or blessed.
-- Avoid the bare noun **target** when it means a managed machine or deployment
-  artifact. Use machine, deployment artifact, destination, or another exact
-  term. Qualified terms such as systemd target, target disk, and qualification
-  target retain their established meanings.
+**The binding list moved to root `AGENTS.md` § Language on 2026-08-16** and is
+not repeated here. It applied only when an agent thought to open this file; it
+is a correctness rule, not a lookup, so it belongs in the always-loaded
+instructions. What follows is the replacement vocabulary and the exceptions,
+which are lookups and stay here.
+
+Say instead:
+
+- **layer** → configuration source, configuration scope, deployment artifact,
+  project surface. Only an upstream term keeps the word (OCI layer).
+- **image**, **manifest** → release artifact image, OCI image, deployment
+  manifest.
+- bare **root** → the authenticated release artifact, its `/usr` slot, the
+  unauthenticated writable root partition, or the dm-verity root hash. Three
+  unrelated referents; naming which one is the entire point.
+- **target** → machine, deployment artifact, destination.
+
+Exceptions: **systemd target**, **target disk** and **qualification target**
+retain their established meanings.
 
 ## Prior-art basis
 

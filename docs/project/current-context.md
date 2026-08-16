@@ -64,10 +64,10 @@ One line each; the owning record is the authority.
   it finds partitions through the device behind `/`. Explicit `.mount` units in
   `/usr` work and are what ships; the derived `/var` UUID is correct but reads
   nothing until a writable root partition exists.
-- **An `/etc`-less image cannot authenticate anyone** (2026-08-16, `C-010`).
-  Fedora keeps the PAM stack in `/etc/pam.d`, which ADR-0004 empties. A
-  **fixture-grade** stack now ships in `/usr/lib/pam.d`; not reviewed policy,
-  not for a physical host.
+- **The `/etc` model works; two PAM diagnoses before it were wrong** (2026-08-16,
+  `C-010`). Booted: `/etc` holds 77 entries, `/etc/authselect` 10, and
+  `/usr/lib/pam.d/system-auth` resolves through it. `C /etc/authselect` puts auth
+  policy in writable `/etc`, outside verity; ParticleOS uses `L?`.
 
 ## Open and the owner's
 

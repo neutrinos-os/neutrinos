@@ -64,10 +64,10 @@ One line each; the owning record is the authority.
   it finds partitions through the device behind `/`. Explicit `.mount` units in
   `/usr` work and are what ships; the derived `/var` UUID is correct but reads
   nothing until a writable root partition exists.
-- **The `/etc` model works; two PAM diagnoses before it were wrong** (2026-08-16,
-  `C-010`). Booted: `/etc` holds 77 entries, `/etc/authselect` 10, and
-  `/usr/lib/pam.d/system-auth` resolves through it. `C /etc/authselect` puts auth
-  policy in writable `/etc`, outside verity; ParticleOS uses `L?`.
+- **The `/etc` model works; three PAM diagnoses were wrong** (`C-010`). Booted:
+  `/etc` holds 77 entries, `/usr/lib/pam.d/system-auth` resolves.
+  `/etc/authselect` is `L`, not `C` — measured read-only inside verity; `L?`
+  only skips a missing source. Placement closed; `nullok` open.
 
 ## Open and the owner's
 

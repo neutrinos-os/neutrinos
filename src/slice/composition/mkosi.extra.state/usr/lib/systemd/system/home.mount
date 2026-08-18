@@ -10,9 +10,10 @@ Conflicts=umount.target
 Before=umount.target
 
 [Mount]
+# auto, not btrfs -- see var.mount for why; not repeated here either.
 What=/dev/disk/by-partlabel/neutrinos-home
 Where=/home
-Type=btrfs
+Type=auto
 
 [Install]
 WantedBy=local-fs.target

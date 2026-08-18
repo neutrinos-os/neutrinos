@@ -33,8 +33,17 @@ Before=umount.target
 # stable name an operator can read off both the definition and the disk.
 What=/dev/disk/by-partlabel/neutrinos-var
 Where=/var
-Type=btrfs
+Type=auto
 
+# `auto`, not `btrfs`: this unit ships in mkosi.extra.state, which is the same
+# tree for every C-009 candidate -- state-partitions/ formats Btrfs,
+# state-partitions-xfs/ formats XFS, and a literal Type=btrfs would refuse (or
+# mismount) an XFS partition. Found 2026-08-18 by reading this file while
+# adding the XFS candidate, before the `-xfs` variants were ever booted --
+# fixed here rather than discovered as a boot failure. `auto` asks blkid for
+# what the partition actually is rather than restating the format this unit
+# does not own.
+#
 # Fixture, like the filesystem itself. C-009 is open and no mount option here is
 # a measurement; a compression or nodatacow option would prejudge exactly the
 # question the comparison exists to answer.

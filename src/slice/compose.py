@@ -36,7 +36,17 @@ COMPOSITION = ROOT / "composition"
 # an algorithm nobody wrote down.
 VARIANT_SEED = "8c1e5b47-2d93-4f60-a1e8-7d4c2f0b93a5"
 
-VARIANTS = ("primary", "content", "seed", "state", "session")
+VARIANTS = (
+    "primary",
+    "content",
+    "seed",
+    "state",
+    "state-xfs",
+    "session",
+    "session-xfs",
+    "workload",
+    "workload-xfs",
+)
 
 # mkosi's verbs, other than `build`. Only a build can be a silent no-op:
 # `summary`, `clean` and the rest produce no artifact, so refusing them for an
@@ -113,11 +123,48 @@ def variant_arguments(variant: str, role: str) -> list[str]:
     # appends to it, so repart receives the shared directory, the arm directory
     # and this one; nothing in the shared set is edited, so a `primary` build is
     # byte-identical to what it produced before this variant existed.
+    #
+    # `-xfs` is C-009's second candidate, not a preference: state-partitions/
+    # and state-partitions-xfs/ are identical except for one Format= line each,
+    # so a comparison between them cannot be attributed to anything but the
+    # filesystem. Selected by a suffix on the variant name rather than a
+    # separate flag, so `state` and `state-xfs` (and `session`/`session-xfs`)
+    # stay visibly paired in every place a variant name is logged or reported.
+    repart_directory = "state-partitions-xfs" if variant.endswith("-xfs") else "state-partitions"
     arguments = [
-        f"--repart-directory={COMPOSITION / 'state-partitions'}",
+        f"--repart-directory={COMPOSITION / repart_directory}",
         f"--extra-tree={COMPOSITION / 'mkosi.extra.state'}",
     ]
-    if variant == "state":
+    if variant in ("state", "state-xfs"):
+        return arguments
+
+    # `workload` is the C-009 measurement artifact: state (for the `-xfs`
+    # filesystem axis above) plus the `workflow` stage, which is every
+    # capability.containers/microvm package plus whatever else the role
+    # declares daily-use rather than session-critical. It does not add
+    # mkosi.extra.session or the session-stage packages: the containers and
+    # microvm capabilities' own notes name a machine-state and home volume as
+    # their prerequisite, not a graphical session, and C-009 has no reason to
+    # make a container workload depend on a compositor coming up first.
+    #
+    # Whole-stage, not the two capabilities C-009 actually measures. A
+    # per-capability selector does not exist in role_packages.packages() and
+    # this project's variant boundary has so far always been a stage, not a
+    # capability -- narrower selection is additional design, not implied by
+    # what exists today.
+    #
+    # mkosi.extra.account is added here even though mkosi.extra.session is
+    # not: capability.containers' assert names "the session user" as who a
+    # rootless container runs as, and that account did not exist in this
+    # variant until measured 2026-08-18 -- a boot probe found no such user,
+    # because the account was declared only inside mkosi.extra.session. Split
+    # out so workload gets the account without the compositor units that come
+    # with it.
+    if variant in ("workload", "workload-xfs"):
+        arguments.append(f"--extra-tree={COMPOSITION / 'mkosi.extra.account'}")
+        arguments.extend(
+            f"--package={package}" for package in role_packages.packages(role, ("workflow",))
+        )
         return arguments
 
     # State plus a graphical session. It includes the state variant's partitions
@@ -135,6 +182,12 @@ def variant_arguments(variant: str, role: str) -> list[str]:
     # that follows once a session exists, and pulling it in now would make the
     # first graphical boot depend on twenty packages whose failures are
     # unrelated to whether a session comes up.
+    #
+    # mkosi.extra.account carries the sysusers/tmpfiles declarations that used
+    # to live inside mkosi.extra.session; moved out 2026-08-18 so `workload`
+    # could add the account without the compositor units. session still needs
+    # both trees -- the account and the compositor.
+    arguments.append(f"--extra-tree={COMPOSITION / 'mkosi.extra.account'}")
     arguments.append(f"--extra-tree={COMPOSITION / 'mkosi.extra.session'}")
     arguments.extend(
         f"--package={package}" for package in role_packages.packages(role, ("session",))

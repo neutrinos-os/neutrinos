@@ -48,6 +48,7 @@ SLICE_REPOSITORY_ENV = "NEUTRINOS_SLICE_REPOSITORY_DIR"
 CONFEXT_FIXTURE_ENV = "NEUTRINOS_CONFEXT_FIXTURE_DIR"
 STATE_ARTIFACT_ENV = "NEUTRINOS_STATE_ARTIFACT_DIR"
 SESSION_ARTIFACT_ENV = "NEUTRINOS_SESSION_ARTIFACT_DIR"
+WORKLOAD_ARTIFACT_ENV = "NEUTRINOS_WORKLOAD_ARTIFACT_DIR"
 # The declared build outputs a check may be pointed at, keyed by the name the
 # operator types. One mapping, used by three things that must agree: the
 # `--artifact` invocation option, the environment handed to the child process
@@ -60,6 +61,7 @@ ARTIFACT_DECLARATIONS = {
     "slice": SLICE_ARTIFACT_ENV,
     "state": STATE_ARTIFACT_ENV,
     "session": SESSION_ARTIFACT_ENV,
+    "workload": WORKLOAD_ARTIFACT_ENV,
     "repository": SLICE_REPOSITORY_ENV,
     "confext": CONFEXT_FIXTURE_ENV,
 }
@@ -111,6 +113,11 @@ ALLOWED_RUNNER_ENVIRONMENT = frozenset(
         # Optional on the same terms: the session variant, which is the state
         # variant plus the role's session-stage packages and units.
         SESSION_ARTIFACT_ENV,
+        # Optional on the same terms: the workload variant, which is the state
+        # variant plus the role's workflow-stage packages. It is not the
+        # session variant -- it carries no compositor, because C-009's workload
+        # has no reason to wait on one.
+        WORKLOAD_ARTIFACT_ENV,
         "PATH",
         "PWD",
         "SHELL",
@@ -368,6 +375,26 @@ TESTS = (
         ),
         cleanup_owner="validation runner",
         function="check_session_boot",
+    ),
+    Test(
+        id="T4-WORKLOAD-001",
+        level="T4",
+        profiles=("complete",),
+        # Two boots deep: the outer guest boots, then boots a VM of its own.
+        timeout_seconds=1200,
+        traces=("C-009", "A-007", "CH-003"),
+        capabilities=(
+            "declared workload artifact",
+            "user-owned disposable VM",
+            "host image authoring",
+        ),
+        fixtures=(
+            "composed workload-variant disk image",
+            "src/roles/workstation/capabilities.toml",
+            "src/slice/composition/mkosi.extra.account/",
+        ),
+        cleanup_owner="validation runner",
+        function="check_workload_boot",
     ),
     Test(
         id="T4-STATE-001",
@@ -1540,6 +1567,14 @@ def check_session_boot() -> int:
     return run()
 
 
+def check_workload_boot() -> int:
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from tools.validation.workload_boot import check_workload_boot as run
+
+    return run()
+
+
 def check_state_boot() -> int:
     if str(ROOT) not in sys.path:
         sys.path.insert(0, str(ROOT))
@@ -1640,6 +1675,7 @@ CHECKS: dict[str, Callable[[], int]] = {
     "check_role_capabilities": check_role_capabilities,
     "check_slice_input_set": check_slice_input_set,
     "check_session_boot": check_session_boot,
+    "check_workload_boot": check_workload_boot,
     "check_state_boot": check_state_boot,
     "check_state_volumes": check_state_volumes,
     "check_slice_composition": check_slice_composition,
@@ -1751,6 +1787,48 @@ def capability_session_artifact(
         return str(error)
     if not (directory / "neutrinos-slice.raw").is_file():
         return "declared session artifact is missing neutrinos-slice.raw"
+    return None
+
+
+def capability_workload_artifact(
+    environment: Mapping[str, str] = os.environ,
+) -> str | None:
+    """A composed workload-variant artifact, declared outside the checkout.
+
+    Distinct from the state and session artifacts on the same grounds they are
+    distinct from each other: different disks. Pointing this check at the
+    session variant would boot a machine with a compositor and no podman and
+    fail as though the capability were broken.
+    """
+    if not environment.get(WORKLOAD_ARTIFACT_ENV):
+        return f"{WORKLOAD_ARTIFACT_ENV} is not set"
+    try:
+        directory = declared_directory(WORKLOAD_ARTIFACT_ENV, environment)
+    except ValueError as error:
+        return str(error)
+    if not (directory / "neutrinos-slice.raw").is_file():
+        return "declared workload artifact is missing neutrinos-slice.raw"
+    if not (directory / "neutrinos-slice.efi").is_file():
+        # The boot image the nested VM starts from is built out of this UKI.
+        # Without it the microVM assert has nothing to boot, and that is a
+        # misdeclared fixture rather than a failing capability.
+        return "declared workload artifact is missing neutrinos-slice.efi"
+    return None
+
+
+def capability_image_authoring(
+    environment: Mapping[str, str] = os.environ,
+) -> str | None:
+    """Host tools that build the nested VM's boot image without root.
+
+    On the host, deliberately: the closure ships no mkfs.vfat and the owner
+    ruled filesystem tooling out of the base artifact in favour of a sysext
+    test (C-011). When that sysext lands this capability is what stops being
+    needed.
+    """
+    missing = [tool for tool in ("sfdisk", "mformat", "mcopy") if shutil.which(tool) is None]
+    if missing:
+        return f"host is missing {', '.join(missing)}"
     return None
 
 
@@ -1881,6 +1959,8 @@ CAPABILITY_PROBES: dict[str, Callable[[], str | None]] = {
     "declared slice artifact": capability_slice_artifact,
     "declared session artifact": capability_session_artifact,
     "declared state artifact": capability_state_artifact,
+    "declared workload artifact": capability_workload_artifact,
+    "host image authoring": capability_image_authoring,
     "retained declared repository": capability_retained_repository,
     "zstd reader": capability_zstd_reader,
     "user-owned disposable VM": capability_virtualization,

@@ -1,6 +1,6 @@
 ---
 status: informative
-last_updated: 2026-08-16
+last_updated: 2026-08-18
 source_snapshot_revision: 7c60742
 current_gate: G1
 target_gate: G2
@@ -87,9 +87,9 @@ One line each; the owning record is the authority.
 - **A writable root partition** would make partition discovery native, and
   reverses the `root=tmpfs` ruling of 2026-08-11.
 - **`C-010`** PAM policy: `/usr` release content or signed confext.
-  **`C-011`** role packages the declared closure cannot supply — `uwsm`,
-  `polkit-gnome`, an `oo7` daemon. Both opened 2026-08-16
-  ([backlog](decision-backlog.md)).
+  **`C-011`** narrowed 2026-08-18: `uwsm` resolves via a pinned COPR overlay,
+  replacing hand-written units (`T4-SESSION-001` reverified). `polkit-gnome`,
+  `oo7` remain unsupplied ([backlog](decision-backlog.md)).
 
 ## Mutation boundary
 

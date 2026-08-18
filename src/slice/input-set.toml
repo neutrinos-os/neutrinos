@@ -78,6 +78,29 @@ sha256 = "50d90ca8d1f0ad302882434cfe82262c013e31b4fd7502c87df262faed5b1f27"
 name = "systemd-udev-261.999+1208+g827144298-4747.1.x86_64.rpm"
 sha256 = "878d3ce97b3e40b307ff64bfb85af5c02e203f96e262291c21ea11920d1d22da"
 
+# uwsm is absent from the Fedora 44 GA closure, measured against this file's
+# own repository index (C-011). It is a candidate for capability.session-lifecycle
+# in src/roles/workstation/capabilities.toml, replacing the hand-written units
+# that capability declared while uwsm resolved nowhere. Pulled from a COPR build
+# rather than the frozen repository above, same reason as the systemd-261
+# overlay: it is the one way a package enters the image without a second
+# repository existing, and the digest is what makes the source URL not the
+# input.
+#
+# fedora-44-x86_64 is a real chroot in this COPR project (solopasha/hyprland
+# only publishes fedora-rawhide-x86_64 and was not usable). Runtime
+# dependencies -- fuzzel, libnotify, python3-dbus, python3-pyxdg, util-linux --
+# all resolve from the Fedora 44 closure declared above; fuzzel is already a
+# declared package (capability.launcher).
+[[packages.overlays]]
+name = "uwsm"
+source = "https://download.copr.fedorainfracloud.org/results/pabrahamsson/hyprland/fedora-44-x86_64/08831437-uwsm"
+reason = "capability.session-lifecycle names uwsm as the transcript's selection; absent from the Fedora 44 GA closure (C-011)"
+
+[[packages.overlays.files]]
+name = "uwsm-0.21.3-1.x86_64.rpm"
+sha256 = "7d498bf82299a03ace393cc96342fc86951d5934f5e2b354658aba44f9f6d069"
+
 [[tools]]
 name = "mkosi"
 version = "main@2026-08-11"

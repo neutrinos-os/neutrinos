@@ -63,7 +63,7 @@ named. It is a candidate. The capability is a Wayland session, not Sway."""
 
 [capability.session-lifecycle]
 stage = "session"
-packages = []
+packages = ["uwsm"]
 assert = "graphical-session.target is reached inside the user manager for the session user, and the compositor is a unit under it rather than a bare process"
 origin = "design-session transcript"
 note = """The reason to care: without a session manager the compositor is not a
@@ -71,14 +71,20 @@ systemd unit, so nothing in the session has ordering, dependencies or
 supervision, and ADR-0001 would be satisfied on paper only. This is the entry
 that makes the graphical session systemd-native.
 
-The transcript names uwsm, and **uwsm is absent from the declared Fedora 44
-closure** -- measured against the retained repository index, not assumed. The
-alternatives were a package overlay, which is a change to the declared input
-set, or writing the units. The units are written, so this capability declares no
-package: uwsm generates systemd user units, and a handful of units in signed
-/usr is bounded, reviewable and has no undeclared dependency, which is what
-ADR-0003 asks for anyway. If uwsm later enters the closure this entry is worth
-revisiting; it is not blocked on it."""
+The transcript names uwsm, and **uwsm is absent from the Fedora 44 GA closure**
+-- measured against the retained repository index, C-011. It does not resolve
+from the frozen repository declared in input-set.toml at all; it now enters as
+a package overlay from a COPR build (`pabrahamsson/hyprland`,
+fedora-44-x86_64), pinned by digest the same way the systemd-261 overlay is.
+
+The hand-written `sway.service` this capability shipped while uwsm stayed
+unresolved is removed. uwsm generates its own unit chain at runtime
+(`wayland-wm@sway.service`, `wayland-session@sway.target`, ...) from the same
+command line the hand-written unit hardcoded, so no unit ships in /usr for the
+compositor any more; `sway.config`'s readiness call moved from
+`systemd-notify --ready` to `uwsm finalize`, its own equivalent. Candidate,
+not settled: the units-in-/usr alternative remains available if the overlay
+proves the wrong tradeoff."""
 
 [capability.login]
 stage = "session"
@@ -173,30 +179,41 @@ note = "Required by applications the role must run, not a preference for X11."
 
 [capability.authorization-agent]
 stage = "workflow"
-packages = ["polkit", "polkit-kde"]
+packages = ["polkit", "xfce-polkit"]
 assert = "exactly one polkit agent is registered for the session and an action requiring authorization prompts"
 origin = "design-session transcript"
 note = """Exactly one. Two registered agents is the common failure and produces
 a prompt that authorizes nothing or no prompt at all.
 
-polkit-gnome is absent from the declared Fedora 44 closure; polkit-kde and
-polkit-qt are what it carries. Neither is a good fit beside Sway and GTK, so
-this selection is weak and is flagged rather than settled."""
+polkit-gnome is absent from the Fedora 44 GA closure and was pulled from Fedora
+entirely at f41; polkit-kde and polkit-qt are what the closure carries instead,
+and neither is a good fit beside Sway and GTK. xfce-polkit resolves from the
+same frozen closure (xfce-polkit-0.3-17.fc44, measured directly against the
+repository index, no overlay needed) and is a lighter, toolkit-agnostic agent
+that matches a Sway session better than a Qt/KDE one. Selected over polkit-kde
+on that basis; still a candidate, not settled."""
 
 [capability.secret-storage]
 stage = "workflow"
-packages = ["oo7"]
+# packages = ["oo7"]  # owner selection, 2026-08-16 -- does not resolve, see note.
+packages = ["gnome-keyring"]
 assert = "exactly one Secret Service provider is on the session bus and a stored secret is retrieved after a session restart"
 origin = "owner selection, 2026-08-16"
 note = """Same single-provider constraint as the authorization agent, same
 reason.
 
-**Not satisfiable from the declared closure as written.** Fedora 44 carries
-oo7-cli and no oo7 daemon, measured against the retained repository index, so
-this package does not resolve. gnome-keyring is present and is the only
-Secret Service provider in the closure. Left as declared rather than
-substituted: the owner chose oo7 and the closure is what is wrong for it, so
-this is a package-overlay or closure question and not an agent's to re-decide."""
+**oo7 is not satisfiable from the Fedora 44 GA closure.** Fedora carries
+oo7-cli and no oo7 daemon; the daemon is a Fedora Wiki Change Proposal that
+lands F45/Rawhide only, not a closure trim -- measured against the retained
+repository index. It is not a package-overlay candidate the way uwsm was: the
+change proposal also describes PAM and portal wiring across desktops and login
+managers, so pulling the daemon RPM alone would not satisfy this capability's
+assert even if the binary resolved. Commented out above rather than deleted --
+the owner's selection, left visible pending F45.
+
+gnome-keyring is present in the closure (gnome-keyring-50.0-1.fc44) and is the
+only Secret Service provider Fedora 44 carries, so it is what is declared until
+oo7 resolves."""
 
 [capability.toolkit-theming]
 stage = "workflow"

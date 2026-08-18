@@ -259,32 +259,70 @@ case are in the [check updates](slice-check-updates.md).
 Composition needs the network, and canonical validation is offline, so the
 artifact is an operator-declared input:
 
-There are five such declarations -- `slice`, `state`, `session`, `repository`
-and `confext` -- and `sandbox.deny_env` means **no environment variable reaches
-the runner through `mise run` at all**, including mise's own `[env]`. The
-supported route is the runner's `--artifact KIND=DIR` option, after a `--` so
-mise passes the arguments through rather than reading them itself:
+The declared kinds are `slice`, `state`, `session`, `workload`, `repository`
+and `confext`; `ARTIFACT_DECLARATIONS` in the runner is the list, and an
+unknown kind is an invocation error naming the ones that exist.
+`sandbox.deny_env` means **no environment variable reaches the runner through
+`mise run` at all**, including mise's own `[env]`. The supported route is the
+runner's `--artifact KIND=DIR` option, after a `--` so mise passes the
+arguments through rather than reading them itself:
 
 ```sh
-build_root=${XDG_CACHE_HOME:-$HOME/.cache}/neutrinos/slice
+build_root=${NEUTRINOS_SLICE_BUILD_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/neutrinos/slice}
 mise run check:complete -- \
-  --artifact slice="$build_root/out-erofs" \
+  --artifact slice="$build_root/out-erofs-workload" \
   --artifact state="$build_root/out-erofs-state" \
   --artifact session="$build_root/out-erofs-session" \
+  --artifact workload="$build_root/out-erofs-workload" \
   --artifact repository="$build_root/inputs/repository" \
   --artifact confext="$build_root/fixture"
 ```
 
+**No artifact currently satisfies every check that declares `slice`, and this
+is unresolved.** The kind is being asked to be two different things, and after
+the `state` variant and the overlay re-pin no single artifact is both.
+Measured 2026-08-18, one failing either way:
+
+| `slice` arm | `T3-SLICE-002` attribution | `T4-SLICE-002` substitution |
+| --- | --- | --- |
+| a PLN-0002-06 member (`out-erofs`) | fails | passes |
+| a current variant (`out-erofs-workload`) | passes | fails |
+
+`T3-SLICE-002` needs a closure built at the pin the declaration now names. The
+members were built against the `systemd-261` overlay at `4747.1`, re-pinned to
+`4792.1` on 2026-08-18 because OBS serves only its current build per package
+and `4747.1` had rotated off (`src/slice/input-set.toml`); rebuilding a member
+to fix that would void PLN-0002's tally.
+
+`T4-SLICE-002` needs an artifact that declares no durable storage -- it asserts
+SYS-049 on the member shape, and reports the `state` variant's `/var` and
+`/home` Btrfs partitions as storage the artifact does not declare. Correctly:
+that is what it is for.
+
+**The declaration hid this until both checks could run at once.** With
+`repository` undeclared, `T3-SLICE-002` blocked rather than failed, so a run
+against a member reported 22 passing and 2 blocked and the contradiction never
+surfaced. Blocking one of two conflicting checks is not the same as satisfying
+both. Whether the fix is a second declared kind for the current closure, a
+member-shaped composition at the current pin, or a narrower subject for one of
+the two checks, is the owner's -- it changes what an accepted record was
+measured against.
+
+The kinds each name a separate artifact and must not be pointed at one
+another: `state`, `session` and `workload` carry partitions the PLN-0002-06
+members do not have, and `workload` carries no compositor.
+
 **Every path must be absolute.** `mise run` does not run the task from the
 caller's directory, so a relative path names nothing. It is rejected at the
 invocation rather than accepted and blocked later: `--artifact slice=out-erofs`
-used to be taken, and the nine artifact-dependent checks then blocked with "must
+used to be taken, and every artifact-dependent check then blocked with "must
 be an absolute path", which is the right reason in a report the operator has to
 open to see. The rule is `declared_directory`, the same one the capabilities
 apply, so absolute, existing and outside the checkout are one message and not
 three behaviours.
 
-**Without the declarations, `check:complete` fails with `blocked=9`.** That is deliberate and
+**Without the declarations, `check:complete` blocks every artifact-dependent
+check and fails.** That is deliberate and
 follows the contract: a required test that cannot run is blocked, not skipped,
 and blocked fails the profile. A complete run that reported green while
 silently omitting its artifact evidence would be worse than one that fails.

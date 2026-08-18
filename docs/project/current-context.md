@@ -132,15 +132,14 @@ an ADR. W-002 and W-004 are open.
 
 ## Validation
 
-`check:fast` runs 13 and `check:complete` 24, 2 deferred of 26 registered;
-`mise run check:list` is authoritative. Editing `tools/validation/` requires
-`complete`. `T2-ROLE-001` and `T2-STATE-001` each reject eight constructed
-violations; `T4-STATE-001` asserts both state volumes are block-device-backed;
-`T4-WORKLOAD-001` rejects three. All verified failing when they should.
-`T4-SESSION-001` asserts nine observations and **records the two capabilities it
-refuses to assert**: `graphics` needs a GPU the VM lacks, `login` needs a driven
-authentication. `sandbox.deny_env` blocks the nine artifact-dependent checks
-unless declared: `check:complete -- --artifact KIND=DIR`, absolute paths only.
+`mise run check:list` is authoritative for what is registered, deferred and
+in which profile. Editing `tools/validation/` requires `complete`. Every check
+is verified failing when it should, against constructed violations. `T4-SESSION-001` **records the capabilities it refuses to
+assert**: `graphics` needs a GPU the VM lacks, `login` needs a driven
+authentication. `sandbox.deny_env` blocks the artifact-dependent checks unless
+declared: `check:complete -- --artifact KIND=DIR`, absolute paths only. **No
+artifact satisfies every check declaring `slice`**, so `complete` cannot pass
+in full; the choice is the owner's.
 Details: [validation](validation.md). **CI is red on `main` and
 stays red** (`P-008`); not tracked or reported. `P-009` is open and blocks
 nothing.

@@ -36,8 +36,9 @@ is not retired. Landed: (1) the workstation capability declaration, 21 entries,
 (2) machine-state and home volumes, the `state` variant, `/var` and `/home`
 measured mounted from Btrfs partitions; (3) a graphical session, the `session`
 variant — greetd, sway and `graphical-session.target` active, Wayland socket
-present, `foot` executing (`T4-SESSION-001`). **Next: (4) measure C-009 on the
-container and microVM workload the declaration names.**
+present, `foot` executing (`T4-SESSION-001`); (4) C-009's workload axis is **a
+draw, accepted 2026-08-18** ([A-007](assumptions.md)). **Next: (5)
+`T4-WORKLOAD-001`, Btrfs.**
 
 ## Standing findings
 
@@ -66,7 +67,7 @@ One line each; the owning record is the authority.
   nothing until a writable root partition exists.
 - **The `/etc` model works; three PAM diagnoses were wrong** (`C-010`). Booted:
   `/etc` holds 77 entries, `/usr/lib/pam.d/system-auth` resolves.
-  `/etc/authselect` is `L`, not `C` — measured read-only inside verity; `L?`
+  `/etc/authselect` is `L`, not `C` — read-only inside verity; `L?`
   only skips a missing source. Placement closed; `nullok` open.
 
 ## Open and the owner's

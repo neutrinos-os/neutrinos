@@ -1,50 +1,32 @@
 """T4 check: the workload artifact serves the two capabilities C-009 named.
 
-`capability.containers` and `capability.microvm` in the workstation
-declaration are the workload C-009 was measured against. This check guards
-them on the artifact that ships; it is not the comparison. The comparison ran
-on 2026-08-18 against `workload` and `workload-xfs` and its workload axis is
-an accepted draw (A-007), so a second arm here would re-run a finished
-measurement every time and assert nothing further about the product.
+Guards `capability.containers` and `capability.microvm` on the artifact that
+ships. It is **not** the C-009 comparison: that ran on 2026-08-18 and its
+workload axis is an accepted draw (A-007), so do not add a second filesystem
+arm here -- it would re-run a finished measurement on every run.
 
-What each assert is worth, and why it is shaped this way:
+Two asserts are shaped by a way their subject succeeds while being wrong:
 
-  containers  a rootless container must run *as the session user* and write
-              through a bind-mounted tree. The write is checked from outside
-              the container, by owner, because a write that succeeds inside a
-              container whose mapping is wrong still succeeds -- it just lands
-              as the wrong uid. Checking `INSIDE write=ok` alone would pass on
-              exactly the single-UID fallback the subid fix removed.
+  containers  the bind-mounted file's owner is checked from outside the
+              container. A write under a broken uid mapping still succeeds; it
+              just lands as the wrong uid, which is the single-UID fallback the
+              subid fix removed.
+  microvm     `--kvm=yes` rather than negotiated, because `systemd-vmspawn`
+              falls back to TCG silently and an emulated boot proves nothing
+              about a machine whose role is running microVMs. The space clause
+              is a ratio against a full copy taken in the same boot, never a
+              constant, so a filesystem that stopped reflinking cannot pass.
 
-  microvm     the VM must boot from a *reflink copy*, and KVM is forced rather
-              than negotiated. `systemd-vmspawn` falls back to TCG when KVM is
-              unavailable, and an emulated boot proves nothing about a machine
-              whose role is running microVMs; `--kvm=yes` makes that failure
-              loud instead of silent. The space clause is asserted as a ratio
-              against a full copy taken in the same boot, not against a
-              constant, because a constant would pass on a filesystem that
-              silently stopped reflinking.
+What this does NOT assert, because a reader will otherwise assume it does:
 
-What this check does NOT assert, stated because a reader will otherwise
-assume it does:
-
-  * the five other axes of A-007 -- failure, repair, quota, encryption and
-    operational comparison. This runs on a 2 GB volume at 1% full, which is
-    the most favourable case for Btrfs's known low-space behavior and cannot
-    see it.
-  * that the nested guest reaches a *serviceable* system. The boot image is an
-    ESP and a UKI with no /usr verity partitions, so the inner guest reaches
-    PID 1 and then goes to emergency. Reaching PID 1 is the assert; a working
-    guest is not claimed.
-  * persistence across a power cycle. As with T4-STATE-001, the artifact is
-    attached `snapshot=on` and the harness never boots the same disk twice.
-
-The boot image is built here on the host and attached as a disk rather than
-built inside the guest, because the closure ships no `mkfs.vfat`
-(`systemd-repart`: `mkfs binary for vfat not available`, measured 2026-08-18)
-and the owner ruled filesystem tooling out of the base artifact in favour of
-a sysext test (C-011). When that sysext exists this helper is what gets
-replaced, and the substitution is that sysext's own evidence.
+  * A-007's other axes -- failure, repair, quota, encryption, operational. This
+    runs on a 2 GB volume at 1% full, the most favourable case for Btrfs's
+    known low-space behavior, and cannot see it.
+  * that the nested guest reaches a *serviceable* system. Its boot image is an
+    ESP and a UKI with no /usr verity partitions, so it reaches PID 1 and then
+    emergency. Reaching PID 1 is the assert.
+  * persistence across a power cycle: the artifact is attached `snapshot=on`
+    and the harness never boots the same disk twice.
 """
 
 from __future__ import annotations
@@ -64,32 +46,26 @@ if str(ROOT) not in sys.path:
 from tools.validation import vm  # noqa: E402
 from tools.validation.slice_boot import HARNESS_MACHINE_ID  # noqa: E402
 
-# The inner VM gets a bounded RAM request. vmspawn defaults to 2 GB and the
-# outer guest has exactly 2048 MB, so the default made the inner qemu die in
-# feature probing -- measured 2026-08-18 as `QMP connection dropped during
-# feature probing`, which reads as a boot failure and is an allocation failure.
+# vmspawn defaults to 2 GB and the outer guest has exactly 2048 MB, so the
+# default killed the inner qemu in feature probing -- an allocation failure
+# that reads as a boot failure.
 INNER_RAM = "512M"
 INNER_BOOT_SECONDS = 120
 SOURCE_BYTES = 117440512
 
 PROBE_SCRIPT = r'''
 echo "NEUTRINOS-WORKLOAD-BEGIN"
-# Wait for the device rather than sampling it. Measured 2026-08-18: sampling
-# immediately reported no /dev/kvm on four consecutive Btrfs boots and a
-# present one on XFS, with the module count varying between identical runs --
-# a race that reads as a filesystem capability difference and is not one.
+# Wait for the device rather than sampling it: sampling immediately races
+# kvm_amd autoloading, and the race reads as a filesystem difference.
 waited=0
 while [ ! -e /dev/kvm ] && [ $waited -lt 60 ]; do sleep 1; waited=$((waited + 1)); done
-# One key per line. These were emitted as `kvm=yes waited=1` and the parser
-# below reads a value to end-of-line, so the reading arrived as
-# `"yes waited=1"` and compared unequal to `yes` -- the guest reported success
-# and the check turned it into a failure.
+# One key per line: the parser reads a value to end of line, so two keys on
+# one line arrive as one unequal value and turn success into a failure.
 echo "WORKLOAD kvm=$(test -e /dev/kvm && echo yes || echo no)"
 echo "WORKLOAD kvm_waited=$waited"
-# Reported unconditionally, because "no /dev/kvm" has two very different
-# causes and the failure text must say which: no `svm` means the *outer*
-# qemu got no KVM and is emulating, while `svm` with no module means the
-# guest simply had not autoloaded kvm_amd yet.
+# Reported unconditionally: "no /dev/kvm" has two causes and the failure text
+# must say which. No `svm` means the outer qemu is emulating; `svm` with no
+# module means kvm_amd had not autoloaded.
 echo "WORKLOAD virt_flag=$(grep -oE ' svm | vmx ' /proc/cpuinfo | head -1 | tr -d ' ')"
 echo "WORKLOAD kvm_modules=$(ls /sys/module 2>/dev/null | grep -c kvm)"
 echo "WORKLOAD kvm_module_list=$(ls /sys/module 2>/dev/null | grep kvm | tr '\n' ',')"
@@ -141,10 +117,11 @@ REFLINK = re.compile(
 def _boot_image(artifact_directory: Path, work: Path) -> Path:
     """An ESP carrying the artifact's own UKI, as a GPT disk image.
 
-    Built with mtools and sfdisk so it needs no loop device and no root. The
-    UKI comes from the artifact directory rather than from inside the guest:
-    extracting it from the guest's ESP would need a privileged mount of the
-    artifact this check must not write to.
+    Built host-side with mtools and sfdisk: no loop device, no root, and the
+    closure ships no mkfs.vfat (the owner ruled filesystem tooling to a sysext,
+    C-011). When that sysext lands, this is what it replaces. The UKI comes
+    from the artifact directory because extracting it from the guest's ESP
+    would need a privileged mount of an artifact this check must not write.
     """
     uki = artifact_directory / "neutrinos-slice.efi"
     staging = work / "esp" / "EFI" / "BOOT"
@@ -192,8 +169,7 @@ def check_workload_boot() -> int:
         PROBE_SCRIPT.replace("INNER_TIMEOUT", str(INNER_BOOT_SECONDS))
         .replace("INNER_RAM_VALUE", INNER_RAM)
         # `%` is a systemd unit specifier and a stat format string is full of
-        # them. Measured 2026-08-18: `stat -c %A:%U` reached the guest as
-        # `:0`, because %U had already expanded to the unit's uid.
+        # them: `%U` expands to the unit's uid before the guest sees it.
         .replace("REPLACEME", "%%U:%%G")
     )
     unit = f"""[Unit]
@@ -311,10 +287,8 @@ WantedBy=multi-user.target
         failures.append("nested VM never reached PID 1 from the reflink copy")
 
     if failures:
-        # Every observation, not just the failing ones. A failure message that
-        # names a symptom without the readings around it sends the next reader
-        # back into the guest to get them, which is where this check's own
-        # diagnosis went wrong twice.
+        # Every observation, not just the failing ones: a symptom without the
+        # readings around it sends the next reader back into the guest.
         for key in sorted(observed):
             print(f"observed {key}={observed[key]!r}", file=sys.stderr)
     for failure in failures:

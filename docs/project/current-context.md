@@ -37,8 +37,8 @@ is not retired. Landed: (1) the workstation capability declaration, 21 entries,
 measured mounted from Btrfs partitions; (3) a graphical session, the `session`
 variant — greetd, sway and `graphical-session.target` active, Wayland socket
 present, `foot` executing (`T4-SESSION-001`); (4) C-009's workload axis is **a
-draw, accepted 2026-08-18** ([A-007](assumptions.md)). **Next: (5)
-`T4-WORKLOAD-001`, Btrfs.**
+draw, accepted 2026-08-18** ([A-007](assumptions.md)); (5) `T4-WORKLOAD-001`
+guards both. **Next: the owner's.**
 
 ## Standing findings
 
@@ -65,9 +65,7 @@ One line each; the owning record is the authority.
   it finds partitions through the device behind `/`. Explicit `.mount` units in
   `/usr` work and are what ships; the derived `/var` UUID is correct but reads
   nothing until a writable root partition exists.
-- **The `/etc` model works; three PAM diagnoses were wrong** (`C-010`). Booted:
-  `/etc` holds 77 entries, `/usr/lib/pam.d/system-auth` resolves.
-  `/etc/authselect` is `L`, not `C` — read-only inside verity; `L?`
+- **The `/etc` model works; three PAM diagnoses were wrong** (`C-010`). `/etc/authselect` is `L`, not `C` — read-only inside verity; `L?`
   only skips a missing source. Placement closed; `nullok` open.
 
 ## Open and the owner's
@@ -134,11 +132,11 @@ an ADR. W-002 and W-004 are open.
 
 ## Validation
 
-`check:fast` runs 13 and `check:complete` 23, 2 deferred of 25 registered;
+`check:fast` runs 13 and `check:complete` 24, 2 deferred of 26 registered;
 `mise run check:list` is authoritative. Editing `tools/validation/` requires
 `complete`. `T2-ROLE-001` and `T2-STATE-001` each reject eight constructed
-violations; `T4-STATE-001` asserts both state volumes are block-device-backed.
-All verified failing when they should.
+violations; `T4-STATE-001` asserts both state volumes are block-device-backed;
+`T4-WORKLOAD-001` rejects three. All verified failing when they should.
 `T4-SESSION-001` asserts nine observations and **records the two capabilities it
 refuses to assert**: `graphics` needs a GPU the VM lacks, `login` needs a driven
 authentication. `sandbox.deny_env` blocks the nine artifact-dependent checks

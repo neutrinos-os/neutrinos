@@ -19,6 +19,17 @@ The environment drop-ins are written into /run by the probe rather than shipped.
 A physical workstation has a DRM device and a login; making the artifact
 headless and self-starting to suit the harness would be accommodating the test
 in the artifact under test.
+
+The compositor is started through uwsm (`uwsm start`), not by the probe
+starting a compositor unit directly. uwsm's own environment-preparation step
+looks up the caller's login session by foreground VT and D-Bus login-session
+class -- fine for a real login through greetd, which this probe deliberately
+does not drive (see `login` above), and unmet here: a root-spawned oneshot
+service has no such session to find. The probe supplies XDG_SESSION_ID,
+XDG_SEAT and XDG_VTNR directly in the environment `uwsm start` is invoked
+with, the same substitution-for-a-real-login-input pattern as the headless
+env vars below, rather than fabricate a D-Bus login session to satisfy the
+lookup uwsm would otherwise perform.
 """
 
 from __future__ import annotations
@@ -56,22 +67,24 @@ echo "PROBE greetd=$(systemctl is-active greetd.service)"; \
 echo "PROBE account=$(id -u neutrinos 2>/dev/null)"; \
 echo "PROBE homedir=$(stat -c %%U /home/neutrinos 2>/dev/null)"; \
 echo "PROBE homesource=$(findmnt -no SOURCE --target /home)"; \
-mkdir -p /run/systemd/user/sway.service.d /run/systemd/system/user@1000.service.d; \
+mkdir -p /run/systemd/user/wayland-wm@sway.service.d /run/systemd/system/user@1000.service.d; \
 printf "[Service]\\\\nEnvironment=WLR_BACKENDS=headless\\\\nEnvironment=WLR_LIBINPUT_NO_DEVICES=1\\\\n" \
-  > /run/systemd/user/sway.service.d/10-headless.conf; \
+  > /run/systemd/user/wayland-wm@sway.service.d/10-headless.conf; \
 printf "[Service]\\\\nEnvironment=XDG_RUNTIME_DIR=/run/user/1000\\\\n" \
   > /run/systemd/system/user@1000.service.d/10-runtime-dir.conf; \
 systemctl daemon-reload; \
 systemctl start user@1000.service >/dev/null 2>&1; \
 echo "PROBE usermanager=$(systemctl is-active user@1000.service)"; \
-runuser -u neutrinos -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user start sway.service >/dev/null 2>&1; \
+runuser -u neutrinos -- env XDG_RUNTIME_DIR=/run/user/1000 XDG_SESSION_ID=neutrinos-t4 XDG_SEAT=seat0 XDG_VTNR=1 \
+  uwsm start -g -1 -- sway --config /usr/lib/neutrinos/sway.config >/run/uwsm-start.log 2>&1 & \
 sleep 3; \
-echo "PROBE sway=$(runuser -u neutrinos -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user is-active sway.service)"; \
+echo "PROBE sway=$(runuser -u neutrinos -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user is-active wayland-wm@sway.service)"; \
 echo "PROBE graphicalsession=$(runuser -u neutrinos -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user is-active graphical-session.target)"; \
 echo "PROBE waylandsocket=$(ls /run/user/1000/wayland-1 2>/dev/null | wc -l)"; \
 echo "PROBE swayenv=$(runuser -u neutrinos -- env XDG_RUNTIME_DIR=/run/user/1000 systemctl --user show-environment | grep -c WAYLAND_DISPLAY)"; \
 echo "PROBE terminal=$(runuser -u neutrinos -- env XDG_RUNTIME_DIR=/run/user/1000 WAYLAND_DISPLAY=wayland-1 foot --version 2>&1 | grep -c foot)"; \
-echo "PROBE journal=$(journalctl _SYSTEMD_USER_UNIT=sway.service _UID=1000 --no-pager -q | wc -l)"; \
+echo "PROBE journal=$(journalctl _SYSTEMD_USER_UNIT=wayland-wm@sway.service _UID=1000 --no-pager -q | wc -l)"; \
+echo "PROBE uwsmstart=$(cat /run/uwsm-start.log 2>/dev/null | tr -s "[:space:]" "_")"; \
 echo "NEUTRINOS-SESSION-END"'
 ExecStopPost=/usr/bin/systemctl poweroff --no-block
 

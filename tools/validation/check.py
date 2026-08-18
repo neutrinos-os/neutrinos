@@ -476,8 +476,10 @@ TESTS = (
         profiles=("complete",),
         # The contract's T4 default is 15 minutes. A TCG boot of this artifact
         # takes about half a minute of guest time and several minutes of wall
-        # clock; KVM, once available, makes the budget generous rather than
-        # tight.
+        # clock; with KVM the whole check -- boot, query-kvm, unit-failure
+        # scan, poweroff -- completes in well under 15 seconds (measured
+        # 2026-08-18: 11.3s). The budget is sized for TCG and is generous
+        # rather than tight whenever KVM is available.
         timeout_seconds=900,
         traces=("PLN-0001/PLN-0001-05", "SYS-002", "SYS-008", "SYS-017", "SYS-012"),
         capabilities=("declared slice artifact", "user-owned disposable VM"),
@@ -494,7 +496,9 @@ TESTS = (
         id="T4-SLICE-002",
         level="T4",
         # One boot, and the probe powers the guest off rather than waiting for
-        # a login prompt. Sized for TCG like its neighbours.
+        # a login prompt. Sized for TCG like its neighbours; with KVM the
+        # whole check completes in well under 15 seconds (measured
+        # 2026-08-18: 9.7s).
         timeout_seconds=900,
         profiles=("complete",),
         # SYS-049's read-only half. T3-SLICE-004 covers the identity half;
@@ -581,6 +585,7 @@ TESTS = (
         level="T4",
         # Five boots, four of them measured. Each is well under a minute with
         # KVM and a few minutes under TCG, and the budget is sized for TCG.
+        # Measured 2026-08-18 with KVM: all four cells complete in about 14s.
         timeout_seconds=1800,
         profiles=("complete",),
         traces=("PLN-0002/PLN-0002-10", "SYS-123", "SYS-002", "SYS-012"),

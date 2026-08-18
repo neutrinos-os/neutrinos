@@ -370,6 +370,31 @@ def declared_repository_nevras(retained: Path) -> tuple[set[str], str]:
     return nevras, digest
 
 
+def role_scoped_overlay_names() -> set[str]:
+    """Overlay names that a role's capability declaration selects by name.
+
+    An overlay declared in input-set.toml is either base-closure content, like
+    systemd-261 -- part of every composed artifact, primary variant included --
+    or it exists solely to supply one role's package selection, like uwsm,
+    which only ever enters a build through
+    `--package=uwsm` for the session stage (compose.py's
+    `role_packages.packages()`). The primary variant requests no role packages
+    at all, so a role-scoped overlay is legitimately absent from it; that is
+    the artifact working as designed, not an unaccounted package.
+
+    Matched by name against every `src/roles/*/capabilities.toml`, the same
+    files that turn a package name into a build input in the first place.
+    Whether a given artifact actually contains a role-scoped overlay's package
+    is not this function's question -- it only says which overlays are allowed
+    to be absent, on the same terms `role_packages.packages()` selects them."""
+    names: set[str] = set()
+    for declaration in (ROOT / "src" / "roles").glob("*/capabilities.toml"):
+        record = tomllib.loads(declaration.read_text(encoding="utf-8"))
+        for capability in record.get("capability", {}).values():
+            names.update(capability.get("packages", []))
+    return names
+
+
 def check_repository_attribution() -> int:
     from tools.validation.check import SLICE_ARTIFACT_ENV, SLICE_REPOSITORY_ENV
 
@@ -437,8 +462,18 @@ def check_repository_attribution() -> int:
         )
 
     # The converse: a declared overlay package that ships nothing means the
-    # build resolved it elsewhere, which is what this check exists to catch.
-    unshipped = sorted(set(overlay_published) - set(overlay_attributed))
+    # build resolved it elsewhere, which is what this check exists to catch --
+    # for a base-closure overlay like systemd-261, present in every variant.
+    # A role-scoped overlay like uwsm is a legitimate exception: the primary
+    # variant this check is usually pointed at requests no role packages at
+    # all, so its absence there is the declaration working as designed, not a
+    # resolved-elsewhere defect. role_scoped_overlay_names() is how the two
+    # are told apart, by the same name a role's capabilities.toml selects it
+    # with.
+    role_scoped = role_scoped_overlay_names()
+    missing = sorted(set(overlay_published) - set(overlay_attributed))
+    unshipped = [name for name in missing if overlay_published[name] not in role_scoped]
+    role_scoped_absent = [name for name in missing if overlay_published[name] in role_scoped]
     if unshipped:
         failures.append(
             "declared overlay packages are absent from the shipped closure:\n  "
@@ -464,6 +499,12 @@ def check_repository_attribution() -> int:
                 # Named, not counted: these are the packages that do not come
                 # from the distribution.
                 "overlay_attributed": dict(sorted(overlay_attributed.items())),
+                # Declared overlay files absent from this artifact because
+                # they are role-scoped and this artifact's variant requested
+                # no role packages -- not a failure, but stated rather than
+                # silently dropped, so a primary-variant run of this check
+                # does not read as stronger evidence than it is.
+                "role_scoped_absent": role_scoped_absent,
                 "published_packages": len(published),
                 "repository_metadata_sha256": metadata_digest,
                 "result": "passing",

@@ -49,34 +49,49 @@ frozen = true
 # are therefore the input and the URL is only where it came from: compose.sh
 # verifies every file against them and fails closed on a mismatch, so an
 # upstream rebuild becomes a stopped build rather than a silent substitution.
+#
+# Bumped 2026-08-18 from the 4747.1 snapshot (2026-08-11) to 4792.1: the
+# `workload` variant (C-009) needs systemd-container for systemd-vmspawn
+# (capability.microvm), and dnf5 refused to resolve it -- Fedora's
+# systemd-container-259.5-1.fc44 hard-requires systemd(x86-64) = 259.5-1.fc44
+# exactly, which conflicts with this overlay's systemd. An OBS-built
+# systemd-container matching the *pinned* 4747.1 systemd would resolve that,
+# but OBS's system:systemd project serves only its current build per package
+# (same behavior already recorded for the 4747.1 pin itself); 4747.1 had
+# already rotated off by the time this was needed. 4792.1 was live and is
+# what all seven files below are pinned to, systemd-container included.
 [[packages.overlays]]
 name = "systemd-261"
 source = "https://download.opensuse.org/repositories/system:/systemd/Fedora_44/x86_64"
-reason = "DES-0006 C-013 requires systemd-confext-sysroot.service, new in systemd 261; Fedora 44 stays on 259.x"
+reason = "DES-0006 C-013 requires systemd-confext-sysroot.service, new in systemd 261; Fedora 44 stays on 259.x. systemd-container added 2026-08-18 for capability.microvm (C-009)"
 
 [[packages.overlays.files]]
-name = "systemd-261.999+1208+g827144298-4747.1.x86_64.rpm"
-sha256 = "3b0cffe5baa523cee165ead190c29458544d13e97ec0e0e71ea7c00aa62c9d3f"
+name = "systemd-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "3d3cbc10d6f2ba1cca8b7f4a07f2fbb9f0370c33def6ba0783e7c5d016894417"
 
 [[packages.overlays.files]]
-name = "systemd-boot-261.999+1208+g827144298-4747.1.x86_64.rpm"
-sha256 = "e7744cf72728bbdeb875cc5be9fa65a229af529818d82bc765eedfe228cb9b3c"
+name = "systemd-boot-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "89b5a6bf6b6dc8e9dc7a150195a6325a791da9ab21e10303ee95a3eea203540d"
 
 [[packages.overlays.files]]
-name = "systemd-libs-261.999+1208+g827144298-4747.1.x86_64.rpm"
-sha256 = "45447b7596dbb1b517aa53ad28ee300ca8ada7e3a79816b43c40075033036799"
+name = "systemd-container-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "aa622d943291eb7355bdef20ac0ba1cb9c6cb87cdac707d8ec0fe730e3c2539f"
 
 [[packages.overlays.files]]
-name = "systemd-shared-261.999+1208+g827144298-4747.1.x86_64.rpm"
-sha256 = "260b09775ce0ec3b61517fd18a29e2b6eb4b4d7fdd6a96050502f57ea3b41444"
+name = "systemd-libs-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "4a7ceaa4755aef6b85a0a2af75eac5e0ab3e8670eaebcc9f5d2fb364b0c4ee67"
 
 [[packages.overlays.files]]
-name = "systemd-sysusers-261.999+1208+g827144298-4747.1.x86_64.rpm"
-sha256 = "50d90ca8d1f0ad302882434cfe82262c013e31b4fd7502c87df262faed5b1f27"
+name = "systemd-shared-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "564e05b07153c700be201cf4591633574f7ee426ae046cfc468b6574a0e93e0d"
 
 [[packages.overlays.files]]
-name = "systemd-udev-261.999+1208+g827144298-4747.1.x86_64.rpm"
-sha256 = "878d3ce97b3e40b307ff64bfb85af5c02e203f96e262291c21ea11920d1d22da"
+name = "systemd-sysusers-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "b7cd9baa45520d092cd775d233fd251a0f86cf3444121d6d43191f3352cc480c"
+
+[[packages.overlays.files]]
+name = "systemd-udev-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "86d0f0a0548ca676debf24779beca83fc2e1659d1e624c5c79fd4c387d862a37"
 
 # uwsm is absent from the Fedora 44 GA closure, measured against this file's
 # own repository index (C-011). It is a candidate for capability.session-lifecycle
@@ -103,26 +118,31 @@ sha256 = "7d498bf82299a03ace393cc96342fc86951d5934f5e2b354658aba44f9f6d069"
 
 [[tools]]
 name = "mkosi"
-version = "main@2026-08-11"
+version = "main@2026-08-18"
 identity_kind = "git-commit"
-identity = "d5ff0d0d9884cc4e06900057e2ad44adee29cb8e"
+identity = "9b7d87a1707e39a42cfb54dce5cf745ef7b99a7e"
 note = """Candidate composition fixture, pinned to a commit rather than a branch.
 
 Paired deliberately with the systemd-261 overlay above. That overlay is the OBS
 system:systemd project, which builds systemd from upstream main, and the RPMs
-declared here are the 2026-08-11 snapshot g827144298. The previous pin was the
-v26 tag dereferenced -- 84af2089, 2025-12-17 -- which put an eight-month-old
-mkosi in charge of building a current-main systemd. This commit is dated
-2026-08-11 09:19 -0700 and the systemd snapshot 09:40 -0700, twenty minutes
-apart, so the two declared inputs are contemporaneous.
+declared here are the 2026-08-18 snapshot g57c4a1ea3. The previous pin was
+d5ff0d0d, 2026-08-11, paired twenty minutes apart with the 4747.1 systemd
+snapshot; both moved together on 2026-08-18 when 4747.1 rotated off OBS
+(see the overlay's own note) and the systemd-container package the `workload`
+variant needs had to come from whatever snapshot was current. This commit's
+committer date is 2026-08-18 12:33 UTC and the systemd snapshot's is 17:46
+UTC, five hours apart -- not the twenty minutes the previous pair achieved
+(mkosi main was not moving every twenty minutes at the hour this was pinned),
+but the same day and the closest mkosi commit available, checked against
+upstream's commit history rather than assumed contemporaneous.
 
 The pairing is the reason both lines exist and must move together: bumping one
 without the other reintroduces the skew. ParticleOS, whose configuration this
 follows, declares MinimumVersion=26~devel and tracks mkosi main alongside the
 same OBS repository.
 
-Pinned to a commit, not to main, and not to the v26 tag: an annotated tag is
-mutable and a branch is not an input at all."""
+Pinned to a commit, not to main, and not to a tag: an annotated tag is mutable
+and a branch is not an input at all."""
 
 # The tools tree supplies dnf5 and rpm, which resolve and install every package
 # in the image. It is built from the frozen repository declared above, not from
@@ -144,6 +164,14 @@ packages = [
   "e2fsprogs",
   "erofs-utils",
   "btrfs-progs",
+  # Added for C-009 (state-filesystem candidate set: ext4, XFS, Btrfs). The
+  # tools tree previously carried e2fsprogs and btrfs-progs but no xfsprogs, so
+  # XFS could not be formatted at all -- state-partitions/20-var.conf names
+  # this as the tools-tree gap blocking a second candidate from being built.
+  # xfsprogs-6.18.0-2.fc44.x86_64 and its runtime deps (libedit, inih,
+  # userspace-rcu; libblkid/libuuid already resolve) are measured present in
+  # the frozen Fedora 44 GA closure -- no overlay needed, unlike uwsm.
+  "xfsprogs",
   "squashfs-tools",
   "tar",
   "zstd",

@@ -278,35 +278,50 @@ mise run check:complete -- \
   --artifact confext="$build_root/fixture"
 ```
 
-**No artifact currently satisfies every check that declares `slice`, and this
-is unresolved.** The kind is being asked to be two different things, and after
-the `state` variant and the overlay re-pin no single artifact is both.
-Measured 2026-08-18, one failing either way:
+**The `slice` arm must not be one of the six PLN-0002-06 members**, and the
+`closure` variant exists for that: `primary`'s shape, its own output directory,
+built at the declaration as it currently reads. Two checks need properties no
+member has at once, and composing a variant is what satisfies both without
+rebuilding a member and voiding PLN-0002's tally.
 
-| `slice` arm | `T3-SLICE-002` attribution | `T4-SLICE-002` substitution |
-| --- | --- | --- |
-| a PLN-0002-06 member (`out-erofs`) | fails | passes |
-| a current variant (`out-erofs-workload`) | passes | fails |
+- `T3-SLICE-002` attributes the closure against the declaration as it reads
+  now. The members were built against the `systemd-261` overlay at `4747.1`,
+  re-pinned to `4792.1` on 2026-08-18 because OBS serves only its current build
+  per package and `4747.1` had rotated off.
+- `T4-SLICE-002` asserts SYS-049 on an artifact that declares no durable
+  storage, so the `state`-derived variants fail it correctly: it reports their
+  `/var` and `/home` Btrfs partitions as storage the artifact does not declare.
 
-`T3-SLICE-002` needs a closure built at the pin the declaration now names. The
-members were built against the `systemd-261` overlay at `4747.1`, re-pinned to
-`4792.1` on 2026-08-18 because OBS serves only its current build per package
-and `4747.1` had rotated off (`src/slice/input-set.toml`); rebuilding a member
-to fix that would void PLN-0002's tally.
+Reaching that arrangement exposed two defects, both fixed 2026-08-18 and both
+of which had been masked. **With `repository` undeclared, `T3-SLICE-002`
+blocked rather than failed**, so a run against a member reported passing checks
+and two blocked ones and neither defect surfaced. Blocking one of two
+conflicting checks is not the same as satisfying both.
 
-`T4-SLICE-002` needs an artifact that declares no durable storage -- it asserts
-SYS-049 on the member shape, and reports the `state` variant's `/var` and
-`/home` Btrfs partitions as storage the artifact does not declare. Correctly:
-that is what it is for.
+The first was a misstated declaration. `systemd-container` was declared inside
+the `systemd-261` overlay, whose other files are base-closure content present
+in every artifact, while only `capability.microvm` selects it and only the
+`workflow` stage requests it. It is now its own overlay, the shape `uwsm`
+already had; the two pins must still be bumped together, and that overlay's
+note says so.
 
-**The declaration hid this until both checks could run at once.** With
-`repository` undeclared, `T3-SLICE-002` blocked rather than failed, so a run
-against a member reported 22 passing and 2 blocked and the contradiction never
-surfaced. Blocking one of two conflicting checks is not the same as satisfying
-both. Whether the fix is a second declared kind for the current closure, a
-member-shaped composition at the current pin, or a narrower subject for one of
-the two checks, is the owner's -- it changes what an accepted record was
-measured against.
+The second was in the check. Role scope is a property of a package, not of the
+overlay holding it, but `T3-SLICE-002` read it from the overlay's name -- which
+worked only while an overlay was named after its single package, and is why a
+misfiled file broke attribution instead of being caught as a misstatement.
+`provides_role_package()` now matches per file, against the package names
+`capabilities.toml` selects: RPM forbids `-` in version and release, so a file
+belongs to package `P` exactly when it starts with `P-` and the remainder holds
+one `-`. This is membership against a known name, not a name parsed out of a
+filename, which the same check refuses to do for NEVRA and for the same reason.
+The overlay-name route is kept beside it, for an overlay carrying a dependency
+of its role package under another name.
+
+Verified failure-sensitive against two injected declarations, each naming only
+the injected file: a base-closure overlay file that nothing ships
+(`systemd-resolved`, the resolved-elsewhere fault this direction exists to
+catch), and a near-miss a bare prefix test would have excused
+(`systemd-container-extras`, rejected by the hyphen count).
 
 The kinds each name a separate artifact and must not be pointed at one
 another: `state`, `session` and `workload` carry partitions the PLN-0002-06

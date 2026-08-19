@@ -395,6 +395,34 @@ def role_scoped_overlay_names() -> set[str]:
     return names
 
 
+def provides_role_package(filename: str, selected: set[str]) -> bool:
+    """Whether one declared overlay file is a package a capability selects.
+
+    Per file, because scope is a property of a package and not of the overlay
+    holding it. Matching the overlay's name alone worked only while an overlay
+    was named after its one package: `systemd-container` was declared inside
+    `systemd-261` on 2026-08-18 and inherited "base closure, in every variant"
+    from six files that are, which failed attribution on every artifact
+    requesting no role packages.
+
+    Membership against a known name, never a name parsed out of a filename --
+    the distinction the NEVRA comment below relies on. RPM forbids `-` in both
+    version and release, so a file belongs to package `P` exactly when it
+    starts with `P-` and the remainder holds one `-`. That is what rejects
+    `systemd` for a systemd-container file, which a bare prefix test accepts.
+
+    The overlay-name route is kept beside this one rather than replaced: an
+    overlay may carry a dependency of its role package under another name, and
+    that file is absent for the same reason its package is.
+    """
+    for package in selected:
+        if not filename.startswith(f"{package}-"):
+            continue
+        if filename[len(package) + 1 :].count("-") == 1:
+            return True
+    return False
+
+
 def check_repository_attribution() -> int:
     from tools.validation.check import SLICE_ARTIFACT_ENV, SLICE_REPOSITORY_ENV
 
@@ -472,8 +500,13 @@ def check_repository_attribution() -> int:
     # with.
     role_scoped = role_scoped_overlay_names()
     missing = sorted(set(overlay_published) - set(overlay_attributed))
-    unshipped = [name for name in missing if overlay_published[name] not in role_scoped]
-    role_scoped_absent = [name for name in missing if overlay_published[name] in role_scoped]
+    unshipped = [
+        name
+        for name in missing
+        if overlay_published[name] not in role_scoped
+        and not provides_role_package(name, role_scoped)
+    ]
+    role_scoped_absent = [name for name in missing if name not in unshipped]
     if unshipped:
         failures.append(
             "declared overlay packages are absent from the shipped closure:\n  "

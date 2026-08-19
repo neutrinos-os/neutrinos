@@ -2,95 +2,76 @@
 
 ## The test
 
-Before proposing or starting work, answer both:
+Before starting work, answer both:
 
-1. **Which [charter](docs/project/charter.md) criterion (CH-001..CH-007) does
-   this unblock?** "None" means it is a preference with a document attached.
-   Six of the seven need a machine that installs, boots, updates and rolls back,
-   so work that does not move toward one is usually not the work.
+1. **Does this move toward a machine that installs, boots, updates and rolls
+   back?** Six of the seven [charter](docs/project/charter.md) criteria need
+   one. "No" means it is a preference with a document attached.
 2. **What does it cost to reverse?** A rebuild is cheap: default it and move on.
-   A physical visit to an enrolled machine is not: that is where a gate, a
-   review and measurement belong.
+   A physical visit to a real machine is not; that is where care and
+   measurement belong.
 
 Rigour scales with **reversibility, not with how foundational a choice feels**.
 The `/usr` filesystem format consumed a plan, a review, fourteen tasks and
 54,000 words; it is `Format=` in one repart file, selected by
-`NEUTRINOS_SLICE_ARM`, and it appears in no CH criterion. Do not repeat that
-shape.
+`NEUTRINOS_SLICE_ARM`. Do not repeat that shape.
 
-Prefer working code over prose. A document must name what it unblocks.
+**Prefer working code over prose.** A document must name what it unblocks.
 
 ## Read
 
-- Goals and priorities: [charter](docs/project/charter.md) and
-  [principles](docs/project/principles.md), ~1,000 words together and accepted.
-  They are the standing brief; read them when the question is what to do next.
-- Read-only status/orientation/report: read only this file +
-  [current context](docs/project/current-context.md). Hard stop.
-- Exception: when the user explicitly names or asks to verify one authority,
-  open only that source (example: ADR-0001 for systemd-first).
-- A request for citations or loaded-instruction files does not authorize source
-  discovery. Cite paths from current context; report only files actually read.
-- Read-only task: do not run validation commands. Report requirements only.
-- Execution/edit: active plan + only sources governing the exact change/risk.
+- [charter](docs/project/charter.md) and [principles](docs/project/principles.md):
+  ~1,000 words together, the standing brief. Read when the question is what to
+  do next.
+- [current context](docs/project/current-context.md): where the build actually
+  is, how to build and boot it, what is missing, what has already cost time.
+- On demand: [terms](docs/project/glossary.md); [ADRs](docs/adrs/README.md);
+  [questions](docs/project/decision-backlog.md);
+  [risks](docs/project/risk-register.md).
 - Never cold-read `docs/research/results/`, session history, or every linked
-  source. Use only for an explicit evidence/history task.
-- On-demand: [terms](docs/project/glossary.md); [ADRs](docs/adrs/README.md);
-  [questions](docs/project/decision-backlog.md); [risks](docs/project/risk-register.md).
-  `work-register.md` is deleted; its facts live in their owning records.
-
-## Authority
-
-- Sole acceptance authority: Jason Tarasovic. Agents draft/challenge/recommend;
-  never accept decisions, designs, requirements, ADRs, plans, or gates.
-- Accepted records/requirements: policy. Accepted ADRs: architecture. Designs:
-  arguments. Research/background: evidence/history. Plans: bounded work
-  authority only. Summaries/issues/PRs: non-authoritative.
-- Never promote preference, candidate, fixture, transcript remark, experiment,
-  or implementation accident into a decision.
+  source. Those are for an explicit evidence or history task.
+- Cite only paths actually read.
 
 ## Defaults
 
-- Pre-implementation docs phase. No NeutrinOS source code until plan + gate
-  explicitly authorize it. **Agent-authored and never ratified by the owner**,
-  unlike the charter and ADRs; it contradicts "prefer working code" above, and
-  is the reason nothing has booted. Do not cite it as a decision. Suspending it
-  is the owner's, and asking is cheaper than writing around it.
-- systemd-first: [ADR-0001](docs/adrs/0001-systemd-first.md). Overlapping
+- **Build it.** Writing NeutrinOS source needs no plan, gate or sign-off.
+  Disposable VMs and scratch disks are the working environment and a rebuild is
+  the undo.
+- systemd-first: [ADR-0001](docs/adrs/0001-systemd-first.md). An overlapping
   alternative requires recorded evidence.
 - Bounded, declarative, reviewable, non-Turing-complete operator config; exact
   upstream-native config remains available.
-- Separate policy / mechanism / evidence / implementation / rollout authority.
-- Use existing IDs, terms, templates, design/review pairs, ADR workflow.
+- Use existing IDs, terms, templates and the ADR workflow. Record a decision
+  when it is made, not in advance of making it.
+- Working code beats a candidate label. If a fixture has survived long enough to
+  be load-bearing, write the ADR or replace it.
 
 ## Safety
 
-- No mutation of `desktop-jason`, `router`, `misc`, other physical/production
-  hosts without an accepted plan naming the exact mutation.
-- No production signing, Secure Boot, enrollment, recovery, fleet, machine, or
-  credential authority in development/tests.
-- No push, merge, release, publication, or other remote write without explicit
-  user request.
-- Scope/authority crossing, accidental deferred decision, unreliable evidence:
-  stop; return to review.
+These are about damage that is not a rebuild away.
+
+- No mutation of `desktop-jason`, `router`, `misc` or any other physical or
+  production host. VMs and spare disks only.
+- No production signing, Secure Boot enrollment, recovery, fleet or credential
+  material in development or tests. Synthetic fixtures only.
+- No push, merge, release or publication without an explicit request.
 
 ## Work
 
-- Before edits: `git status`; preserve unrelated tracked/untracked/staged work.
-- After edits: `mise run check:fast`; run additional checks required by the
-  governing plan. Bootstrap/details: [validation](docs/project/validation.md).
-  Report checks run/not run.
+- Before edits: `git status`; preserve unrelated tracked, untracked and staged
+  work.
+- After edits: `mise run check:fast`. Report what ran and what did not.
+  Bootstrap and details: [validation](docs/project/validation.md).
 - Editing `tools/validation/`: `mise run check:complete`, not `check:fast`.
   Every VM and fixture check is `complete`-only, so `fast` cannot see the code
   being changed. Do not edit the tree while it runs; it asserts repository state
   is unchanged, and an edit mid-run trips that assertion.
-- Small coherent commits; only after user approval/request; no unrelated work.
-- Update the source and `current-context.md` together when its declared triggers
-  fire. Keep that file under 1,100 words; move detail to the owning record.
-- Multi-agent only by explicit user request. Per task: owner + file scope +
-  isolated worktree/branch. No concurrent same-file edits. Integrator owns
-  shared-file conflict resolution.
-- Agent memory: non-authoritative; never sole home of decisions/results/next
+- Small coherent commits, on request; no unrelated work folded in.
+- Update the source and `current-context.md` together when what that file says
+  stops being true. Keep it under 1,100 words; detail goes to the owning record.
+- Multi-agent only by explicit request. Per task: owner + file scope + isolated
+  worktree or branch. No concurrent same-file edits.
+- Agent memory is non-authoritative; never the sole home of a result or a next
   action.
 - **NEVER `pgrep`, `pkill`, or `ps | grep`.** No exception, no last resort. A
   name pattern is not a process identity: the searching command's own argv
@@ -126,7 +107,7 @@ the same defect in mechanism.
 
 - Concise by default. Pointers, bullets, sentence fragments. Prose only when it
   improves precision.
-- Lead with outcome. Preserve required facts, evidence, caveats, decisions,
-  blockers, next action. Cut narration, repetition, generic reassurance.
-- Handoff: plan/task; scope; changed/preserved files; checks/evidence;
-  accepted vs candidate/open; blockers/risks; exact next action.
+- Lead with outcome. Preserve required facts, evidence, caveats, blockers, next
+  action. Cut narration, repetition, generic reassurance.
+- Handoff: what changed; what was preserved; checks run and their result; what
+  is measured versus assumed; blockers; exact next action.

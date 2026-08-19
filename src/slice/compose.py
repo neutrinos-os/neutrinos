@@ -38,6 +38,7 @@ VARIANT_SEED = "8c1e5b47-2d93-4f60-a1e8-7d4c2f0b93a5"
 
 VARIANTS = (
     "primary",
+    "closure",
     "content",
     "seed",
     "state",
@@ -104,6 +105,14 @@ def variant_arguments(variant: str, role: str) -> list[str]:
     would make a task 10 failure unattributable.
     """
     if variant == "primary":
+        return []
+    # `closure` moves nothing, which is the point: it is `primary`'s shape at
+    # the declaration as it currently reads, and it exists only to get an
+    # output directory that is not a retained PLN-0002-06 member. Validation
+    # needs both properties at once and no member has the second -- they were
+    # built against the `systemd-261` overlay at a pin that has since rotated
+    # off OBS, and rebuilding one into `out-erofs` would void PLN-0002's tally.
+    if variant == "closure":
         return []
     if variant == "content":
         return [f"--extra-tree={COMPOSITION / 'mkosi.extra.variant-content'}"]

@@ -58,12 +58,14 @@ frozen = true
 # systemd-container matching the *pinned* 4747.1 systemd would resolve that,
 # but OBS's system:systemd project serves only its current build per package
 # (same behavior already recorded for the 4747.1 pin itself); 4747.1 had
-# already rotated off by the time this was needed. 4792.1 was live and is
-# what all seven files below are pinned to, systemd-container included.
+# already rotated off by the time this was needed. 4792.1 is what this overlay
+# and the systemd-container overlay below are both pinned to, and they must be
+# bumped together: OBS builds them from one source and dnf5 refuses a
+# systemd-container whose systemd(x86-64) dependency is not satisfied exactly.
 [[packages.overlays]]
 name = "systemd-261"
 source = "https://download.opensuse.org/repositories/system:/systemd/Fedora_44/x86_64"
-reason = "DES-0006 C-013 requires systemd-confext-sysroot.service, new in systemd 261; Fedora 44 stays on 259.x. systemd-container added 2026-08-18 for capability.microvm (C-009)"
+reason = "DES-0006 C-013 requires systemd-confext-sysroot.service, new in systemd 261; Fedora 44 stays on 259.x"
 
 [[packages.overlays.files]]
 name = "systemd-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
@@ -72,10 +74,6 @@ sha256 = "3d3cbc10d6f2ba1cca8b7f4a07f2fbb9f0370c33def6ba0783e7c5d016894417"
 [[packages.overlays.files]]
 name = "systemd-boot-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
 sha256 = "89b5a6bf6b6dc8e9dc7a150195a6325a791da9ab21e10303ee95a3eea203540d"
-
-[[packages.overlays.files]]
-name = "systemd-container-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
-sha256 = "aa622d943291eb7355bdef20ac0ba1cb9c6cb87cdac707d8ec0fe730e3c2539f"
 
 [[packages.overlays.files]]
 name = "systemd-libs-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
@@ -92,6 +90,26 @@ sha256 = "b7cd9baa45520d092cd775d233fd251a0f86cf3444121d6d43191f3352cc480c"
 [[packages.overlays.files]]
 name = "systemd-udev-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
 sha256 = "86d0f0a0548ca676debf24779beca83fc2e1659d1e624c5c79fd4c387d862a37"
+
+# systemd-container is declared separately from the systemd it must match,
+# because it is not base-closure content: `capability.microvm` selects it and
+# only the `workflow` stage requests it, so every variant that requests no role
+# packages ships without it legitimately. That distinction is what
+# T3-SLICE-002 reads to tell "the build resolved this elsewhere" from "no stage
+# here asked for it", and it reads it by overlay name -- the same way uwsm
+# below is told apart. Declared inside systemd-261 until 2026-08-18, which made
+# its absence from a storage-free artifact look like a resolution defect.
+#
+# Same source and same pin as systemd-261 by necessity, not convenience: see
+# that overlay's note. Bumping one without the other does not resolve.
+[[packages.overlays]]
+name = "systemd-container"
+source = "https://download.opensuse.org/repositories/system:/systemd/Fedora_44/x86_64"
+reason = "systemd-vmspawn ships in systemd-container; capability.microvm (C-009) requires it and Fedora's build hard-requires a systemd this overlay replaces"
+
+[[packages.overlays.files]]
+name = "systemd-container-261.999+1413+g57c4a1ea3-4792.1.x86_64.rpm"
+sha256 = "aa622d943291eb7355bdef20ac0ba1cb9c6cb87cdac707d8ec0fe730e3c2539f"
 
 # uwsm is absent from the Fedora 44 GA closure, measured against this file's
 # own repository index (C-011). It is a candidate for capability.session-lifecycle
